@@ -1,0 +1,1052 @@
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local Stats = game:GetService("Stats")
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+local flying, walkOn, espOn, namesOn, healthBarOn, noclipOn, jumpOn = false, false, false, true, false, false, false
+local infiniteJumpOn = false
+local aimbotOn = false
+local shaderOn = false
+
+-- Rage Bot 변수
+local rageBotOn = false
+local rageStuds = 5000
+
+-- Silent Aim 변수
+local silentAimOn = false
+local silentAimTargetPart = "head" -- "head" 또는 "torso"
+local silentAimFOV = 200
+
+local flySpeed, walkSpeed, jumpPower, gammaValue = 70, 16, 50, 1
+local aimbotSmoothness = 50
+local aimbotTargetPart = "head"
+local espColor = Color3.fromRGB(255, 70, 70)
+
+local attachment, velocity, orientation, flyConnection, noclipConnection, aimbotConnection, rageConnection, infiniteJumpConnection
+local collisionValues = {}
+
+-- 실행기 호환성 예외 처리 함수들
+local checkcaller_fn = checkcaller or function() return false end
+local newcclosure_fn = newcclosure or function(f) return f end
+
+local function parts()
+	local character = player.Character or player.CharacterAdded:Wait()
+	return character:WaitForChild("Humanoid"), character:WaitForChild("HumanoidRootPart")
+end
+
+-- Gamma setup
+local gamma = Lighting:FindFirstChild("AntiRivalGamma") or Instance.new("ColorCorrectionEffect")
+gamma.Name = "AntiRivalGamma"
+gamma.Parent = Lighting
+
+-- Shader Instances
+local shaderBloom = Instance.new("BloomEffect")
+shaderBloom.Name = "LocalShader_Bloom"
+shaderBloom.Intensity = 1.2
+shaderBloom.Size = 30
+shaderBloom.Threshold = 0.8
+shaderBloom.Enabled = false
+shaderBloom.Parent = Lighting
+
+local shaderCC = Instance.new("ColorCorrectionEffect")
+shaderCC.Name = "LocalShader_CC"
+shaderCC.Brightness = 0.05
+shaderCC.Contrast = 0.25
+shaderCC.Saturation = 0.35
+shaderCC.TintColor = Color3.fromRGB(255, 245, 235)
+shaderCC.Enabled = false
+shaderCC.Parent = Lighting
+
+local shaderSunRays = Instance.new("SunRaysEffect")
+shaderSunRays.Name = "LocalShader_SunRays"
+shaderSunRays.Intensity = 0.25
+shaderSunRays.Spread = 1
+shaderSunRays.Enabled = false
+shaderSunRays.Parent = Lighting
+
+-- UI Setup (Anti-Rival 적용)
+local old = player:WaitForChild("PlayerGui"):FindFirstChild("AntiRival")
+if old then old:Destroy() end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "AntiRival"
+gui.ResetOnSpawn = false
+gui.Parent = player.PlayerGui
+
+local window = Instance.new("Frame")
+window.AnchorPoint = Vector2.new(0.5, 0.5)
+window.Position = UDim2.fromScale(0.5, 0.5)
+window.Size = UDim2.fromOffset(680, 480)
+window.BackgroundColor3 = Color3.fromRGB(14, 15, 18)
+window.BorderColor3 = Color3.fromRGB(60, 62, 70)
+window.BorderSizePixel = 1
+window.Visible = false
+window.Parent = gui
+
+-- 마우스 감금 해제용 Modal 버튼
+local modalButton = Instance.new("TextButton")
+modalButton.Size = UDim2.fromScale(1, 1)
+modalButton.BackgroundTransparency = 1
+modalButton.Text = ""
+modalButton.Modal = true
+modalButton.Parent = window
+
+-- 지속적 커서 잠금 해제
+RunService.RenderStepped:Connect(function()
+	if window.Visible then
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		UserInputService.MouseIconEnabled = true
+	end
+end)
+
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 32)
+header.BackgroundColor3 = Color3.fromRGB(22, 23, 28)
+header.BorderSizePixel = 0
+header.Parent = window
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.fromOffset(220, 32)
+title.Position = UDim2.fromOffset(12, 0)
+title.BackgroundTransparency = 1
+title.Text = "Anti-Rival | RIVALS"
+title.TextColor3 = Color3.fromRGB(245, 245, 245)
+title.TextSize = 14
+title.Font = Enum.Font.Code
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+local statsLabel = Instance.new("TextLabel")
+statsLabel.AnchorPoint = Vector2.new(0.5, 0)
+statsLabel.Position = UDim2.new(0.5, 0, 0, 0)
+statsLabel.Size = UDim2.fromOffset(190, 32)
+statsLabel.BackgroundTransparency = 1
+statsLabel.Text = "FPS: --  |  Ping: --"
+statsLabel.TextColor3 = Color3.fromRGB(150, 170, 220)
+statsLabel.TextSize = 12
+statsLabel.Font = Enum.Font.Code
+statsLabel.Parent = header
+
+local hint = Instance.new("TextLabel")
+hint.Size = UDim2.fromOffset(180, 32)
+hint.Position = UDim2.new(1, -190, 0, 0)
+hint.BackgroundTransparency = 1
+hint.Text = "RightShift · Toggle UI"
+hint.TextColor3 = Color3.fromRGB(130, 135, 145)
+hint.TextSize = 11
+hint.TextXAlignment = Enum.TextXAlignment.Right
+hint.Font = Enum.Font.Code
+hint.Parent = header
+
+local tabs = Instance.new("Frame")
+tabs.Size = UDim2.new(1, -16, 0, 36)
+tabs.Position = UDim2.fromOffset(8, 38)
+tabs.BackgroundColor3 = Color3.fromRGB(18, 19, 23)
+tabs.BorderColor3 = Color3.fromRGB(55, 57, 64)
+tabs.Parent = window
+
+local content = Instance.new("Frame")
+content.Size = UDim2.new(1, -16, 1, -88)
+content.Position = UDim2.fromOffset(8, 80)
+content.BackgroundColor3 = Color3.fromRGB(17, 18, 22)
+content.BorderColor3 = Color3.fromRGB(55, 57, 64)
+content.Parent = window
+
+local pages, tabButtons = {}, {}
+
+local function page(name)
+	local frame = Instance.new("Frame")
+	frame.Name = name
+	frame.Size = UDim2.fromScale(1, 1)
+	frame.BackgroundTransparency = 1
+	frame.Visible = false
+	frame.Parent = content
+	pages[name] = frame
+	return frame
+end
+
+local movement = page("movement")
+local visuals = page("visuals")
+local playerPage = page("player")
+local ragePage = page("rage")
+local world = page("world")
+local collision = page("collision")
+
+local function showPage(name)
+	for pageName, frame in pairs(pages) do
+		frame.Visible = pageName == name
+	end
+
+	for tabName, button in pairs(tabButtons) do
+		button.BackgroundColor3 = tabName == name
+			and Color3.fromRGB(58, 92, 160)
+			or Color3.fromRGB(22, 23, 28)
+	end
+end
+
+local function tab(text, name, x)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.fromOffset(102, 26)
+	button.Position = UDim2.fromOffset(x, 5)
+	button.BackgroundColor3 = Color3.fromRGB(22, 23, 28)
+	button.BorderColor3 = Color3.fromRGB(70, 72, 80)
+	button.Text = text
+	button.TextColor3 = Color3.fromRGB(235, 235, 238)
+	button.TextSize = 12
+	button.Font = Enum.Font.Code
+	button.Parent = tabs
+	button.MouseButton1Click:Connect(function() showPage(name) end)
+	tabButtons[name] = button
+end
+
+tab("movement", "movement", 6)
+tab("visuals", "visuals", 112)
+tab("player", "player", 218)
+tab("rage", "rage", 324)
+tab("world", "world", 430)
+tab("collision", "collision", 536)
+
+local function heading(parent, text)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -20, 0, 32)
+	label.Position = UDim2.fromOffset(10, 8)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(238, 238, 242)
+	label.TextSize = 16
+	label.Font = Enum.Font.Code
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = parent
+end
+
+local function textbox(parent, text, value, y)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromOffset(220, 28)
+	label.Position = UDim2.fromOffset(16, y)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(210, 210, 215)
+	label.TextSize = 13
+	label.Font = Enum.Font.Code
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = parent
+
+	local box = Instance.new("TextBox")
+	box.Size = UDim2.fromOffset(100, 26)
+	box.Position = UDim2.fromOffset(250, y)
+	box.BackgroundColor3 = Color3.fromRGB(43, 46, 56)
+	box.BorderColor3 = Color3.fromRGB(78, 82, 94)
+	box.Text = tostring(value)
+	box.ClearTextOnFocus = false
+	box.TextColor3 = Color3.new(1, 1, 1)
+	box.TextSize = 13
+	box.Font = Enum.Font.Code
+	box.Parent = parent
+
+	return box
+end
+
+local function toggle(parent, text, y)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.fromOffset(335, 30)
+	button.Position = UDim2.fromOffset(16, y)
+	button.BackgroundColor3 = Color3.fromRGB(120, 52, 52)
+	button.BorderColor3 = Color3.fromRGB(180, 70, 70)
+	button.Text = text .. ": OFF"
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.TextSize = 13
+	button.Font = Enum.Font.Code
+	button.Parent = parent
+	return button
+end
+
+local function setToggle(button, enabled, text)
+	button.Text = text .. (enabled and ": ON" or ": OFF")
+	button.BackgroundColor3 = enabled
+		and Color3.fromRGB(47, 118, 75)
+		or Color3.fromRGB(120, 52, 52)
+	button.BorderColor3 = enabled
+		and Color3.fromRGB(75, 180, 112)
+		or Color3.fromRGB(180, 70, 70)
+end
+
+-- Movement
+heading(movement, "movement")
+local flyBox = textbox(movement, "fly speed  (1–500)", flySpeed, 55)
+local flyButton = toggle(movement, "fly", 88)
+local walkBox = textbox(movement, "walk speed  (1–500)", walkSpeed, 143)
+local walkButton = toggle(movement, "walk speed", 176)
+
+-- Visuals
+heading(visuals, "visuals")
+local espButton = toggle(visuals, "player esp", 55)
+local namesButton = toggle(visuals, "player names", 92)
+local healthBarButton = toggle(visuals, "health bar", 129)
+
+local colorText = Instance.new("TextLabel")
+colorText.Size = UDim2.fromOffset(130, 25)
+colorText.Position = UDim2.fromOffset(16, 170)
+colorText.BackgroundTransparency = 1
+colorText.Text = "esp color (RGB)"
+colorText.TextColor3 = Color3.fromRGB(210, 210, 215)
+colorText.TextSize = 13
+colorText.Font = Enum.Font.Code
+colorText.TextXAlignment = Enum.TextXAlignment.Left
+colorText.Parent = visuals
+
+local function rgbBox(value, x)
+	local box = Instance.new("TextBox")
+	box.Size = UDim2.fromOffset(62, 25)
+	box.Position = UDim2.fromOffset(x, 170)
+	box.BackgroundColor3 = Color3.fromRGB(43, 46, 56)
+	box.BorderColor3 = Color3.fromRGB(78, 82, 94)
+	box.Text = tostring(value)
+	box.ClearTextOnFocus = false
+	box.TextColor3 = Color3.new(1, 1, 1)
+	box.TextSize = 13
+	box.Font = Enum.Font.Code
+	box.Parent = visuals
+	return box
+end
+
+local redBox = rgbBox(255, 150)
+local greenBox = rgbBox(70, 218)
+local blueBox = rgbBox(70, 286)
+
+-- Player
+heading(playerPage, "player options")
+local jumpBox = textbox(playerPage, "jump power  (1–100)", jumpPower, 40)
+local jumpButton = toggle(playerPage, "jump power", 70)
+
+-- Infinite Jump 토글 추가
+local infJumpButton = toggle(playerPage, "infinite jump", 105)
+
+local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 145)
+local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 175)
+
+local aimbotPartButton = Instance.new("TextButton")
+aimbotPartButton.Size = UDim2.fromOffset(335, 26)
+aimbotPartButton.Position = UDim2.fromOffset(16, 210)
+aimbotPartButton.BackgroundColor3 = Color3.fromRGB(43, 46, 56)
+aimbotPartButton.BorderColor3 = Color3.fromRGB(78, 82, 94)
+aimbotPartButton.Text = "aimbot target: HEAD"
+aimbotPartButton.TextColor3 = Color3.fromRGB(235, 235, 238)
+aimbotPartButton.TextSize = 12
+aimbotPartButton.Font = Enum.Font.Code
+aimbotPartButton.Parent = playerPage
+
+-- Silent Aim 세팅
+local silentAimButton = toggle(playerPage, "silent aim", 242)
+local silentAimBox = textbox(playerPage, "silent aim fov (1–5000)", silentAimFOV, 275)
+
+local silentAimPartButton = Instance.new("TextButton")
+silentAimPartButton.Size = UDim2.fromOffset(335, 26)
+silentAimPartButton.Position = UDim2.fromOffset(16, 308)
+silentAimPartButton.BackgroundColor3 = Color3.fromRGB(43, 46, 56)
+silentAimPartButton.BorderColor3 = Color3.fromRGB(78, 82, 94)
+silentAimPartButton.Text = "silent target: HEAD"
+silentAimPartButton.TextColor3 = Color3.fromRGB(235, 235, 238)
+silentAimPartButton.TextSize = 12
+silentAimPartButton.Font = Enum.Font.Code
+silentAimPartButton.Parent = playerPage
+
+-- Rage
+heading(ragePage, "rage bot")
+local rageButton = toggle(ragePage, "rage bot", 55)
+local rageStudsBox = textbox(ragePage, "detection range (1–5000 studs)", rageStuds, 92)
+
+-- World
+heading(world, "world")
+local gammaBox = textbox(world, "gamma  (1–100)", gammaValue, 55)
+local shaderButton = toggle(world, "custom shader", 98)
+
+-- Collision
+heading(collision, "collision")
+local noclipButton = toggle(collision, "noclip", 55)
+
+-- ================= [ 기능 구현 ] =================
+
+-- Infinite Jump 이벤트 처리
+infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
+	if infiniteJumpOn then
+		local character = player.Character
+		if character then
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			end
+		end
+	end
+end)
+
+local function toggleShader()
+	shaderOn = not shaderOn
+	shaderBloom.Enabled = shaderOn
+	shaderCC.Enabled = shaderOn
+	shaderSunRays.Enabled = shaderOn
+	setToggle(shaderButton, shaderOn, "custom shader")
+end
+
+local function getTargetPart(character, targetPartType)
+	if not character then return nil end
+	if targetPartType == "head" then
+		return character:FindFirstChild("Head")
+	else
+		return character:FindFirstChild("HumanoidRootPart")
+			or character:FindFirstChild("UpperTorso")
+			or character:FindFirstChild("Torso")
+	end
+end
+
+-- FOV 감지 타깃 검색
+local function getClosestTarget(maxDistance, targetPartType)
+	local camera = workspace.CurrentCamera
+	if not camera then return nil end
+
+	local closestPart = nil
+	local shortestDistance = maxDistance or math.huge
+	local viewportCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+
+	for _, target in Players:GetPlayers() do
+		if target ~= player and target.Character then
+			local part = getTargetPart(target.Character, targetPartType)
+			local humanoid = target.Character:FindFirstChild("Humanoid")
+
+			if part and humanoid and humanoid.Health > 0 then
+				local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
+				if onScreen then
+					local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
+					if mouseDist < shortestDistance then
+						shortestDistance = mouseDist
+						closestPart = part
+					end
+				end
+			end
+		end
+	end
+	return closestPart
+end
+
+-- ================= [ 안전한 Silent Aim 구현 ] =================
+pcall(function()
+	if typeof(hookmetamethod) == "function" then
+		local oldNamecall
+		oldNamecall = hookmetamethod(game, "__namecall", newcclosure_fn(function(self, ...)
+			local method = getnamecallmethod and getnamecallmethod() or ""
+			local args = {...}
+
+			if silentAimOn and not checkcaller_fn() then
+				if method == "Raycast" then
+					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
+					if targetPart then
+						local origin = args[1]
+						if typeof(origin) == "Vector3" then
+							args[2] = (targetPart.Position - origin).Unit * 10000
+							return oldNamecall(self, table.unpack(args))
+						end
+					end
+				elseif method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRay" then
+					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
+					if targetPart then
+						local origin = workspace.CurrentCamera.CFrame.Position
+						local ray = Ray.new(origin, (targetPart.Position - origin).Unit * 10000)
+						args[1] = ray
+						return oldNamecall(self, table.unpack(args))
+					end
+				end
+			end
+
+			return oldNamecall(self, ...)
+		end))
+
+		local oldIndex
+		oldIndex = hookmetamethod(game, "__index", newcclosure_fn(function(self, index)
+			if silentAimOn and not checkcaller_fn() then
+				if typeof(self) == "Instance" and self:IsA("Mouse") then
+					if index == "Hit" then
+						local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
+						if targetPart then
+							return targetPart.CFrame
+						end
+					elseif index == "Target" then
+						local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
+						if targetPart then
+							return targetPart
+						end
+					end
+				end
+			end
+			return oldIndex(self, index)
+		end))
+	end
+end)
+
+-- Rage Bot 전용 감지
+local function getRageTargetHead()
+	local myChar = player.Character
+	if not myChar then return nil end
+	local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+	if not myRoot then return nil end
+
+	local closestHead = nil
+	local shortestDistance = rageStuds
+
+	for _, target in Players:GetPlayers() do
+		if target ~= player and target.Character then
+			local head = target.Character:FindFirstChild("Head")
+			local humanoid = target.Character:FindFirstChild("Humanoid")
+
+			if head and humanoid and humanoid.Health > 0 then
+				local dist = (myRoot.Position - head.Position).Magnitude
+				if dist <= shortestDistance then
+					shortestDistance = dist
+					closestHead = head
+				end
+			end
+		end
+	end
+	return closestHead
+end
+
+-- Rage Bot Loop
+rageConnection = RunService.Heartbeat:Connect(function()
+	if not rageBotOn then return end
+
+	local targetHead = getRageTargetHead()
+	if targetHead then
+		local myChar = player.Character
+		if myChar then
+			local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+			if myRoot then
+				myRoot.CFrame = CFrame.new(targetHead.Position + Vector3.new(0, 7, 0))
+			end
+		end
+	end
+end)
+
+-- Aimbot Loop
+aimbotConnection = RunService.RenderStepped:Connect(function()
+	if not aimbotOn then return end
+
+	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+		local targetPart = getClosestTarget(math.huge, aimbotTargetPart)
+		if targetPart then
+			local camera = workspace.CurrentCamera
+			local targetCFrame = CFrame.lookAt(camera.CFrame.Position, targetPart.Position)
+			local alpha = math.clamp(aimbotSmoothness / 150, 0.01, 1)
+			camera.CFrame = camera.CFrame:Lerp(targetCFrame, alpha)
+		end
+	end
+end)
+
+-- Health Bar
+local function createHealthGui(character, targetPlayer)
+	if targetPlayer == player or not healthBarOn then return end
+
+	local head = character:WaitForChild("Head", 5)
+	local humanoid = character:WaitForChild("Humanoid", 5)
+	if not head or not humanoid then return end
+
+	local old = head:FindFirstChild("HealthBillboard")
+	if old then old:Destroy() end
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "HealthBillboard"
+	billboard.Adornee = head
+	billboard.AlwaysOnTop = true
+	billboard.Size = UDim2.fromOffset(120, 42)
+	billboard.StudsOffset = Vector3.new(0, 2.8, 0)
+	billboard.Parent = head
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1,0,0,18)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Font = Enum.Font.Code
+	nameLabel.TextScaled = true
+	nameLabel.TextStrokeTransparency = 0
+	nameLabel.TextColor3 = Color3.new(1,1,1)
+	nameLabel.Text = targetPlayer.Name
+	nameLabel.Parent = billboard
+
+	local back = Instance.new("Frame")
+	back.Size = UDim2.new(1,-10,0,10)
+	back.Position = UDim2.new(0,5,0,24)
+	back.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	back.BorderSizePixel = 0
+	back.Parent = billboard
+
+	local corner = Instance.new("UICorner")
+	corner.Parent = back
+
+	local bar = Instance.new("Frame")
+	bar.Name = "Bar"
+	bar.Size = UDim2.fromScale(1,1)
+	bar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+	bar.BorderSizePixel = 0
+	bar.Parent = back
+
+	local barCorner = Instance.new("UICorner")
+	barCorner.Parent = bar
+
+	local hp = Instance.new("TextLabel")
+	hp.Size = UDim2.new(1,0,0,14)
+	hp.Position = UDim2.new(0,0,1,2)
+	hp.BackgroundTransparency = 1
+	hp.Font = Enum.Font.Code
+	hp.TextScaled = true
+	hp.TextStrokeTransparency = 0
+	hp.TextColor3 = Color3.new(1,1,1)
+	hp.Parent = billboard
+
+	local function update()
+		local percent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+		bar.Size = UDim2.new(percent, 0, 1, 0)
+
+		if percent > 0.6 then
+			bar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+		elseif percent > 0.3 then
+			bar.BackgroundColor3 = Color3.fromRGB(255,200,0)
+		else
+			bar.BackgroundColor3 = Color3.fromRGB(255,0,0)
+		end
+
+		hp.Text = string.format("%d / %d", humanoid.Health, humanoid.MaxHealth)
+	end
+
+	update()
+	humanoid.HealthChanged:Connect(update)
+	humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(update)
+end
+
+local function removeHealthGui(character)
+	if not character then return end
+	local head = character:FindFirstChild("Head")
+	if head then
+		local old = head:FindFirstChild("HealthBillboard")
+		if old then old:Destroy() end
+	end
+end
+
+local function refreshHealthBars()
+	for _, target in Players:GetPlayers() do
+		if target ~= player and target.Character then
+			removeHealthGui(target.Character)
+			if healthBarOn then
+				createHealthGui(target.Character, target)
+			end
+		end
+	end
+end
+
+-- Fly
+local function stopFly()
+	flying = false
+	if flyConnection then flyConnection:Disconnect() end
+	if velocity then velocity:Destroy() end
+	if orientation then orientation:Destroy() end
+	if attachment then attachment:Destroy() end
+
+	flyConnection, velocity, orientation, attachment = nil, nil, nil, nil
+
+	local humanoid = parts()
+	humanoid.PlatformStand = false
+	humanoid.AutoRotate = true
+	setToggle(flyButton, false, "fly")
+end
+
+local function startFly()
+	local humanoid, root = parts()
+	flying = true
+	humanoid.PlatformStand = true
+	humanoid.AutoRotate = false
+
+	attachment = Instance.new("Attachment")
+	attachment.Parent = root
+
+	velocity = Instance.new("LinearVelocity")
+	velocity.Attachment0 = attachment
+	velocity.RelativeTo = Enum.ActuatorRelativeTo.World
+	velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	velocity.ForceLimitsEnabled = true
+	velocity.MaxForce = 100000
+	velocity.Parent = root
+
+	orientation = Instance.new("AlignOrientation")
+	orientation.Attachment0 = attachment
+	orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	orientation.RigidityEnabled = true
+	orientation.Parent = root
+
+	flyConnection = RunService.RenderStepped:Connect(function()
+		if not flying or not root.Parent then return end
+
+		local camera = workspace.CurrentCamera
+		if not camera then return end
+
+		local look = Vector3.new(camera.CFrame.LookVector.X, 0, camera.CFrame.LookVector.Z)
+		local right = Vector3.new(camera.CFrame.RightVector.X, 0, camera.CFrame.RightVector.Z)
+		if look.Magnitude > 0 then look = look.Unit end
+		if right.Magnitude > 0 then right = right.Unit end
+
+		local direction = Vector3.zero
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction += look end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction -= look end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction -= right end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction += right end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction += Vector3.yAxis end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then direction -= Vector3.yAxis end
+
+		velocity.VectorVelocity = direction.Magnitude > 0
+			and direction.Unit * flySpeed
+			or Vector3.zero
+
+		if look.Magnitude > 0 then
+			orientation.CFrame = CFrame.lookAt(Vector3.zero, look)
+		end
+	end)
+
+	setToggle(flyButton, true, "fly")
+end
+
+local function toggleFly()
+	if flying then stopFly() else startFly() end
+end
+
+local function applyWalk()
+	local humanoid = parts()
+	humanoid.WalkSpeed = walkOn and walkSpeed or 16
+end
+
+local function applyJump()
+	local humanoid = parts()
+	humanoid.UseJumpPower = true
+	humanoid.JumpPower = jumpOn and jumpPower or 50
+end
+
+-- ESP
+local function removeESP(character)
+	local highlight = character:FindFirstChild("AntiRivalESP")
+	local nameTag = character:FindFirstChild("AntiRivalName")
+	if highlight then highlight:Destroy() end
+	if nameTag then nameTag:Destroy() end
+end
+
+local function addESP(target, character)
+	if not espOn or target == player then return end
+
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "AntiRivalESP"
+	highlight.Adornee = character
+	highlight.FillColor = espColor
+	highlight.FillTransparency = 0.7
+	highlight.OutlineColor = Color3.new(1, 1, 1)
+	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	highlight.Parent = character
+
+	if namesOn then
+		local root = character:FindFirstChild("HumanoidRootPart")
+		if root then
+			local tag = Instance.new("BillboardGui")
+			tag.Name = "AntiRivalName"
+			tag.Adornee = root
+			tag.Size = UDim2.fromOffset(180, 28)
+			tag.StudsOffset = Vector3.new(0, 3, 0)
+			tag.AlwaysOnTop = true
+			tag.Parent = character
+
+			local text = Instance.new("TextLabel")
+			text.Size = UDim2.fromScale(1, 1)
+			text.BackgroundTransparency = 1
+			text.Text = target.Name
+			text.TextColor3 = espColor
+			text.TextStrokeTransparency = 0
+			text.TextScaled = true
+			text.Font = Enum.Font.Code
+			text.Parent = tag
+		end
+	end
+end
+
+local function refreshESP()
+	for _, target in Players:GetPlayers() do
+		if target ~= player and target.Character then
+			removeESP(target.Character)
+			if espOn then addESP(target, target.Character) end
+		end
+	end
+end
+
+local function watchPlayer(target)
+	if target == player then return end
+
+	target.CharacterAdded:Connect(function(character)
+		task.wait(0.2)
+		if espOn then addESP(target, character) end
+		if healthBarOn then createHealthGui(character, target) end
+	end)
+
+	if target.Character then
+		if healthBarOn then createHealthGui(target.Character, target) end
+	end
+end
+
+for _, target in Players:GetPlayers() do watchPlayer(target) end
+Players.PlayerAdded:Connect(watchPlayer)
+
+-- Noclip
+local function applyNoclip()
+	local character = player.Character
+	if not character then return end
+
+	for _, object in character:GetDescendants() do
+		if object:IsA("BasePart") then
+			if collisionValues[object] == nil then
+				collisionValues[object] = object.CanCollide
+			end
+			object.CanCollide = false
+		end
+	end
+end
+
+local function stopNoclip()
+	noclipOn = false
+	if noclipConnection then noclipConnection:Disconnect() end
+	noclipConnection = nil
+
+	for part, previous in pairs(collisionValues) do
+		if part and part.Parent then part.CanCollide = previous end
+	end
+
+	collisionValues = {}
+	setToggle(noclipButton, false, "noclip")
+end
+
+local function startNoclip()
+	noclipOn = true
+	applyNoclip()
+	noclipConnection = RunService.Stepped:Connect(function()
+		if noclipOn then applyNoclip() end
+	end)
+	setToggle(noclipButton, true, "noclip")
+end
+
+-- TextBox Event Handlers
+flyBox.FocusLost:Connect(function()
+	flySpeed = math.clamp(tonumber(flyBox.Text) or 70, 1, 500)
+	flyBox.Text = tostring(flySpeed)
+end)
+
+walkBox.FocusLost:Connect(function()
+	walkSpeed = math.clamp(tonumber(walkBox.Text) or 16, 1, 500)
+	walkBox.Text = tostring(walkSpeed)
+	applyWalk()
+end)
+
+aimbotBox.FocusLost:Connect(function()
+	aimbotSmoothness = math.clamp(tonumber(aimbotBox.Text) or 50, 1, 150)
+	aimbotBox.Text = tostring(aimbotSmoothness)
+end)
+
+silentAimBox.FocusLost:Connect(function()
+	silentAimFOV = math.clamp(tonumber(silentAimBox.Text) or 200, 1, 5000)
+	silentAimBox.Text = tostring(silentAimFOV)
+end)
+
+jumpBox.FocusLost:Connect(function()
+	jumpPower = math.clamp(tonumber(jumpBox.Text) or 50, 1, 100)
+	jumpBox.Text = tostring(jumpPower)
+	applyJump()
+end)
+
+rageStudsBox.FocusLost:Connect(function()
+	rageStuds = math.clamp(tonumber(rageStudsBox.Text) or 5000, 1, 5000)
+	rageStudsBox.Text = tostring(rageStuds)
+end)
+
+gammaBox.FocusLost:Connect(function()
+	gammaValue = math.clamp(tonumber(gammaBox.Text) or 1, 1, 100)
+	gammaBox.Text = tostring(gammaValue)
+	gamma.Brightness = (gammaValue - 1) / 99
+end)
+
+local function updateColor()
+	local r = math.clamp(tonumber(redBox.Text) or 255, 0, 255)
+	local g = math.clamp(tonumber(greenBox.Text) or 70, 0, 255)
+	local b = math.clamp(tonumber(blueBox.Text) or 70, 0, 255)
+	redBox.Text, greenBox.Text, blueBox.Text = r, g, b
+	espColor = Color3.fromRGB(r, g, b)
+	refreshESP()
+end
+
+redBox.FocusLost:Connect(updateColor)
+greenBox.FocusLost:Connect(updateColor)
+blueBox.FocusLost:Connect(updateColor)
+
+-- Buttons
+flyButton.MouseButton1Click:Connect(toggleFly)
+
+walkButton.MouseButton1Click:Connect(function()
+	walkOn = not walkOn
+	applyWalk()
+	setToggle(walkButton, walkOn, "walk speed")
+end)
+
+aimbotButton.MouseButton1Click:Connect(function()
+	aimbotOn = not aimbotOn
+	setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
+end)
+
+aimbotPartButton.MouseButton1Click:Connect(function()
+	if aimbotTargetPart == "head" then
+		aimbotTargetPart = "torso"
+		aimbotPartButton.Text = "aimbot target: TORSO"
+	else
+		aimbotTargetPart = "head"
+		aimbotPartButton.Text = "aimbot target: HEAD"
+	end
+end)
+
+silentAimButton.MouseButton1Click:Connect(function()
+	silentAimOn = not silentAimOn
+	setToggle(silentAimButton, silentAimOn, "silent aim")
+end)
+
+silentAimPartButton.MouseButton1Click:Connect(function()
+	if silentAimTargetPart == "head" then
+		silentAimTargetPart = "torso"
+		silentAimPartButton.Text = "silent target: TORSO"
+	else
+		silentAimTargetPart = "head"
+		silentAimPartButton.Text = "silent target: HEAD"
+	end
+end)
+
+rageButton.MouseButton1Click:Connect(function()
+	rageBotOn = not rageBotOn
+	setToggle(rageButton, rageBotOn, "rage bot")
+end)
+
+jumpButton.MouseButton1Click:Connect(function()
+	jumpOn = not jumpOn
+	applyJump()
+	setToggle(jumpButton, jumpOn, "jump power")
+end)
+
+infJumpButton.MouseButton1Click:Connect(function()
+	infiniteJumpOn = not infiniteJumpOn
+	setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
+end)
+
+espButton.MouseButton1Click:Connect(function()
+	espOn = not espOn
+	refreshESP()
+	setToggle(espButton, espOn, "player esp")
+end)
+
+namesButton.MouseButton1Click:Connect(function()
+	namesOn = not namesOn
+	refreshESP()
+	setToggle(namesButton, namesOn, "player names")
+end)
+
+healthBarButton.MouseButton1Click:Connect(function()
+	healthBarOn = not healthBarOn
+	refreshHealthBars()
+	setToggle(healthBarButton, healthBarOn, "health bar")
+end)
+
+shaderButton.MouseButton1Click:Connect(toggleShader)
+
+noclipButton.MouseButton1Click:Connect(function()
+	if noclipOn then stopNoclip() else startNoclip() end
+end)
+
+-- FPS / Ping Loop
+local frames, lastSecond = 0, os.clock()
+RunService.RenderStepped:Connect(function()
+	frames += 1
+
+	if os.clock() - lastSecond >= 1 then
+		local ping = "--"
+		pcall(function()
+			ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValueString()
+		end)
+
+		statsLabel.Text = "FPS: " .. frames .. "  |  Ping: " .. ping
+		frames = 0
+		lastSecond = os.clock()
+	end
+end)
+
+-- Dragging
+local dragging, dragStart, windowStart, dragInput = false, nil, nil, nil
+
+header.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		windowStart = window.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+header.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local move = input.Position - dragStart
+		window.Position = UDim2.new(
+			windowStart.X.Scale, windowStart.X.Offset + move.X,
+			windowStart.Y.Scale, windowStart.Y.Offset + move.Y
+		)
+	end
+end)
+
+-- Key Binds
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then return end
+
+	if input.KeyCode == Enum.KeyCode.RightShift then
+		window.Visible = not window.Visible
+		if window.Visible then window.Position = UDim2.fromScale(0.5, 0.5) end
+	elseif input.KeyCode == Enum.KeyCode.F then
+		toggleFly()
+	elseif input.KeyCode == Enum.KeyCode.E then
+		espOn = not espOn
+		refreshESP()
+		setToggle(espButton, espOn, "player esp")
+	elseif input.KeyCode == Enum.KeyCode.N then
+		if noclipOn then stopNoclip() else startNoclip() end
+	elseif input.KeyCode == Enum.KeyCode.X then
+		aimbotOn = not aimbotOn
+		setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
+	elseif input.KeyCode == Enum.KeyCode.C then
+		silentAimOn = not silentAimOn
+		setToggle(silentAimButton, silentAimOn, "silent aim")
+	elseif input.KeyCode == Enum.KeyCode.Z then
+		rageBotOn = not rageBotOn
+		setToggle(rageButton, rageBotOn, "rage bot")
+	end
+end)
+
+player.CharacterAdded:Connect(function()
+	task.wait(0.2)
+	if flying then stopFly() end
+	applyWalk()
+	applyJump()
+end)
+
+showPage("player")
+window.Visible = true
