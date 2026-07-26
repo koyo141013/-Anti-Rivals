@@ -91,33 +91,45 @@ window.BorderSizePixel = 1
 window.Visible = true
 window.Parent = gui
 
--- 마우스 커서 강제 해제를 위한 Modal 버튼 생성 함수
+-- 마우스 커서 매 프레임 강제 해제 시스템 (게임 측 Mouse Lock 강제 무력화)
 local modalButton = nil
+local mouseLoopConnection = nil
+
 local function updateMouseState(isVisible)
+	if mouseLoopConnection then
+		mouseLoopConnection:Disconnect()
+		mouseLoopConnection = nil
+	end
+
 	if isVisible then
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-		UserInputService.MouseIconEnabled = true
-		
+		-- 투명 Modal 버튼 생성하여 엔진 단에서 커서 해제 시도
 		if not modalButton then
 			modalButton = Instance.new("TextButton")
 			modalButton.Size = UDim2.fromScale(1, 1)
 			modalButton.BackgroundTransparency = 1
 			modalButton.Text = ""
-			modalButton.Modal = true -- Roblox 엔진에서 마우스를 확실히 풀어주는 핵심 속성
+			modalButton.Modal = true
 			modalButton.Parent = gui
 		end
+
+		-- 게임 스크립트의 RenderStepped 고정을 덮어쓰기 위해 매 프레임 마우스 커서 활성화
+		mouseLoopConnection = RunService.RenderStepped:Connect(function()
+			if window.Visible then
+				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+				UserInputService.MouseIconEnabled = true
+			end
+		end)
 	else
-		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-		UserInputService.MouseIconEnabled = false
-		
 		if modalButton then
 			modalButton:Destroy()
 			modalButton = nil
 		end
+		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+		UserInputService.MouseIconEnabled = false
 	end
 end
 
--- 초기 실행 시 창이 켜져 있으므로 마우스 활성화
+-- 초기 실행 시 마우스 상태 활성화
 updateMouseState(true)
 
 -- 이중 테두리
@@ -130,7 +142,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (디스코드 중앙 정렬, 우측 파란색 Rivals)
+-- Header (디스코드 중앙 정렬, 우측 파란색 영어 Rivals)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -190,7 +202,7 @@ title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Center
 title.Parent = header
 
--- 우측 파란색 Rivals 텍스트
+-- 우측 파란색 Rivals 텍스트 (영어 적용)
 local rightTitle = Instance.new("TextLabel")
 rightTitle.AnchorPoint = Vector2.new(1, 0.5)
 rightTitle.Position = UDim2.new(1, -10, 0.5, 0)
@@ -1085,7 +1097,7 @@ redBox.FocusLost:Connect(updateColorFromBoxes)
 greenBox.FocusLost:Connect(updateColorFromBoxes)
 blueBox.FocusLost:Connect(updateColorFromBoxes)
 
--- RightShift 키로 UI 켜고 끄기 (+ 마우스 커서 연동)
+-- RightShift 키로 UI 켜고 끄기 (+ 마우스 커서 해제 연동)
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if not gpe and input.KeyCode == Enum.KeyCode.RightShift then
 		window.Visible = not window.Visible
