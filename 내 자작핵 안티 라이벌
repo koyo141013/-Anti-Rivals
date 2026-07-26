@@ -18,6 +18,14 @@ local lastTriggerTick = 0
 local fastShotOn = false
 local fastShotRate = 500
 
+-- [신규] 연사력(Fast Fire) 조절 변수 추가
+local fastFireOn = false
+local fastFireMultiplier = 0.2
+
+-- [신규] 무한 탄창 및 즉시 장전 변수 추가
+local infiniteAmmoOn = false
+local instantReloadOn = false
+
 -- Rage Bot 변수
 local rageBotOn = false
 local rageStuds = math.huge
@@ -36,7 +44,7 @@ local aimbotSmoothness = 50
 local aimbotTargetPart = "head"
 local espColor = Color3.fromRGB(255, 70, 70)
 
-local attachment, velocity, orientation, flyConnection, noclipConnection, aimbotConnection, rageConnection, infiniteJumpConnection, fastShotConnection, fakeLagConnection, triggerBotConnection
+local attachment, velocity, orientation, flyConnection, noclipConnection, aimbotConnection, rageConnection, infiniteJumpConnection, fastShotConnection, fakeLagConnection, triggerBotConnection, fastFireConnection, ammoConnection
 
 local checkcaller_fn = checkcaller or function() return false end
 local newcclosure_fn = newcclosure or function(f) return f end
@@ -203,13 +211,13 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 타이틀 (버전 업그레이드 반영 V0.7.3)
+-- 타이틀 (버전 업그레이드 반영 V0.7.4 - Fast Fire 통합)
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
-title.Size = UDim2.fromOffset(260, 20)
+title.Size = UDim2.fromOffset(280, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival-V0.7.3-FREE Build"
+title.Text = "Anti-Rival-V0.7.4-FREE Build"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -277,7 +285,7 @@ local function page(name)
 	frame.Name = name
 	frame.Size = UDim2.fromScale(1, 1)
 	frame.BackgroundTransparency = 1
-	frame.CanvasSize = UDim2.new(0, 0, 1.3, 0)
+	frame.CanvasSize = UDim2.new(0, 0, 1.5, 0) -- 캔버스 크기 확장 (추가된 기능 UI 수용)
 	frame.ScrollBarThickness = 4
 	frame.Visible = false
 	frame.ZIndex = 8
@@ -465,7 +473,7 @@ local redBox = rgbBox(255, 140)
 local greenBox = rgbBox(70, 206)
 local blueBox = rgbBox(70, 272)
 
--- 4. visuals 탭 (에임봇, 사일런트 에임 및 트리거봇 통합)
+-- 4. visuals 탭
 heading(visualsPage, "combat visuals & aimbot / triggerbot")
 local aimbotBox = textbox(visualsPage, "aimbot strength (1–150)", aimbotSmoothness, 36)
 local aimbotButton = toggle(visualsPage, "aimbot (hold rmb)", 62)
@@ -499,11 +507,10 @@ silentAimPartButton.Font = Enum.Font.Code
 silentAimPartButton.ZIndex = 9
 silentAimPartButton.Parent = visualsPage
 
--- Triggerbot 컨트롤 UI 명확히 재배치 및 통합
 local triggerBotButton = toggle(visualsPage, "triggerbot", 214)
 local triggerBotDelayBox = textbox(visualsPage, "trigger delay (0–1s)", triggerBotDelay, 246)
 
--- 5. character 탭
+-- 5. character 탭 (여기에 Fast Fire 및 무한 탄창/장전 기능 UI 추가 통합)
 heading(characterPage, "character capabilities & combat")
 local jumpBox = textbox(characterPage, "jump power  (1–100)", jumpPower, 36)
 local jumpButton = toggle(characterPage, "jump power", 62)
@@ -512,9 +519,14 @@ local infJumpButton = toggle(characterPage, "infinite jump", 90)
 local fastShotBox = textbox(characterPage, "fast shot rate (1–1000)", fastShotRate, 122)
 local fastShotButton = toggle(characterPage, "fast shot (Ultra Bypass)", 148)
 
-local rageButton = toggle(characterPage, "rage bot", 182)
-local rageStudsBox = textbox(characterPage, "detection range (1–5000 studs)", rageStuds, 210)
-local fakeLagButton = toggle(characterPage, "view lock (stay still locally)", 242)
+-- [신규 추가] 연사력 및 탄창 제어 UI 컨트롤
+local fastFireButton = toggle(characterPage, "fast fire (rate of fire)", 182)
+local infiniteAmmoButton = toggle(characterPage, "infinite ammo", 210)
+local instantReloadButton = toggle(characterPage, "instant reload", 238)
+
+local rageButton = toggle(characterPage, "rage bot", 272)
+local rageStudsBox = textbox(characterPage, "detection range (1–5000 studs)", rageStuds, 300)
+local fakeLagButton = toggle(characterPage, "view lock (stay still locally)", 332)
 
 -- 6. misc 탭
 heading(miscPage, "misc / collision settings")
@@ -917,6 +929,47 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 	end
 end)
 
+----------------------------------------------------
+-- [신규 통합] Fast Fire, Infinite Ammo, Instant Reload 엔진 루프
+----------------------------------------------------
+fastFireConnection = RunService.Stepped:Connect(function()
+	if not fastFireOn then return end
+	pcall(function()
+		local char = player.Character
+		if char then
+			local tool = char:FindFirstChildOfClass("Tool")
+			if tool then
+				if tool:FindFirstChild("Cooldown") then
+					tool.Cooldown.Value = 0
+				end
+			end
+		end
+	end)
+end)
+
+ammoConnection = RunService.Heartbeat:Connect(function()
+	pcall(function()
+		local char = player.Character
+		if not char then return end
+		local tool = char:FindFirstChildOfClass("Tool")
+		if not tool then return end
+		
+		if infiniteAmmoOn then
+			if tool:FindFirstChild("Ammo") then
+				tool.Ammo.Value = 999
+			elseif tool:FindFirstChild("Clip") then
+				tool.Clip.Value = 999
+			end
+		end
+		
+		if instantReloadOn then
+			if tool:FindFirstChild("Reloading") then
+				tool.Reloading.Value = false
+			end
+		end
+	end)
+end)
+
 -- Infinite Jump
 infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
 	if infiniteJumpOn then
@@ -1058,240 +1111,345 @@ local function getRageTargetHead()
 	return closestHead
 end
 
-rageConnection = RunService.Heartbeat:Connect(function()
-	if not rageBotOn then return end
+----------------------------------------------------
+-- UI 버튼 연결 이벤트 바인딩
+----------------------------------------------------
+flyButton.MouseButton1Click:Connect(function()
+	toggleFly()
+end)
 
-	local targetHead = getRageTargetHead()
-	if targetHead then
-		local _, myRoot = getSafeParts()
-		if myRoot then
-			myRoot.CFrame = CFrame.new(targetHead.Position + Vector3.new(0, 3, 0))
-		end
+flyBox.FocusLost:Connect(function(enter)
+	local num = tonumber(flyBox.Text)
+	if num then
+		flySpeed = math.clamp(num, 1, 500)
+		flyBox.Text = tostring(flySpeed)
+	else
+		flyBox.Text = tostring(flySpeed)
 	end
 end)
 
--- Fake Lag / View Lock
-fakeLagConnection = RunService.RenderStepped:Connect(function()
-	local _, root = getSafeParts()
-	if not root then return end
+walkButton.MouseButton1Click:Connect(function()
+	walkOn = not walkOn
+	setToggle(walkButton, walkOn, "walk speed")
+	applyWalk()
+end)
 
-	if fakeLagOn then
-		if not fakeLagPosition then
-			fakeLagPosition = root.CFrame
-		end
-		root.CFrame = fakeLagPosition
+walkBox.FocusLost:Connect(function(enter)
+	local num = tonumber(walkBox.Text)
+	if num then
+		walkSpeed = math.clamp(num, 1, 500)
+		walkBox.Text = tostring(walkSpeed)
+		applyWalk()
+	else
+		walkBox.Text = tostring(walkSpeed)
+	end
+end)
+
+gammaBox.FocusLost:Connect(function(enter)
+	local num = tonumber(gammaBox.Text)
+	if num then
+		gammaValue = math.clamp(num, 1, 100)
+		gammaBox.Text = tostring(gammaValue)
+		gamma.Brightness = (gammaValue - 1) * 0.05
+	else
+		gammaBox.Text = tostring(gammaValue)
+	end
+end)
+
+shaderButton.MouseButton1Click:Connect(function()
+	toggleShader()
+end)
+
+espButton.MouseButton1Click:Connect(function()
+	espOn = not espOn
+	setToggle(espButton, espOn, "player esp")
+	refreshESP()
+end)
+
+namesButton.MouseButton1Click:Connect(function()
+	namesOn = not namesOn
+	setToggle(namesButton, namesOn, "player names")
+	refreshESP()
+end)
+
+healthBarButton.MouseButton1Click:Connect(function()
+	healthBarOn = not healthBarOn
+	setToggle(healthBarButton, healthBarOn, "health bar")
+	refreshHealthBars()
+end)
+
+local function updateESPColor()
+	local r = tonumber(redBox.Text) or 255
+	local g = tonumber(greenBox.Text) or 70
+	local b = tonumber(blueBox.Text) or 70
+	espColor = Color3.fromRGB(math.clamp(r,0,255), math.clamp(g,0,255), math.clamp(b,0,255))
+	refreshESP()
+end
+
+redBox.FocusLost:Connect(updateESPColor)
+greenBox.FocusLost:Connect(updateESPColor)
+blueBox.FocusLost:Connect(updateESPColor)
+
+aimbotButton.MouseButton1Click:Connect(function()
+	aimbotOn = not aimbotOn
+	setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
+end)
+
+aimbotBox.FocusLost:Connect(function()
+	local num = tonumber(aimbotBox.Text)
+	if num then
+		aimbotSmoothness = math.clamp(num, 1, 150)
+		aimbotBox.Text = tostring(aimbotSmoothness)
+	else
+		aimbotBox.Text = tostring(aimbotSmoothness)
+	end
+end)
+
+aimbotPartButton.MouseButton1Click:Connect(function()
+	if aimbotTargetPart == "head" then
+		aimbotTargetPart = "humanoidrootpart"
+		aimbotPartButton.Text = "aimbot target: ROOT"
+	else
+		aimbotTargetPart = "head"
+		aimbotPartButton.Text = "aimbot target: HEAD"
+	end
+end)
+
+silentAimButton.MouseButton1Click:Connect(function()
+	silentAimOn = not silentAimOn
+	setToggle(silentAimButton, silentAimOn, "silent aim")
+end)
+
+silentAimBox.FocusLost:Connect(function()
+	local num = tonumber(silentAimBox.Text)
+	if num then
+		silentAimFOV = math.clamp(num, 1, 5000)
+		silentAimBox.Text = tostring(silentAimFOV)
+	else
+		silentAimBox.Text = tostring(silentAimFOV)
+	end
+end)
+
+silentAimPartButton.MouseButton1Click:Connect(function()
+	if silentAimTargetPart == "Head" then
+		silentAimTargetPart = "HumanoidRootPart"
+		silentAimPartButton.Text = "silent target: ROOT"
+	else
+		silentAimTargetPart = "Head"
+		silentAimPartButton.Text = "silent target: HEAD"
+	end
+end)
+
+triggerBotButton.MouseButton1Click:Connect(function()
+	triggerBotOn = not triggerBotOn
+	setToggle(triggerBotButton, triggerBotOn, "triggerbot")
+end)
+
+triggerBotDelayBox.FocusLost:Connect(function()
+	local num = tonumber(triggerBotDelayBox.Text)
+	if num then
+		triggerBotDelay = math.clamp(num, 0, 1)
+		triggerBotDelayBox.Text = tostring(triggerBotDelay)
+	else
+		triggerBotDelayBox.Text = tostring(triggerBotDelay)
+	end
+end)
+
+jumpButton.MouseButton1Click:Connect(function()
+	jumpOn = not jumpOn
+	setToggle(jumpButton, jumpOn, "jump power")
+	applyJump()
+end)
+
+jumpBox.FocusLost:Connect(function()
+	local num = tonumber(jumpBox.Text)
+	if num then
+		jumpPower = math.clamp(num, 1, 100)
+		jumpBox.Text = tostring(jumpPower)
+		applyJump()
+	else
+		jumpBox.Text = tostring(jumpPower)
+	end
+end)
+
+infJumpButton.MouseButton1Click:Connect(function()
+	infiniteJumpOn = not infiniteJumpOn
+	setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
+end)
+
+fastShotButton.MouseButton1Click:Connect(function()
+	fastShotOn = not fastShotOn
+	setToggle(fastShotButton, fastShotOn, "fast shot (Ultra Bypass)")
+end)
+
+fastShotBox.FocusLost:Connect(function()
+	local num = tonumber(fastShotBox.Text)
+	if num then
+		fastShotRate = math.clamp(num, 1, 1000)
+		fastShotBox.Text = tostring(fastShotRate)
+	else
+		fastShotBox.Text = tostring(fastShotRate)
+	end
+end)
+
+-- [신규 바인딩] Fast Fire, Infinite Ammo, Instant Reload UI 이벤트 연결
+fastFireButton.MouseButton1Click:Connect(function()
+	fastFireOn = not fastFireOn
+	setToggle(fastFireButton, fastFireOn, "fast fire (rate of fire)")
+end)
+
+infiniteAmmoButton.MouseButton1Click:Connect(function()
+	infiniteAmmoOn = not infiniteAmmoOn
+	setToggle(infiniteAmmoButton, infiniteAmmoOn, "infinite ammo")
+end)
+
+instantReloadButton.MouseButton1Click:Connect(function()
+	instantReloadOn = not instantReloadOn
+	setToggle(instantReloadButton, instantReloadOn, "instant reload")
+end)
+
+rageButton.MouseButton1Click:Connect(function()
+	rageBotOn = not rageBotOn
+	setToggle(rageButton, rageBotOn, "rage bot")
+end)
+
+rageStudsBox.FocusLost:Connect(function()
+	local num = tonumber(rageStudsBox.Text)
+	if num then
+		rageStuds = math.clamp(num, 1, 5000)
+		rageStudsBox.Text = tostring(rageStuds)
+	else
+		rageStudsBox.Text = tostring(rageStuds)
+	end
+end)
+
+fakeLagButton.MouseButton1Click:Connect(function()
+	fakeLagOn = not fakeLagOn
+	setToggle(fakeLagButton, fakeLagOn, "view lock (stay still locally)")
+	local _, root = getSafeParts()
+	if fakeLagOn and root then
+		fakeLagPosition = root.CFrame
 	else
 		fakeLagPosition = nil
 	end
 end)
 
--- Aimbot
-aimbotConnection = RunService.RenderStepped:Connect(function()
-	if not aimbotOn then return end
-
-	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-		local targetPart = getClosestTarget(math.huge, aimbotTargetPart)
-		if targetPart then
-			local camera = workspace.CurrentCamera
-			if camera then
-				local targetCFrame = CFrame.lookAt(camera.CFrame.Position, targetPart.Position)
-				local alpha = math.clamp(aimbotSmoothness / 150, 0.01, 1)
-				camera.CFrame = camera.CFrame:Lerp(targetCFrame, alpha)
-			end
-		end
-	end
-end)
-
--- Noclip
-noclipConnection = RunService.Stepped:Connect(function()
-	if noclipOn and player.Character then
-		for _, part in ipairs(player.Character:GetDescendants()) do
-			if part:IsA("BasePart") then
-				part.CanCollide = false
-			end
-		end
-	end
-end)
-
--- UI 초기 상태 동기화
-setToggle(rageButton, rageBotOn, "rage bot")
-setToggle(silentAimButton, silentAimOn, "silent aim")
-setToggle(fakeLagButton, fakeLagOn, "view lock (stay still locally)")
-setToggle(flyButton, flying, "fly")
-setToggle(walkButton, walkOn, "walk speed")
-setToggle(espButton, espOn, "player esp")
-setToggle(namesButton, namesOn, "player names")
-setToggle(healthBarButton, healthBarOn, "health bar")
-setToggle(jumpButton, jumpOn, "jump power")
-setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
-setToggle(fastShotButton, fastShotOn, "fast shot (Ultra Bypass)")
-setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
-setToggle(shaderButton, shaderOn, "custom shader")
-setToggle(noclipButton, noclipOn, "noclip")
-setToggle(triggerBotButton, triggerBotOn, "triggerbot")
-
-local function toggleWalk(forceState)
-	walkOn = forceState ~= nil and forceState or not walkOn
-	setToggle(walkButton, walkOn, "walk speed")
-	applyWalk()
-end
-
-local function toggleESP(forceState)
-	espOn = forceState ~= nil and espOn or not espOn
-	setToggle(espButton, espOn, "player esp")
-	refreshESP()
-end
-
-local function toggleNames(forceState)
-	namesOn = forceState ~= nil and namesOn or not namesOn
-	setToggle(namesButton, namesOn, "player names")
-	refreshESP()
-end
-
-local function toggleHealthBar(forceState)
-	healthBarOn = forceState ~= nil and healthBarOn or not healthBarOn
-	setToggle(healthBarButton, healthBarOn, "health bar")
-	refreshHealthBars()
-end
-
-local function toggleJump(forceState)
-	jumpOn = forceState ~= nil and jumpOn or not jumpOn
-	setToggle(jumpButton, jumpOn, "jump power")
-	applyJump()
-end
-
-local function toggleInfJump(forceState)
-	infiniteJumpOn = forceState ~= nil and infiniteJumpOn or not infiniteJumpOn
-	setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
-end
-
-local function toggleFastShot(forceState)
-	fastShotOn = forceState ~= nil and fastShotOn or not fastShotOn
-	setToggle(fastShotButton, fastShotOn, "fast shot (Ultra Bypass)")
-end
-
-local function toggleAimbot(forceState)
-	aimbotOn = forceState ~= nil and aimbotOn or not aimbotOn
-	setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
-end
-
-local function toggleSilentAim(forceState)
-	silentAimOn = forceState ~= nil and silentAimOn or not silentAimOn
-	setToggle(silentAimButton, silentAimOn, "silent aim")
-end
-
-local function toggleTriggerBot(forceState)
-	triggerBotOn = forceState ~= nil and triggerBotOn or not triggerBotOn
-	setToggle(triggerBotButton, triggerBotOn, "triggerbot")
-end
-
-local function toggleRage(forceState)
-	rageBotOn = forceState ~= nil and rageBotOn or not rageBotOn
-	setToggle(rageButton, rageBotOn, "rage bot")
-end
-
-local function toggleFakeLag(forceState)
-	fakeLagOn = forceState ~= nil and fakeLagOn or not fakeLagOn
-	setToggle(fakeLagButton, fakeLagOn, "view lock (stay still locally)")
-end
-
-local function toggleNoclip(forceState)
-	noclipOn = forceState ~= nil and noclipOn or not noclipOn
+noclipButton.MouseButton1Click:Connect(function()
+	noclipOn = not noclipOn
 	setToggle(noclipButton, noclipOn, "noclip")
-end
-
-flyButton.MouseButton1Click:Connect(function() toggleFly() end)
-walkButton.MouseButton1Click:Connect(function() toggleWalk() end)
-espButton.MouseButton1Click:Connect(function() toggleESP() end)
-namesButton.MouseButton1Click:Connect(function() toggleNames() end)
-healthBarButton.MouseButton1Click:Connect(function() toggleHealthBar() end)
-jumpButton.MouseButton1Click:Connect(function() toggleJump() end)
-infJumpButton.MouseButton1Click:Connect(function() toggleInfJump() end)
-fastShotButton.MouseButton1Click:Connect(function() toggleFastShot() end)
-aimbotButton.MouseButton1Click:Connect(function() toggleAimbot() end)
-silentAimButton.MouseButton1Click:Connect(function() toggleSilentAim() end)
-triggerBotButton.MouseButton1Click:Connect(function() toggleTriggerBot() end)
-rageButton.MouseButton1Click:Connect(function() toggleRage() end)
-fakeLagButton.MouseButton1Click:Connect(function() toggleFakeLag() end)
-shaderButton.MouseButton1Click:Connect(function() toggleShader() end)
-noclipButton.MouseButton1Click:Connect(function() toggleNoclip() end)
-
-aimbotPartButton.MouseButton1Click:Connect(function()
-	aimbotTargetPart = aimbotTargetPart == "head" and "torso" or "head"
-	aimbotPartButton.Text = "aimbot target: " .. aimbotTargetPart:upper()
 end)
 
-silentAimPartButton.MouseButton1Click:Connect(function()
-	silentAimTargetPart = silentAimTargetPart == "Head" and "Torso" or "Head"
-	silentAimPartButton.Text = "silent target: " .. silentAimTargetPart:upper()
-end)
-
-flyBox.FocusLost:Connect(function() flySpeed = tonumber(flyBox.Text) or flySpeed end)
-walkBox.FocusLost:Connect(function() walkSpeed = tonumber(walkBox.Text) or walkSpeed; applyWalk() end)
-jumpBox.FocusLost:Connect(function() jumpPower = tonumber(jumpBox.Text) or jumpPower; applyJump() end)
-fastShotBox.FocusLost:Connect(function() fastShotRate = tonumber(fastShotBox.Text) or fastShotRate end)
-aimbotBox.FocusLost:Connect(function() aimbotSmoothness = tonumber(aimbotBox.Text) or aimbotSmoothness end)
-silentAimBox.FocusLost:Connect(function() silentAimFOV = tonumber(silentAimBox.Text) or silentAimFOV end)
-triggerBotDelayBox.FocusLost:Connect(function() triggerBotDelay = tonumber(triggerBotDelayBox.Text) or triggerBotDelay end)
-rageStudsBox.FocusLost:Connect(function() rageStuds = tonumber(rageStudsBox.Text) or rageStuds end)
-gammaBox.FocusLost:Connect(function()
-	gammaValue = tonumber(gammaBox.Text) or gammaValue
-	gamma.Brightness = (gammaValue - 1) / 99
-end)
-
-local function updateColorFromBoxes()
-	local r = tonumber(redBox.Text) or 255
-	local g = tonumber(greenBox.Text) or 70
-	local b = tonumber(blueBox.Text) or 70
-	espColor = Color3.fromRGB(r, g, b)
-	refreshESP()
-end
-
-redBox.FocusLost:Connect(updateColorFromBoxes)
-greenBox.FocusLost:Connect(updateColorFromBoxes)
-blueBox.FocusLost:Connect(updateColorFromBoxes)
-
-UserInputService.InputBegan:Connect(function(input, gpe)
-	if bindingTarget and bindingButton then
-		if input.UserInputType == Enum.UserInputType.Keyboard then
-			if input.KeyCode == Enum.KeyCode.Escape then
-				keybinds[bindingTarget] = nil
-				bindingButton.Text = "None"
-			else
-				keybinds[bindingTarget] = input.KeyCode
-				bindingButton.Text = input.KeyCode.Name
+-- Noclip 루프
+noclipConnection = RunService.Stepped:Connect(function()
+	if not noclipOn then return end
+	pcall(function()
+		local char = player.Character
+		if char then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") and part.CanCollide then
+					part.CanCollide = false
+				end
 			end
+		end
+	end)
+end)
+
+-- Aimbot / View Lock / Rage Bot 통합 루프
+aimbotConnection = RunService.RenderStepped:Connect(function()
+	local camera = workspace.CurrentCamera
+	local _, root = getSafeParts()
+
+	-- Fake Lag (View Lock) 처리
+	if fakeLagOn and root and fakeLagPosition then
+		pcall(function()
+			root.CFrame = fakeLagPosition
+			root.AssemblyLinearVelocity = Vector3.zero
+			root.AssemblyAngularVelocity = Vector3.zero
+		end)
+	end
+
+	-- Rage Bot 처리
+	if rageBotOn and root then
+		pcall(function()
+			local head = getRageTargetHead()
+			if head then
+				camera.CFrame = CFrame.new(camera.CFrame.Position, head.Position)
+			end
+		end)
+	end
+
+	-- Aimbot 처리 (마우스 우클릭 유지 시)
+	if aimbotOn and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+		pcall(function()
+			local targetPart = getClosestTarget(9999, aimbotTargetPart)
+			if targetPart and camera then
+				local targetCFrame = CFrame.new(camera.CFrame.Position, targetPart.Position)
+				camera.CFrame = camera.CFrame:Lerp(targetCFrame, 1 / math.clamp(aimbotSmoothness, 1, 150))
+			end
+		end)
+	end
+end)
+
+-- 플레이어 리스폰 연동 이벤트
+Players.PlayerAdded:Connect(function(targetPlayer)
+	targetPlayer.CharacterAdded:Connect(function(char)
+		task.delay(1, function()
+			if espOn or namesOn then createESP(char, targetPlayer) end
+			if healthBarOn then createHealthGui(char, targetPlayer) end
+		end)
+	end)
+end)
+
+player.CharacterAdded:Connect(function(char)
+	task.delay(1, function()
+		if walkOn then applyWalk() end
+		if jumpOn then applyJump() end
+		refreshESP()
+		refreshHealthBars()
+	end)
+end)
+
+-- 키보드 단축키 관리 리스너
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if bindingTarget and bindingButton then
+		if input.KeyCode ~= Enum.KeyCode.Unknown then
+			keybinds[bindingTarget] = input.KeyCode
+			bindingButton.Text = input.KeyCode.Name
 			bindingButton.TextColor3 = Color3.fromRGB(200, 200, 205)
-			bindingTarget = nil
-			bindingButton = nil
+			bindingTarget, bindingButton = nil, nil
 		end
 		return
 	end
 
-	if not gpe then
-		if input.KeyCode == Enum.KeyCode.RightShift then
-			window.Visible = not window.Visible
-			updateMouseState(window.Visible)
-		else
-			for name, keyCode in pairs(keybinds) do
-				if keyCode and input.KeyCode == keyCode then
-					if name == "Fly" then
-						toggleFly()
-					elseif name == "Speed" then
-						toggleWalk()
-					elseif name == "ESP" then
-						toggleESP()
-					elseif name == "Noclip" then
-						toggleNoclip()
-					elseif name == "Rage" then
-						toggleRage()
-					elseif name == "Trigger" then
-						toggleTriggerBot()
-					end
-				end
+	if gameProcessed then return end
+
+	for name, key in pairs(keybinds) do
+		if key and input.KeyCode == key then
+			if name == "Fly" then toggleFly()
+			elseif name == "Speed" then
+				walkOn = not walkOn
+				setToggle(walkButton, walkOn, "walk speed")
+				applyWalk()
+			elseif name == "ESP" then
+				espOn = not espOn
+				setToggle(espButton, espOn, "player esp")
+				refreshESP()
+			elseif name == "Noclip" then
+				noclipOn = not noclipOn
+				setToggle(noclipButton, noclipOn, "noclip")
+			elseif name == "Rage" then
+				rageBotOn = not rageBotOn
+				setToggle(rageButton, rageBotOn, "rage bot")
+			elseif name == "Trigger" then
+				triggerBotOn = not triggerBotOn
+				setToggle(triggerBotButton, triggerBotOn, "triggerbot")
 			end
 		end
 	end
 end)
 
+-- 초기화 실행
 showPage("main")
+refreshESP()
+refreshHealthBars()
+print("Anti-Rival-V0.7.4-FREE Build Successfully Loaded with Fast Fire Integration!")
