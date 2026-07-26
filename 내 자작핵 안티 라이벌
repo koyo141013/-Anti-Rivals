@@ -9,20 +9,20 @@ local infiniteJumpOn = false
 local aimbotOn = false
 local shaderOn = false
 
--- Fast Shot 변수 (기본 OFF, 범위 1~1000)
+-- Fast Shot 변수
 local fastShotOn = false
 local fastShotRate = 450
 
--- Rage Bot 변수 (기본 OFF)
+-- Rage Bot 변수
 local rageBotOn = false
 local rageStuds = math.huge
 
--- Silent Aim 변수 (기본 OFF)
+-- Silent Aim 변수
 local silentAimOn = false
 local silentAimTargetPart = "Head"
 local silentAimFOV = 9999
 
--- Fake Lag / View Lock 변수 (기본 OFF)
+-- Fake Lag / View Lock 변수
 local fakeLagOn = false
 local fakeLagPosition = nil
 
@@ -37,9 +37,12 @@ local checkcaller_fn = checkcaller or function() return false end
 local newcclosure_fn = newcclosure or function(f) return f end
 local unpack_fn = table.unpack or unpack
 
-local function parts()
-	local character = player.Character or player.CharacterAdded:Wait()
-	return character:WaitForChild("Humanoid"), character:WaitForChild("HumanoidRootPart")
+local function getSafeParts()
+	local character = player.Character
+	if not character then return nil, nil end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local rootPart = character:FindFirstChild("HumanoidRootPart")
+	return humanoid, rootPart
 end
 
 -- Gamma setup
@@ -98,7 +101,7 @@ window.ZIndex = 5
 window.Visible = true
 window.Parent = gui
 
--- 마우스 커서 매 프레임 강제 해제 시스템
+-- 마우스 커서 강제 제어
 local modalButton = nil
 local mouseLoopConnection = nil
 
@@ -200,7 +203,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.new(1, -120, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival Beta v0.6.2 - Ultimate Bypass"
+title.Text = "Anti-Rival Beta v0.6.3 - Fixed & Anti-Cheat Bypass"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -442,7 +445,7 @@ local jumpButton = toggle(playerPage, "jump power", 62)
 local infJumpButton = toggle(playerPage, "infinite jump", 90)
 
 local fastShotBox = textbox(playerPage, "fast shot rate (1–1000)", fastShotRate, 122)
-local fastShotButton = toggle(playerPage, "fast shot (Hard Bypass v2)", 148)
+local fastShotButton = toggle(playerPage, "fast shot (Anti-Cheat Bypass v3)", 148)
 
 local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 180)
 local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 206)
@@ -555,7 +558,7 @@ setupKeybindListener(noclipKeyBtn, "Noclip")
 setupKeybindListener(rageKeyBtn, "Rage")
 
 ----------------------------------------------------
--- 기능 구현 로직
+-- 기능 구현 로직 (안전성 강화)
 ----------------------------------------------------
 local function stopFly()
 	flying = false
@@ -566,7 +569,7 @@ local function stopFly()
 
 	flyConnection, velocity, orientation, attachment = nil, nil, nil, nil
 
-	local humanoid, root = parts()
+	local humanoid, root = getSafeParts()
 	if humanoid then
 		humanoid.PlatformStand = false
 		humanoid.AutoRotate = true
@@ -575,7 +578,9 @@ local function stopFly()
 end
 
 local function startFly()
-	local humanoid, root = parts()
+	local humanoid, root = getSafeParts()
+	if not humanoid or not root then return end
+	
 	flying = true
 	humanoid.PlatformStand = true
 	humanoid.AutoRotate = false
@@ -598,7 +603,7 @@ local function startFly()
 	orientation.Parent = root
 
 	flyConnection = RunService.RenderStepped:Connect(function()
-		if not flying or not root.Parent then return end
+		if not flying or not root or not root.Parent then return end
 
 		local camera = workspace.CurrentCamera
 		if not camera then return end
@@ -615,10 +620,13 @@ local function startFly()
 		if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction += right end
 		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction += Vector3.yAxis end
 		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then direction -= Vector3.yAxis end
-		velocity.VectorVelocity = direction.Magnitude > 0
-			and direction.Unit * flySpeed
-			or Vector3.zero
-		if look.Magnitude > 0 then
+		
+		if velocity and velocity.Parent then
+			velocity.VectorVelocity = direction.Magnitude > 0
+				and direction.Unit * flySpeed
+				or Vector3.zero
+		end
+		if look.Magnitude > 0 and orientation and orientation.Parent then
 			orientation.CFrame = CFrame.lookAt(Vector3.zero, look)
 		end
 	end)
@@ -631,14 +639,14 @@ local function toggleFly(forceState)
 end
 
 local function applyWalk()
-	local humanoid = parts()
+	local humanoid, _ = getSafeParts()
 	if humanoid then
 		humanoid.WalkSpeed = walkOn and walkSpeed or 16
 	end
 end
 
 local function applyJump()
-	local humanoid = parts()
+	local humanoid, _ = getSafeParts()
 	if humanoid then
 		humanoid.UseJumpPower = true
 		humanoid.JumpPower = jumpOn and jumpPower or 50
@@ -706,8 +714,8 @@ end
 local function createHealthGui(character, targetPlayer)
 	if targetPlayer == player or not healthBarOn then return end
 
-	local head = character:WaitForChild("Head", 5)
-	local humanoid = character:WaitForChild("Humanoid", 5)
+	local head = character:FindFirstChild("Head")
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if not head or not humanoid then return end
 
 	local old = head:FindFirstChild("HealthBillboard")
@@ -762,6 +770,7 @@ local function createHealthGui(character, targetPlayer)
 	hp.Parent = billboard
 
 	local function update()
+		if not humanoid or not humanoid.Parent then return end
 		local percent = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
 		bar.Size = UDim2.new(percent, 0, 1, 0)
 
@@ -791,17 +800,19 @@ local function removeHealthGui(character)
 end
 
 local function refreshHealthBars()
-	for _, target in Players:GetPlayers() do
-		if target ~= player and target.Character then
-			removeHealthGui(target.Character)
-			if healthBarOn then
-				createHealthGui(target.Character, target)
+	pcall(function()
+		for _, target in Players:GetPlayers() do
+			if target ~= player and target.Character then
+				removeHealthGui(target.Character)
+				if healthBarOn then
+					createHealthGui(target.Character, target)
+				end
 			end
 		end
-	end
+	end)
 end
 
--- 완전 개량형 하드 바이패스 Fast Shot 엔진 (Remote 및 Backpack 인벤토리 조작)
+-- 개선된 Fast Shot 엔진 (클라이언트 툴 내부 모듈 및 Cooldown 속성 조작 바이패스)
 local lastShotTime = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
@@ -816,28 +827,26 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 			lastShotTime = now
 			pcall(function()
 				local char = player.Character
-				local bp = player:FindFirstChildOfClass("Backpack")
-				
-				local containers = {}
-				if char then table.insert(containers, char) end
-				if bp then table.insert(containers, bp) end
+				if not char then return end
 
-				for _, container in ipairs(containers) do
-					for _, tool in ipairs(container:GetChildren()) do
-						if tool:IsA("Tool") then
-							-- 1차: 툴 자체의 공격 관련 속성 및 함수 강제 조작
-							pcall(function()
-								tool:Activate()
-							end)
+				for _, tool in ipairs(char:GetChildren()) do
+					if tool:IsA("Tool") then
+						-- 1. 툴 활성화 실행
+						pcall(function()
+							tool:Activate()
+						end)
 
-							-- 2차: 모든 하위 RemoteEvent 및 RemoteFunction 강제 발사 (서버 안티치트 쿨타임 무시 패킷 송신)
-							for _, descendant in ipairs(tool:GetDescendants()) do
-								if descendant:IsA("RemoteEvent") then
-									local lname = descendant.Name:lower()
-									if lname:find("fire") or lname:find("shoot") or lname:find("attack") or lname:find("hit") or lname:find("gun") then
-										descendant:FireServer(player:GetMouse().Hit)
+						-- 2. 스크립트 내부의 쿨타임 변수 우회를 위한 테이블/값 감지 및 조작
+						for _, desc in ipairs(tool:GetDescendants()) do
+							if desc:IsA("ModuleScript") then
+								pcall(function()
+									local mod = require(desc)
+									if typeof(mod) == "table" then
+										if mod.Cooldown then mod.Cooldown = 0 end
+										if mod.cooldown then mod.cooldown = 0 end
+										if mod.FireRate then mod.FireRate = 0 end
 									end
-								end
+								end)
 							end
 						end
 					end
@@ -850,12 +859,9 @@ end)
 -- Infinite Jump
 infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
 	if infiniteJumpOn then
-		local character = player.Character
-		if character then
-			local humanoid = character:FindFirstChildOfClass("Humanoid")
-			if humanoid then
-				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-			end
+		local humanoid, _ = getSafeParts()
+		if humanoid then
+			humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
 		end
 	end
 end)
@@ -899,7 +905,7 @@ local function getClosestTarget(maxFOV, targetPartType)
 	for _, target in ipairs(Players:GetPlayers()) do
 		if target ~= player and target.Character then
 			local part = getTargetPart(target.Character, targetPartType)
-			local humanoid = target.Character:FindFirstChild("Humanoid")
+			local humanoid = target.Character:FindFirstChildOfClass("Humanoid")
 
 			if part and humanoid and humanoid.Health > 0 then
 				local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
@@ -918,7 +924,7 @@ local function getClosestTarget(maxFOV, targetPartType)
 	return closestPart
 end
 
--- 벽 관통 사일런트 에임 후킹
+-- 사일런트 에임 후킹
 pcall(function()
 	if typeof(hookmetamethod) == "function" then
 		local oldNamecall
@@ -968,9 +974,7 @@ end)
 
 -- Rage Bot
 local function getRageTargetHead()
-	local myChar = player.Character
-	if not myChar then return nil end
-	local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+	local _, myRoot = getSafeParts()
 	if not myRoot then return nil end
 
 	local closestHead = nil
@@ -979,7 +983,7 @@ local function getRageTargetHead()
 	for _, target in ipairs(Players:GetPlayers()) do
 		if target ~= player and target.Character then
 			local head = target.Character:FindFirstChild("Head")
-			local humanoid = target.Character:FindFirstChild("Humanoid")
+			local humanoid = target.Character:FindFirstChildOfClass("Humanoid")
 
 			if head and humanoid and humanoid.Health > 0 then
 				local dist = (myRoot.Position - head.Position).Magnitude
@@ -998,21 +1002,16 @@ rageConnection = RunService.Heartbeat:Connect(function()
 
 	local targetHead = getRageTargetHead()
 	if targetHead then
-		local myChar = player.Character
-		if myChar then
-			local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-			if myRoot then
-				myRoot.CFrame = CFrame.new(targetHead.Position + Vector3.new(0, 3, 0))
-			end
+		local _, myRoot = getSafeParts()
+		if myRoot then
+			myRoot.CFrame = CFrame.new(targetHead.Position + Vector3.new(0, 3, 0))
 		end
 	end
 end)
 
 -- Fake Lag / View Lock
 fakeLagConnection = RunService.RenderStepped:Connect(function()
-	local char = player.Character
-	if not char then return end
-	local root = char:FindFirstChild("HumanoidRootPart")
+	local _, root = getSafeParts()
 	if not root then return end
 
 	if fakeLagOn then
@@ -1064,7 +1063,7 @@ setToggle(namesButton, namesOn, "player names")
 setToggle(healthBarButton, healthBarOn, "health bar")
 setToggle(jumpButton, jumpOn, "jump power")
 setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
-setToggle(fastShotButton, fastShotOn, "fast shot (Hard Bypass v2)")
+setToggle(fastShotButton, fastShotOn, "fast shot (Anti-Cheat Bypass v3)")
 setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
 setToggle(shaderButton, shaderOn, "custom shader")
 setToggle(noclipButton, noclipOn, "noclip")
@@ -1106,7 +1105,7 @@ end
 
 local function toggleFastShot(forceState)
 	fastShotOn = forceState ~= nil and forceState or not fastShotOn
-	setToggle(fastShotButton, fastShotOn, "fast shot (Hard Bypass v2)")
+	setToggle(fastShotButton, fastShotOn, "fast shot (Anti-Cheat Bypass v3)")
 end
 
 local function toggleAimbot(forceState)
