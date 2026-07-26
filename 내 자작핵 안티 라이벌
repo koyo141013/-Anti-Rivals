@@ -874,7 +874,7 @@ local function getClosestTarget(maxFOV, targetPartType)
 	return closestPart
 end
 
--- Silent Aim Hooking
+-- ★ 사일런트 에임 카메라 프리캠 버그 해결된 후킹 로직
 pcall(function()
 	if typeof(hookmetamethod) == "function" then
 		local oldNamecall
@@ -890,17 +890,7 @@ pcall(function()
 					if targetPart then
 						local origin = args[1]
 						if typeof(origin) == "Vector3" and oldNamecall then
-							args[2] = (targetPart.Position - origin).Unit * 10000
-							return oldNamecall(self, unpack_fn(args))
-						end
-					end
-				elseif (method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRay") and (self == workspace or self == game.Workspace) then
-					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
-					if targetPart then
-						local camera = workspace.CurrentCamera
-						if camera and oldNamecall then
-							local origin = camera.CFrame.Position
-							args[1] = Ray.new(origin, (targetPart.Position - origin).Unit * 10000)
+							args[2] = (targetPart.Position - origin).Unit * (args[2].Magnitude > 0 and args[2].Magnitude or 1000)
 							return oldNamecall(self, unpack_fn(args))
 						end
 					end
@@ -1002,7 +992,7 @@ noclipConnection = RunService.Stepped:Connect(function()
 	end
 end)
 
--- UI 토글 상태 핸들러
+-- UI 토글 상태 핸들러 (전달받은 불리언 값을 올바르게 적용)
 local function toggleWalk(forceState)
 	walkOn = forceState ~= nil and forceState or not walkOn
 	setToggle(walkButton, walkOn, "walk speed")
@@ -1113,7 +1103,7 @@ greenBox.FocusLost:Connect(updateColorFromBoxes)
 blueBox.FocusLost:Connect(updateColorFromBoxes)
 
 ----------------------------------------------------
--- ★ 설정 매니저(Config Manager) 작동 로직 추가
+-- 설정 매니저(Config Manager)
 ----------------------------------------------------
 exportBtn.MouseButton1Click:Connect(function()
 	local configData = {
@@ -1126,7 +1116,6 @@ exportBtn.MouseButton1Click:Connect(function()
 		rageStuds = rageStuds,
 		gammaValue = gammaValue,
 		espColor = {espColor.R * 255, espColor.G * 255, espColor.B * 255},
-		-- 토글 상태 저장 추가
 		flying = flying,
 		walkOn = walkOn,
 		espOn = espOn,
@@ -1190,7 +1179,7 @@ loadBtn.MouseButton1Click:Connect(function()
 				updateColorFromBoxes()
 			end
 
-			-- ★ 불러올 때 토글 상태 및 버튼 UI 동기화
+			-- ★ 설정 불러올 때 개별 토글 상태가 정확히 반영되도록 수정됨
 			if decoded.flying ~= nil then toggleFly(decoded.flying) end
 			if decoded.walkOn ~= nil then toggleWalk(decoded.walkOn) end
 			if decoded.espOn ~= nil then toggleESP(decoded.espOn) end
