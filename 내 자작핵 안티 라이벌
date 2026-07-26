@@ -2,6 +2,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
 local flying, walkOn, espOn, namesOn, healthBarOn, noclipOn, jumpOn = false, false, false, false, false, false, false
@@ -14,14 +15,14 @@ local triggerBotOn = false
 local triggerBotDelay = 0.05
 local lastTriggerTick = 0
 
--- Fast Shot 변수
+-- Fast Shot 변수 (v0.7.7 리모트 및 틱 가속화 패치)
 local fastShotOn = false
-local fastShotRate = 500
+local fastShotRate = 800
 
 -- Fast Fire 변수
 local fastFireOn = false
 
--- 무한 탄창 및 즉시 장전 변수 (v0.7.6 심층 패치)
+-- 무한 탄창 및 즉시 장전 변수
 local infiniteAmmoOn = false
 local instantReloadOn = false
 
@@ -163,7 +164,7 @@ innerBorder.ZIndex = 6
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (V0.7.6 반영)
+-- Header (V0.7.7 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -215,7 +216,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.fromOffset(280, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival-V0.7.6-FREE Build"
+title.Text = "Anti-Rival-V0.7.7-FREE Build"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -514,7 +515,7 @@ local jumpButton = toggle(characterPage, "jump power", 62)
 local infJumpButton = toggle(characterPage, "infinite jump", 90)
 
 local fastShotBox = textbox(characterPage, "fast shot rate (1–1000)", fastShotRate, 122)
-local fastShotButton = toggle(characterPage, "fast shot (Ultra Bypass)", 148)
+local fastShotButton = toggle(characterPage, "fast shot (Remote Bypass)", 148)
 
 local fastFireButton = toggle(characterPage, "fast fire (rate of fire)", 182)
 local infiniteAmmoButton = toggle(characterPage, "infinite ammo", 210)
@@ -882,7 +883,9 @@ triggerBotConnection = RunService.RenderStepped:Connect(function()
 	end)
 end)
 
--- Ultra Fast Shot 엔진
+----------------------------------------------------
+-- [V0.7.7 리모트 기반 Fast Shot 우회 엔진]
+----------------------------------------------------
 local lastShotTick = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
@@ -899,23 +902,38 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 
 				for _, tool in ipairs(char:GetChildren()) do
 					if tool:IsA("Tool") then
+						-- 1. 표준 툴 활성화 시도
 						pcall(function()
 							tool:Activate()
 						end)
 
+						-- 2. 총기 내부 컴포넌트, 모듈 스크립트 및 슛 관련 리모트/이벤트 강제 구동 시도
 						for _, desc in ipairs(tool:GetDescendants()) do
-							if desc:IsA("ModuleScript") then
+							if desc:IsA("RemoteEvent") then
+								pcall(function()
+									-- 일반적인 사격 리모트 구조 대응 (Fire, Shoot 등)
+									local lname = desc.Name:lower()
+									if lname:find("fire") or lname:find("shoot") or lname:find("gun") then
+										desc:FireServer()
+									end
+								end)
+							elseif desc:IsA("ModuleScript") then
 								pcall(function()
 									local mod = require(desc)
 									if typeof(mod) == "table" then
 										for k, v in pairs(mod) do
 											local kLower = tostring(k):lower()
-											if kLower:find("cooldown") or kLower:find("firerate") or kLower:find("nextshot") or kLower:find("delay") then
+											if kLower:find("cooldown") or kLower:find("firerate") or kLower:find("nextshot") or kLower:find("delay") or kLower:find("rate") then
 												mod[k] = 0
 											end
 										end
 									end
 								end)
+							elseif desc:IsA("NumberValue") or desc:IsA("IntValue") then
+								local lname = desc.Name:lower()
+								if lname:find("cooldown") or lname:find("firerate") or lname:find("delay") then
+									desc.Value = 0
+								end
 							end
 						end
 					end
@@ -926,7 +944,7 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 end)
 
 ----------------------------------------------------
--- [V0.7.6 심층 패치] Fast Fire, Infinite Ammo, Instant Reload 엔진
+-- [V0.7.7 추가 패치] Fast Fire, Infinite Ammo, Instant Reload 엔진
 ----------------------------------------------------
 fastFireConnection = RunService.Stepped:Connect(function()
 	if not fastFireOn then return end
@@ -954,7 +972,6 @@ ammoConnection = RunService.Heartbeat:Connect(function()
 		local tool = char:FindFirstChildOfClass("Tool")
 		if not tool then return end
 		
-		-- 1. 무한 탄창 강화 스캔 (속성, 값 객체, 모듈 테이블 내부 값 모두 조작)
 		if infiniteAmmoOn then
 			for _, obj in ipairs(tool:GetDescendants()) do
 				if obj:IsA("NumberValue") or obj:IsA("IntValue") then
@@ -980,7 +997,6 @@ ammoConnection = RunService.Heartbeat:Connect(function()
 			end
 		end
 		
-		-- 2. 즉시 장전 강화 제어 (재장전 상태 및 딜레이 끄기)
 		if instantReloadOn then
 			for _, obj in ipairs(tool:GetDescendants()) do
 				if obj:IsA("BoolValue") then
@@ -1308,7 +1324,7 @@ end)
 
 fastShotButton.MouseButton1Click:Connect(function()
 	fastShotOn = not fastShotOn
-	setToggle(fastShotButton, fastShotOn, "fast shot (Ultra Bypass)")
+	setToggle(fastShotButton, fastShotOn, "fast shot (Remote Bypass)")
 end)
 
 fastShotBox.FocusLost:Connect(function()
@@ -1431,7 +1447,7 @@ player.CharacterAdded:Connect(function(char)
 	end)
 end)
 
--- [V0.7.6 핵심 수정] 단축키 관리 및 [오른쪽 쉬프트] 독립 토글 핸들러
+-- 단축키 관리 및 [오른쪽 쉬프트] 토글 핸들러
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.KeyCode == Enum.KeyCode.RightShift then
 		window.Visible = not window.Visible
@@ -1479,4 +1495,4 @@ end)
 showPage("main")
 refreshESP()
 refreshHealthBars()
-print("Anti-Rival-V0.7.6-FREE Build Successfully Loaded with Patched RightShift & Deep Ammo/Reload System!")
+print("Anti-Rival-V0.7.7-FREE Build Successfully Loaded with Remote-Bypassed Fast Shot Engine!")
