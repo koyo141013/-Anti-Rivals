@@ -203,13 +203,13 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 타이틀 (버전 업그레이드 반영)
+-- 타이틀 (버전 업그레이드 반영 V0.7.3)
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival-V0.7.2-FREE Build"
+title.Text = "Anti-Rival-V0.7.3-FREE Build"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -499,9 +499,9 @@ silentAimPartButton.Font = Enum.Font.Code
 silentAimPartButton.ZIndex = 9
 silentAimPartButton.Parent = visualsPage
 
--- Triggerbot Controls 추가
+-- Triggerbot 컨트롤 UI 명확히 재배치 및 통합
 local triggerBotButton = toggle(visualsPage, "triggerbot", 214)
-local triggerBotDelayBox = textbox(visualsPage, "trigger delay (0–1s)", triggerBotDelay, 242)
+local triggerBotDelayBox = textbox(visualsPage, "trigger delay (0–1s)", triggerBotDelay, 246)
 
 -- 5. character 탭
 heading(characterPage, "character capabilities & combat")
@@ -841,7 +841,7 @@ local function refreshHealthBars()
 	end)
 end
 
--- Triggerbot 엔진 구현
+-- Triggerbot 엔진 정밀 구현
 triggerBotConnection = RunService.RenderStepped:Connect(function()
 	if not triggerBotOn then return end
 
@@ -860,7 +860,6 @@ triggerBotConnection = RunService.RenderStepped:Connect(function()
 				if humanoid and humanoid.Health > 0 then
 					lastTriggerTick = now
 					
-					-- 툴 활성화 및 자동 클릭 시뮬레이션
 					local char = player.Character
 					if char then
 						for _, tool in ipairs(char:GetChildren()) do
