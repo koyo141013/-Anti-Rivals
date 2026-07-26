@@ -88,7 +88,7 @@ gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
 ----------------------------------------------------
--- 창 메인 프레임 (완벽한 화면 정중앙 고정)
+-- 창 메인 프레임 (화면 정중앙 고정)
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -198,7 +198,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 타이틀 (상단 정중앙 배치 및 요구하신 이름 적용)
+-- 타이틀
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -212,7 +212,7 @@ title.TextXAlignment = Enum.TextXAlignment.Center
 title.ZIndex = 8
 title.Parent = header
 
--- 디스코드 링크 버튼 (우측 고정)
+-- 디스코드 링크 버튼
 local discordBtn = Instance.new("TextButton")
 discordBtn.AnchorPoint = Vector2.new(1, 0.5)
 discordBtn.Position = UDim2.new(1, -10, 0.5, 0)
@@ -240,7 +240,7 @@ discordBtn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- 탭 및 페이지 레이아웃 (스크린샷 순서 반영)
+-- 탭 및 페이지 레이아웃 (정확한 사진 순서 반영)
 ----------------------------------------------------
 local tabs = Instance.new("Frame")
 tabs.Size = UDim2.new(1, -16, 0, 24)
@@ -279,7 +279,7 @@ local function page(name)
 	return frame
 end
 
-local movement = page("main")
+local mainPage = page("main")
 local worldPage = page("world")
 local espPage = page("esp")
 local visualsPage = page("visuals")
@@ -407,20 +407,20 @@ local function setToggle(button, enabled, text)
 		or Color3.fromRGB(100, 45, 45)
 end
 
--- 1. main 탭 (Movement)
-heading(movement, "movement / main")
-local flyBox = textbox(movement, "fly speed  (1–500)", flySpeed, 40)
-local flyButton = toggle(movement, "fly", 68)
-local walkBox = textbox(movement, "walk speed  (1–500)", walkSpeed, 110)
-local walkButton = toggle(movement, "walk speed", 138)
+-- 1. main 탭 (핵심 이동 및 비행)
+heading(mainPage, "movement / main controls")
+local flyBox = textbox(mainPage, "fly speed  (1–500)", flySpeed, 40)
+local flyButton = toggle(mainPage, "fly", 68)
+local walkBox = textbox(mainPage, "walk speed  (1–500)", walkSpeed, 110)
+local walkButton = toggle(mainPage, "walk speed", 138)
 
--- 2. world 탭
-heading(worldPage, "world")
+-- 2. world 탭 (월드 환경 조절)
+heading(worldPage, "world environment")
 local gammaBox = textbox(worldPage, "gamma  (1–100)", gammaValue, 40)
 local shaderButton = toggle(worldPage, "custom shader", 72)
 
--- 3. esp 탭
-heading(espPage, "player esp & visual")
+-- 3. esp 탭 (시각 정보 및 ESP)
+heading(espPage, "player esp & information")
 local espButton = toggle(espPage, "player esp", 40)
 local namesButton = toggle(espPage, "player names", 70)
 local healthBarButton = toggle(espPage, "health bar", 100)
@@ -458,8 +458,8 @@ local redBox = rgbBox(255, 140)
 local greenBox = rgbBox(70, 206)
 local blueBox = rgbBox(70, 272)
 
--- 4. visuals 탭 (Aimbot & Silent Aim)
-heading(visualsPage, "combat visuals & aim")
+-- 4. visuals 탭 (에임봇 및 사일런트 에임)
+heading(visualsPage, "combat visuals & aimbot")
 local aimbotBox = textbox(visualsPage, "aimbot strength (1–150)", aimbotSmoothness, 36)
 local aimbotButton = toggle(visualsPage, "aimbot (hold rmb)", 62)
 
@@ -492,8 +492,8 @@ silentAimPartButton.Font = Enum.Font.Code
 silentAimPartButton.ZIndex = 9
 silentAimPartButton.Parent = visualsPage
 
--- 5. character 탭 (Player Options, Fast Shot, Rage Bot, View Lock)
-heading(characterPage, "character options & combat")
+-- 5. character 탭 (신체 능력 및 전투 핵심 기능)
+heading(characterPage, "character capabilities & combat")
 local jumpBox = textbox(characterPage, "jump power  (1–100)", jumpPower, 36)
 local jumpButton = toggle(characterPage, "jump power", 62)
 local infJumpButton = toggle(characterPage, "infinite jump", 90)
@@ -505,11 +505,11 @@ local rageButton = toggle(characterPage, "rage bot", 182)
 local rageStudsBox = textbox(characterPage, "detection range (1–5000 studs)", rageStuds, 210)
 local fakeLagButton = toggle(characterPage, "view lock (stay still locally)", 242)
 
--- 6. misc 탭 (Collision)
-heading(miscPage, "misc / collision")
+-- 6. misc 탭 (기타 편의 기능)
+heading(miscPage, "misc / collision settings")
 local noclipButton = toggle(miscPage, "noclip", 40)
 
--- 7. settings 탭 (Keybind Manager)
+-- 7. settings 탭 (단축키 매니저)
 heading(settingPage, "keybind manager")
 
 local keybinds = {
@@ -1118,22 +1118,22 @@ local function toggleInfJump(forceState)
 end
 
 local function toggleFastShot(forceState)
-	fastShotOn = forceState ~= nil and forceState or not fastShotOn
+	fastShotOn = forceState ~= nil and fastShotOn or not fastShotOn
 	setToggle(fastShotButton, fastShotOn, "fast shot (Ultra Bypass)")
 end
 
 local function toggleAimbot(forceState)
-	aimbotOn = forceState ~= nil and forceState or not aimbotOn
+	aimbotOn = forceState ~= nil and aimbotOn or not aimbotOn
 	setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
 end
 
 local function toggleSilentAim(forceState)
-	silentAimOn = forceState ~= nil and forceState or not silentAimOn
+	silentAimOn = forceState ~= nil and silentAimOn or not silentAimOn
 	setToggle(silentAimButton, silentAimOn, "silent aim")
 end
 
 local function toggleRage(forceState)
-	rageBotOn = forceState ~= nil and forceState or not rageBotOn
+	rageBotOn = forceState ~= nil and rageBotOn or not rageBotOn
 	setToggle(rageButton, rageBotOn, "rage bot")
 end
 
@@ -1143,7 +1143,7 @@ local function toggleFakeLag(forceState)
 end
 
 local function toggleNoclip(forceState)
-	noclipOn = forceState ~= nil and forceState or not noclipOn
+	noclipOn = forceState ~= nil and noclipOn or not noclipOn
 	setToggle(noclipButton, noclipOn, "noclip")
 end
 
