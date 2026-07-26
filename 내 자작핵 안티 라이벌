@@ -88,10 +88,11 @@ window.Size = UDim2.fromOffset(500, 560)
 window.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 window.BorderColor3 = Color3.fromRGB(38, 38, 42)
 window.BorderSizePixel = 1
+window.ZIndex = 5
 window.Visible = true
 window.Parent = gui
 
--- 마우스 커서 매 프레임 강제 해제 시스템 (게임 측 Mouse Lock 강제 무력화)
+-- 마우스 커서 매 프레임 강제 해제 시스템
 local modalButton = nil
 local mouseLoopConnection = nil
 
@@ -102,17 +103,17 @@ local function updateMouseState(isVisible)
 	end
 
 	if isVisible then
-		-- 투명 Modal 버튼 생성하여 엔진 단에서 커서 해제 시도
 		if not modalButton then
 			modalButton = Instance.new("TextButton")
 			modalButton.Size = UDim2.fromScale(1, 1)
 			modalButton.BackgroundTransparency = 1
 			modalButton.Text = ""
 			modalButton.Modal = true
+			modalButton.Active = false
+			modalButton.ZIndex = 1
 			modalButton.Parent = gui
 		end
 
-		-- 게임 스크립트의 RenderStepped 고정을 덮어쓰기 위해 매 프레임 마우스 커서 활성화
 		mouseLoopConnection = RunService.RenderStepped:Connect(function()
 			if window.Visible then
 				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -129,29 +130,28 @@ local function updateMouseState(isVisible)
 	end
 end
 
--- 초기 실행 시 마우스 상태 활성화
 updateMouseState(true)
 
--- 이중 테두리
 local innerBorder = Instance.new("Frame")
 innerBorder.Size = UDim2.new(1, -2, 1, -2)
 innerBorder.Position = UDim2.fromOffset(1, 1)
 innerBorder.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 innerBorder.BorderColor3 = Color3.fromRGB(22, 22, 26)
 innerBorder.BorderSizePixel = 1
+innerBorder.ZIndex = 6
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (디스코드 중앙 정렬, 우측 파란색 영어 Rivals)
+-- Header
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
 header.Position = UDim2.fromOffset(0, 0)
 header.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 header.BorderSizePixel = 0
+header.ZIndex = 7
 header.Parent = innerBorder
 
--- UI 드래그 기능
 local dragging = false
 local dragInput, dragStart, startPos
 
@@ -189,7 +189,6 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 가운데 타이틀
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -200,9 +199,9 @@ title.TextColor3 = Color3.fromRGB(180, 180, 185)
 title.TextSize = 12
 title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Center
+title.ZIndex = 8
 title.Parent = header
 
--- 우측 파란색 Rivals 텍스트 (영어 적용)
 local rightTitle = Instance.new("TextLabel")
 rightTitle.AnchorPoint = Vector2.new(1, 0.5)
 rightTitle.Position = UDim2.new(1, -10, 0.5, 0)
@@ -213,16 +212,18 @@ rightTitle.TextColor3 = Color3.fromRGB(60, 130, 220)
 rightTitle.TextSize = 12
 rightTitle.Font = Enum.Font.Code
 rightTitle.TextXAlignment = Enum.TextXAlignment.Right
+rightTitle.ZIndex = 8
 rightTitle.Parent = header
 
 ----------------------------------------------------
--- 탭 메뉴 및 콘텐츠 레이아웃
+-- 탭 및 페이지 레이아웃
 ----------------------------------------------------
 local tabs = Instance.new("Frame")
 tabs.Size = UDim2.new(1, -16, 0, 24)
 tabs.Position = UDim2.fromOffset(8, 30)
 tabs.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 tabs.BorderSizePixel = 0
+tabs.ZIndex = 7
 tabs.Parent = innerBorder
 
 local tabsLayout = Instance.new("UIListLayout")
@@ -237,6 +238,7 @@ content.Position = UDim2.fromOffset(8, 56)
 content.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 content.BorderColor3 = Color3.fromRGB(30, 30, 34)
 content.BorderSizePixel = 1
+content.ZIndex = 7
 content.Parent = innerBorder
 
 local pages, tabButtons = {}, {}
@@ -247,6 +249,7 @@ local function page(name)
 	frame.Size = UDim2.fromScale(1, 1)
 	frame.BackgroundTransparency = 1
 	frame.Visible = false
+	frame.ZIndex = 8
 	frame.Parent = content
 	pages[name] = frame
 	return frame
@@ -289,6 +292,7 @@ local function tab(text, name, order)
 	button.TextColor3 = Color3.fromRGB(140, 140, 145)
 	button.TextSize = 11
 	button.Font = Enum.Font.Code
+	button.ZIndex = 8
 	button.Parent = tabs
 	
 	button.MouseButton1Click:Connect(function() 
@@ -319,6 +323,7 @@ local function heading(parent, text)
 	label.TextSize = 13
 	label.Font = Enum.Font.Code
 	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.ZIndex = 9
 	label.Parent = parent
 end
 
@@ -332,6 +337,7 @@ local function textbox(parent, text, value, y)
 	label.TextSize = 11
 	label.Font = Enum.Font.Code
 	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.ZIndex = 9
 	label.Parent = parent
 
 	local box = Instance.new("TextBox")
@@ -345,6 +351,7 @@ local function textbox(parent, text, value, y)
 	box.TextColor3 = Color3.new(1, 1, 1)
 	box.TextSize = 11
 	box.Font = Enum.Font.Code
+	box.ZIndex = 9
 	box.Parent = parent
 
 	return box
@@ -361,6 +368,7 @@ local function toggle(parent, text, y)
 	button.TextColor3 = Color3.new(0.9, 0.9, 0.9)
 	button.TextSize = 11
 	button.Font = Enum.Font.Code
+	button.ZIndex = 9
 	button.Parent = parent
 	return button
 end
@@ -375,7 +383,7 @@ local function setToggle(button, enabled, text)
 		or Color3.fromRGB(100, 45, 45)
 end
 
--- Movement (main)
+-- Movement
 heading(movement, "movement / main")
 local flyBox = textbox(movement, "fly speed  (1–500)", flySpeed, 40)
 local flyButton = toggle(movement, "fly", 68)
@@ -397,11 +405,12 @@ colorText.TextColor3 = Color3.fromRGB(170, 170, 175)
 colorText.TextSize = 11
 colorText.Font = Enum.Font.Code
 colorText.TextXAlignment = Enum.TextXAlignment.Left
+colorText.ZIndex = 9
 colorText.Parent = visuals
 
 local function rgbBox(value, x)
 	local box = Instance.new("TextBox")
-	box.Size = UDim2.fromOffset(56, 22)
+	box.Size = UDim2.fromOffset(60, 22)
 	box.Position = UDim2.fromOffset(x, 134)
 	box.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 	box.BorderColor3 = Color3.fromRGB(40, 40, 46)
@@ -411,13 +420,14 @@ local function rgbBox(value, x)
 	box.TextColor3 = Color3.new(1, 1, 1)
 	box.TextSize = 11
 	box.Font = Enum.Font.Code
+	box.ZIndex = 9
 	box.Parent = visuals
 	return box
 end
 
 local redBox = rgbBox(255, 140)
-local greenBox = rgbBox(70, 202)
-local blueBox = rgbBox(70, 264)
+local greenBox = rgbBox(70, 206)
+local blueBox = rgbBox(70, 272)
 
 -- Player
 heading(playerPage, "player options")
@@ -441,6 +451,7 @@ aimbotPartButton.Text = "aimbot target: HEAD"
 aimbotPartButton.TextColor3 = Color3.fromRGB(200, 200, 205)
 aimbotPartButton.TextSize = 11
 aimbotPartButton.Font = Enum.Font.Code
+aimbotPartButton.ZIndex = 9
 aimbotPartButton.Parent = playerPage
 
 local silentAimButton = toggle(playerPage, "silent aim", 262)
@@ -456,6 +467,7 @@ silentAimPartButton.Text = "silent target: HEAD"
 silentAimPartButton.TextColor3 = Color3.fromRGB(200, 200, 205)
 silentAimPartButton.TextSize = 11
 silentAimPartButton.Font = Enum.Font.Code
+silentAimPartButton.ZIndex = 9
 silentAimPartButton.Parent = playerPage
 
 -- Rage
@@ -468,11 +480,11 @@ heading(world, "world")
 local gammaBox = textbox(world, "gamma  (1–100)", gammaValue, 40)
 local shaderButton = toggle(world, "custom shader", 72)
 
--- Collision (misc)
+-- Collision
 heading(collision, "misc / collision")
 local noclipButton = toggle(collision, "noclip", 40)
 
--- Setting
+-- Setting (Config Manager UI)
 heading(settingPage, "config manager")
 
 local configCodeBox = Instance.new("TextBox")
@@ -490,6 +502,7 @@ configCodeBox.TextWrapped = true
 configCodeBox.TextXAlignment = Enum.TextXAlignment.Left
 configCodeBox.TextYAlignment = Enum.TextYAlignment.Top
 configCodeBox.ClearTextOnFocus = false
+configCodeBox.ZIndex = 9
 configCodeBox.Parent = settingPage
 
 local function createConfigBtn(text, y)
@@ -503,6 +516,7 @@ local function createConfigBtn(text, y)
 	btn.TextColor3 = Color3.fromRGB(200, 200, 205)
 	btn.TextSize = 11
 	btn.Font = Enum.Font.Code
+	btn.ZIndex = 9
 	btn.Parent = settingPage
 	return btn
 end
@@ -514,11 +528,12 @@ local configStatus = Instance.new("TextLabel")
 configStatus.Size = UDim2.fromOffset(340, 20)
 configStatus.Position = UDim2.fromOffset(14, 226)
 configStatus.BackgroundTransparency = 1
-configStatus.Text = "Status: Ready (Clipboard Mode)"
+configStatus.Text = "Status: Ready"
 configStatus.TextColor3 = Color3.fromRGB(120, 125, 135)
 configStatus.TextSize = 11
 configStatus.Font = Enum.Font.Code
 configStatus.TextXAlignment = Enum.TextXAlignment.Left
+configStatus.ZIndex = 9
 configStatus.Parent = settingPage
 
 ----------------------------------------------------
@@ -533,7 +548,7 @@ local function stopFly()
 
 	flyConnection, velocity, orientation, attachment = nil, nil, nil, nil
 
-	local humanoid = parts()
+	local humanoid, root = parts()
 	if humanoid then
 		humanoid.PlatformStand = false
 		humanoid.AutoRotate = true
@@ -1096,6 +1111,111 @@ end
 redBox.FocusLost:Connect(updateColorFromBoxes)
 greenBox.FocusLost:Connect(updateColorFromBoxes)
 blueBox.FocusLost:Connect(updateColorFromBoxes)
+
+----------------------------------------------------
+-- ★ 설정 매니저(Config Manager) 작동 로직 추가
+----------------------------------------------------
+exportBtn.MouseButton1Click:Connect(function()
+	local configData = {
+		flySpeed = flySpeed,
+		walkSpeed = walkSpeed,
+		jumpPower = jumpPower,
+		fastShotRate = fastShotRate,
+		aimbotSmoothness = aimbotSmoothness,
+		silentAimFOV = silentAimFOV,
+		rageStuds = rageStuds,
+		gammaValue = gammaValue,
+		espColor = {espColor.R * 255, espColor.G * 255, espColor.B * 255},
+		-- 토글 상태 저장 추가
+		flying = flying,
+		walkOn = walkOn,
+		espOn = espOn,
+		namesOn = namesOn,
+		healthBarOn = healthBarOn,
+		jumpOn = jumpOn,
+		infiniteJumpOn = infiniteJumpOn,
+		fastShotOn = fastShotOn,
+		aimbotOn = aimbotOn,
+		silentAimOn = silentAimOn,
+		rageBotOn = rageBotOn,
+		shaderOn = shaderOn,
+		noclipOn = noclipOn
+	}
+	
+	local success, encoded = pcall(function()
+		return HttpService:JSONEncode(configData)
+	end)
+	
+	if success then
+		configCodeBox.Text = encoded
+		pcall(function()
+			if setclipboard then
+				setclipboard(encoded)
+			elseif syn and syn.write_clipboard then
+				syn.write_clipboard(encoded)
+			end
+		end)
+		configStatus.Text = "Status: Exported & Copied!"
+		configStatus.TextColor3 = Color3.fromRGB(80, 220, 120)
+	else
+		configStatus.Text = "Status: Export Failed!"
+		configStatus.TextColor3 = Color3.fromRGB(220, 80, 80)
+	end
+end)
+
+loadBtn.MouseButton1Click:Connect(function()
+	local rawText = configCodeBox.Text
+	if rawText and rawText ~= "" then
+		local success, decoded = pcall(function()
+			return HttpService:JSONDecode(rawText)
+		end)
+		
+		if success and type(decoded) == "table" then
+			if decoded.flySpeed then flySpeed = decoded.flySpeed; flyBox.Text = tostring(flySpeed) end
+			if decoded.walkSpeed then walkSpeed = decoded.walkSpeed; walkBox.Text = tostring(walkSpeed); applyWalk() end
+			if decoded.jumpPower then jumpPower = decoded.jumpPower; jumpBox.Text = tostring(jumpPower); applyJump() end
+			if decoded.fastShotRate then fastShotRate = decoded.fastShotRate; fastShotBox.Text = tostring(fastShotRate) end
+			if decoded.aimbotSmoothness then aimbotSmoothness = decoded.aimbotSmoothness; aimbotBox.Text = tostring(aimbotSmoothness) end
+			if decoded.silentAimFOV then silentAimFOV = decoded.silentAimFOV; silentAimBox.Text = tostring(silentAimFOV) end
+			if decoded.rageStuds then rageStuds = decoded.rageStuds; rageStudsBox.Text = tostring(rageStuds) end
+			if decoded.gammaValue then 
+				gammaValue = decoded.gammaValue
+				gammaBox.Text = tostring(gammaValue)
+				gamma.Brightness = (gammaValue - 1) / 99
+			end
+			if decoded.espColor then
+				redBox.Text = tostring(decoded.espColor[1])
+				greenBox.Text = tostring(decoded.espColor[2])
+				blueBox.Text = tostring(decoded.espColor[3])
+				updateColorFromBoxes()
+			end
+
+			-- ★ 불러올 때 토글 상태 및 버튼 UI 동기화
+			if decoded.flying ~= nil then toggleFly(decoded.flying) end
+			if decoded.walkOn ~= nil then toggleWalk(decoded.walkOn) end
+			if decoded.espOn ~= nil then toggleESP(decoded.espOn) end
+			if decoded.namesOn ~= nil then toggleNames(decoded.namesOn) end
+			if decoded.healthBarOn ~= nil then toggleHealthBar(decoded.healthBarOn) end
+			if decoded.jumpOn ~= nil then toggleJump(decoded.jumpOn) end
+			if decoded.infiniteJumpOn ~= nil then toggleInfJump(decoded.infiniteJumpOn) end
+			if decoded.fastShotOn ~= nil then toggleFastShot(decoded.fastShotOn) end
+			if decoded.aimbotOn ~= nil then toggleAimbot(decoded.aimbotOn) end
+			if decoded.silentAimOn ~= nil then toggleSilentAim(decoded.silentAimOn) end
+			if decoded.rageBotOn ~= nil then toggleRage(decoded.rageBotOn) end
+			if decoded.shaderOn ~= nil then toggleShader(decoded.shaderOn) end
+			if decoded.noclipOn ~= nil then toggleNoclip(decoded.noclipOn) end
+			
+			configStatus.Text = "Status: Config Loaded Successfully!"
+			configStatus.TextColor3 = Color3.fromRGB(80, 220, 120)
+		else
+			configStatus.Text = "Status: Invalid Config Code!"
+			configStatus.TextColor3 = Color3.fromRGB(220, 80, 80)
+		end
+	else
+		configStatus.Text = "Status: Box is Empty!"
+		configStatus.TextColor3 = Color3.fromRGB(220, 200, 80)
+	end
+end)
 
 -- RightShift 키로 UI 켜고 끄기 (+ 마우스 커서 해제 연동)
 UserInputService.InputBegan:Connect(function(input, gpe)
