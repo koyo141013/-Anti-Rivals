@@ -197,7 +197,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.new(1, -120, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival Beta v0.5.8 - discord.gg/dcSGrkPzv"
+title.Text = "Anti-Rival Beta v0.5.9 - discord.gg/dcSGrkPzv"
 title.TextColor3 = Color3.fromRGB(180, 180, 185)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -796,7 +796,7 @@ local function refreshHealthBars()
 	end
 end
 
--- Fast Shot (수정된 정상 작동 로직 & 1~1000 범위)
+-- Fast Shot (완벽 안정화된 자동 연사 시스템 & 1~1000 범위)
 local lastShotTime = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
@@ -804,7 +804,8 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 	local isMouseDown = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
 	if isMouseDown then
 		local now = os.clock()
-		local interval = 1 / math.clamp(fastShotRate, 1, 1000)
+		local rate = math.clamp(fastShotRate, 1, 1000)
+		local interval = 1 / rate
 
 		if now - lastShotTime >= interval then
 			lastShotTime = now
@@ -812,7 +813,9 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 			if char then
 				for _, tool in ipairs(char:GetChildren()) do
 					if tool:IsA("Tool") then
-						tool:Activate()
+						pcall(function()
+							tool:Activate()
+						end)
 					end
 				end
 			end
