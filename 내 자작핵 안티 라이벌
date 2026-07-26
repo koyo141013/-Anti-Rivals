@@ -11,7 +11,7 @@ local shaderOn = false
 
 -- Fast Shot 변수 (기본 OFF, 범위 1~1000)
 local fastShotOn = false
-local fastShotRate = 350
+local fastShotRate = 450
 
 -- Rage Bot 변수 (기본 OFF)
 local rageBotOn = false
@@ -200,8 +200,8 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.new(1, -120, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival Beta v0.6.1 - Bypass Enhanced"
-title.TextColor3 = Color3.fromRGB(180, 180, 185)
+title.Text = "Anti-Rival Beta v0.6.2 - Ultimate Bypass"
+title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Center
@@ -442,7 +442,7 @@ local jumpButton = toggle(playerPage, "jump power", 62)
 local infJumpButton = toggle(playerPage, "infinite jump", 90)
 
 local fastShotBox = textbox(playerPage, "fast shot rate (1–1000)", fastShotRate, 122)
-local fastShotButton = toggle(playerPage, "fast shot (Anti-Cheat Bypass)", 148)
+local fastShotButton = toggle(playerPage, "fast shot (Hard Bypass v2)", 148)
 
 local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 180)
 local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 206)
@@ -801,7 +801,7 @@ local function refreshHealthBars()
 	end
 end
 
--- 안티치트 우회형 Fast Shot 엔진 (RemoteEvent 후킹 및 강제 활성화)
+-- 완전 개량형 하드 바이패스 Fast Shot 엔진 (Remote 및 Backpack 인벤토리 조작)
 local lastShotTime = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
@@ -814,26 +814,35 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 
 		if now - lastShotTime >= interval then
 			lastShotTime = now
-			local char = player.Character
-			if char then
-				for _, tool in ipairs(char:GetChildren()) do
-					if tool:IsA("Tool") then
-						pcall(function()
-							-- 1차: 표준 Activate 강제 호출
-							tool:Activate()
-							
-							-- 2차: 안티치트 우회를 위한 내부 Remote 찾아서 트리거
+			pcall(function()
+				local char = player.Character
+				local bp = player:FindFirstChildOfClass("Backpack")
+				
+				local containers = {}
+				if char then table.insert(containers, char) end
+				if bp then table.insert(containers, bp) end
+
+				for _, container in ipairs(containers) do
+					for _, tool in ipairs(container:GetChildren()) do
+						if tool:IsA("Tool") then
+							-- 1차: 툴 자체의 공격 관련 속성 및 함수 강제 조작
+							pcall(function()
+								tool:Activate()
+							end)
+
+							-- 2차: 모든 하위 RemoteEvent 및 RemoteFunction 강제 발사 (서버 안티치트 쿨타임 무시 패킷 송신)
 							for _, descendant in ipairs(tool:GetDescendants()) do
 								if descendant:IsA("RemoteEvent") then
-									if descendant.Name:lower():find("fire") or descendant.Name:lower():find("shoot") or descendant.Name:lower():find("attack") then
-										descendant:FireServer()
+									local lname = descendant.Name:lower()
+									if lname:find("fire") or lname:find("shoot") or lname:find("attack") or lname:find("hit") or lname:find("gun") then
+										descendant:FireServer(player:GetMouse().Hit)
 									end
 								end
 							end
-						end)
+						end
 					end
 				end
-			end
+			end)
 		end
 	end
 end)
@@ -1055,7 +1064,7 @@ setToggle(namesButton, namesOn, "player names")
 setToggle(healthBarButton, healthBarOn, "health bar")
 setToggle(jumpButton, jumpOn, "jump power")
 setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
-setToggle(fastShotButton, fastShotOn, "fast shot (Anti-Cheat Bypass)")
+setToggle(fastShotButton, fastShotOn, "fast shot (Hard Bypass v2)")
 setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
 setToggle(shaderButton, shaderOn, "custom shader")
 setToggle(noclipButton, noclipOn, "noclip")
@@ -1097,7 +1106,7 @@ end
 
 local function toggleFastShot(forceState)
 	fastShotOn = forceState ~= nil and forceState or not fastShotOn
-	setToggle(fastShotButton, fastShotOn, "fast shot (Anti-Cheat Bypass)")
+	setToggle(fastShotButton, fastShotOn, "fast shot (Hard Bypass v2)")
 end
 
 local function toggleAimbot(forceState)
