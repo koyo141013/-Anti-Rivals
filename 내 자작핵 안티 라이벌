@@ -14,21 +14,25 @@ local shaderOn = false
 local fastShotOn = false
 local fastShotRate = 350
 
--- Rage Bot 변수
-local rageBotOn = false
-local rageStuds = 5000
+-- Rage Bot 변수 (벽 관통 및 무한 거리 지원)
+local rageBotOn = true
+local rageStuds = math.huge
 
--- Silent Aim 변수
-local silentAimOn = false
-local silentAimTargetPart = "head"
-local silentAimFOV = 200
+-- Silent Aim 변수 (벽 관통 및 FOV 무한대 설정)
+local silentAimOn = true
+local silentAimTargetPart = "Head"
+local silentAimFOV = 9999
+
+-- Fake Lag / View Lock 변수 (내 시점 고정 및 위치 조작)
+local fakeLagOn = true
+local fakeLagPosition = nil
 
 local flySpeed, walkSpeed, jumpPower, gammaValue = 70, 16, 50, 1
 local aimbotSmoothness = 50
 local aimbotTargetPart = "head"
 local espColor = Color3.fromRGB(255, 70, 70)
 
-local attachment, velocity, orientation, flyConnection, noclipConnection, aimbotConnection, rageConnection, infiniteJumpConnection, fastShotConnection
+local attachment, velocity, orientation, flyConnection, noclipConnection, aimbotConnection, rageConnection, infiniteJumpConnection, fastShotConnection, fakeLagConnection
 
 local checkcaller_fn = checkcaller or function() return false end
 local newcclosure_fn = newcclosure or function(f) return f end
@@ -194,9 +198,9 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.new(1, -120, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival Beta v0.5.3 - discord.gg/dcSGrkPzv"
+title.Text = "Anti-Rival Beta v0.5.4 - discord.gg/dcSGrkPzv"
 title.TextColor3 = Color3.fromRGB(180, 180, 185)
-title.TextSize = 12
+title.TextSize = 11
 title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Center
 title.ZIndex = 8
@@ -470,10 +474,11 @@ silentAimPartButton.Font = Enum.Font.Code
 silentAimPartButton.ZIndex = 9
 silentAimPartButton.Parent = playerPage
 
--- Rage
-heading(ragePage, "rage bot")
+-- Rage (기본 ON 설정)
+heading(ragePage, "rage bot & view lock")
 local rageButton = toggle(ragePage, "rage bot", 40)
 local rageStudsBox = textbox(ragePage, "detection range (1–5000 studs)", rageStuds, 70)
+local fakeLagButton = toggle(ragePage, "view lock (stay still locally)", 100)
 
 -- World
 heading(world, "world")
@@ -826,7 +831,7 @@ end
 
 local function getTargetPart(character, targetPartType)
 	if not character then return nil end
-	if targetPartType == "head" then
+	if targetPartType:lower() == "head" then
 		return character:FindFirstChild("Head")
 	else
 		return character:FindFirstChild("HumanoidRootPart")
@@ -874,7 +879,7 @@ local function getClosestTarget(maxFOV, targetPartType)
 	return closestPart
 end
 
--- ★ 사일런트 에임 카메라 프리캠 버그 해결된 후킹 로직
+-- 벽 관통 사일런트 에임 후킹
 pcall(function()
 	if typeof(hookmetamethod) == "function" then
 		local oldNamecall
@@ -890,7 +895,7 @@ pcall(function()
 					if targetPart then
 						local origin = args[1]
 						if typeof(origin) == "Vector3" and oldNamecall then
-							args[2] = (targetPart.Position - origin).Unit * (args[2].Magnitude > 0 and args[2].Magnitude or 1000)
+							args[2] = (targetPart.Position - origin).Unit * (args[2].Magnitude > 0 and args[2].Magnitude or 10000)
 							return oldNamecall(self, unpack_fn(args))
 						end
 					end
@@ -922,7 +927,7 @@ pcall(function()
 	end
 end)
 
--- Rage Bot
+-- Rage Bot (무한 거리 및 벽 관통)
 local function getRageTargetHead()
 	local myChar = player.Character
 	if not myChar then return nil end
@@ -958,9 +963,26 @@ rageConnection = RunService.Heartbeat:Connect(function()
 		if myChar then
 			local myRoot = myChar:FindFirstChild("HumanoidRootPart")
 			if myRoot then
-				myRoot.CFrame = CFrame.new(targetHead.Position + Vector3.new(0, 7, 0))
+				myRoot.CFrame = CFrame.new(targetHead.Position + Vector3.new(0, 3, 0))
 			end
 		end
+	end
+end)
+
+-- Fake Lag / View Lock (내 화면에서 시점 및 위치 고정)
+fakeLagConnection = RunService.RenderStepped:Connect(function()
+	local char = player.Character
+	if not char then return end
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	if fakeLagOn then
+		if not fakeLagPosition then
+			fakeLagPosition = root.CFrame
+		end
+		root.CFrame = fakeLagPosition
+	else
+		fakeLagPosition = nil
 	end
 end)
 
@@ -992,7 +1014,12 @@ noclipConnection = RunService.Stepped:Connect(function()
 	end
 end)
 
--- UI 토글 상태 핸들러 (전달받은 불리언 값을 올바르게 적용)
+-- UI 토글 초기 상태 반영 함수 호출
+setToggle(rageButton, rageBotOn, "rage bot")
+setToggle(silentAimButton, silentAimOn, "silent aim")
+setToggle(fakeLagButton, fakeLagOn, "view lock (stay still locally)")
+
+-- UI 토글 상태 핸들러
 local function toggleWalk(forceState)
 	walkOn = forceState ~= nil and forceState or not walkOn
 	setToggle(walkButton, walkOn, "walk speed")
@@ -1048,6 +1075,11 @@ local function toggleRage(forceState)
 	setToggle(rageButton, rageBotOn, "rage bot")
 end
 
+local function toggleFakeLag(forceState)
+	fakeLagOn = forceState ~= nil and forceState or not fakeLagOn
+	setToggle(fakeLagButton, fakeLagOn, "view lock (stay still locally)")
+end
+
 local function toggleNoclip(forceState)
 	noclipOn = forceState ~= nil and forceState or not noclipOn
 	setToggle(noclipButton, noclipOn, "noclip")
@@ -1065,6 +1097,7 @@ fastShotButton.MouseButton1Click:Connect(function() toggleFastShot() end)
 aimbotButton.MouseButton1Click:Connect(function() toggleAimbot() end)
 silentAimButton.MouseButton1Click:Connect(function() toggleSilentAim() end)
 rageButton.MouseButton1Click:Connect(function() toggleRage() end)
+fakeLagButton.MouseButton1Click:Connect(function() toggleFakeLag() end)
 shaderButton.MouseButton1Click:Connect(function() toggleShader() end)
 noclipButton.MouseButton1Click:Connect(function() toggleNoclip() end)
 
@@ -1074,7 +1107,7 @@ aimbotPartButton.MouseButton1Click:Connect(function()
 end)
 
 silentAimPartButton.MouseButton1Click:Connect(function()
-	silentAimTargetPart = silentAimTargetPart == "head" and "torso" or "head"
+	silentAimTargetPart = silentAimTargetPart == "Head" and "Torso" or "Head"
 	silentAimPartButton.Text = "silent target: " .. silentAimTargetPart:upper()
 end)
 
@@ -1127,6 +1160,7 @@ exportBtn.MouseButton1Click:Connect(function()
 		aimbotOn = aimbotOn,
 		silentAimOn = silentAimOn,
 		rageBotOn = rageBotOn,
+		fakeLagOn = fakeLagOn,
 		shaderOn = shaderOn,
 		noclipOn = noclipOn
 	}
@@ -1179,7 +1213,6 @@ loadBtn.MouseButton1Click:Connect(function()
 				updateColorFromBoxes()
 			end
 
-			-- ★ 설정 불러올 때 개별 토글 상태가 정확히 반영되도록 수정됨
 			if decoded.flying ~= nil then toggleFly(decoded.flying) end
 			if decoded.walkOn ~= nil then toggleWalk(decoded.walkOn) end
 			if decoded.espOn ~= nil then toggleESP(decoded.espOn) end
@@ -1191,6 +1224,7 @@ loadBtn.MouseButton1Click:Connect(function()
 			if decoded.aimbotOn ~= nil then toggleAimbot(decoded.aimbotOn) end
 			if decoded.silentAimOn ~= nil then toggleSilentAim(decoded.silentAimOn) end
 			if decoded.rageBotOn ~= nil then toggleRage(decoded.rageBotOn) end
+			if decoded.fakeLagOn ~= nil then toggleFakeLag(decoded.fakeLagOn) end
 			if decoded.shaderOn ~= nil then toggleShader(decoded.shaderOn) end
 			if decoded.noclipOn ~= nil then toggleNoclip(decoded.noclipOn) end
 			
