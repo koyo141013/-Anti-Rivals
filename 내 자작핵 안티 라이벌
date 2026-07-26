@@ -2,10 +2,9 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
-local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
-local flying, walkOn, espOn, namesOn, healthBarOn, noclipOn, jumpOn = false, false, false, true, false, false, false
+local flying, walkOn, espOn, namesOn, healthBarOn, noclipOn, jumpOn = false, false, false, false, false, false, false
 local infiniteJumpOn = false
 local aimbotOn = false
 local shaderOn = false
@@ -198,7 +197,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.new(1, -120, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival Beta v0.5.6 - discord.gg/dcSGrkPzv"
+title.Text = "Anti-Rival Beta v0.5.7 - discord.gg/dcSGrkPzv"
 title.TextColor3 = Color3.fromRGB(180, 180, 185)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -489,35 +488,37 @@ local shaderButton = toggle(world, "custom shader", 72)
 heading(collision, "misc / collision")
 local noclipButton = toggle(collision, "noclip", 40)
 
--- Setting (Config Manager UI)
-heading(settingPage, "config manager")
+-- Setting (Keybind Manager UI)
+heading(settingPage, "keybind manager")
 
-local configCodeBox = Instance.new("TextBox")
-configCodeBox.Size = UDim2.fromOffset(340, 120)
-configCodeBox.Position = UDim2.fromOffset(14, 36)
-configCodeBox.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
-configCodeBox.BorderColor3 = Color3.fromRGB(30, 30, 36)
-configCodeBox.BorderSizePixel = 1
-configCodeBox.PlaceholderText = "Paste config code here..."
-configCodeBox.Text = ""
-configCodeBox.TextColor3 = Color3.new(1, 1, 1)
-configCodeBox.TextSize = 11
-configCodeBox.Font = Enum.Font.Code
-configCodeBox.TextWrapped = true
-configCodeBox.TextXAlignment = Enum.TextXAlignment.Left
-configCodeBox.TextYAlignment = Enum.TextYAlignment.Top
-configCodeBox.ClearTextOnFocus = false
-configCodeBox.ZIndex = 9
-configCodeBox.Parent = settingPage
+local keybinds = {
+	Fly = nil,
+	Speed = nil,
+	ESP = nil,
+	Noclip = nil,
+	Rage = nil
+}
 
-local function createConfigBtn(text, y)
+local function createKeybindRow(name, y, defaultKeyText)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromOffset(180, 24)
+	label.Position = UDim2.fromOffset(14, y)
+	label.BackgroundTransparency = 1
+	label.Text = name .. " Key:"
+	label.TextColor3 = Color3.fromRGB(170, 170, 175)
+	label.TextSize = 11
+	label.Font = Enum.Font.Code
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.ZIndex = 9
+	label.Parent = settingPage
+
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.fromOffset(340, 24)
-	btn.Position = UDim2.fromOffset(14, y)
+	btn.Size = UDim2.fromOffset(130, 22)
+	btn.Position = UDim2.fromOffset(200, y)
 	btn.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 	btn.BorderColor3 = Color3.fromRGB(40, 40, 46)
 	btn.BorderSizePixel = 1
-	btn.Text = text
+	btn.Text = defaultKeyText
 	btn.TextColor3 = Color3.fromRGB(200, 200, 205)
 	btn.TextSize = 11
 	btn.Font = Enum.Font.Code
@@ -526,20 +527,29 @@ local function createConfigBtn(text, y)
 	return btn
 end
 
-local exportBtn = createConfigBtn("Copy Current Config (Export)", 164)
-local loadBtn = createConfigBtn("Load Config From Code (Import)", 194)
+local flyKeyBtn = createKeybindRow("Fly", 40, "None")
+local walkKeyBtn = createKeybindRow("WalkSpeed", 70, "None")
+local espKeyBtn = createKeybindRow("ESP", 100, "None")
+local noclipKeyBtn = createKeybindRow("Noclip", 130, "None")
+local rageKeyBtn = createKeybindRow("RageBot", 160, "None")
 
-local configStatus = Instance.new("TextLabel")
-configStatus.Size = UDim2.fromOffset(340, 20)
-configStatus.Position = UDim2.fromOffset(14, 226)
-configStatus.BackgroundTransparency = 1
-configStatus.Text = "Status: Ready"
-configStatus.TextColor3 = Color3.fromRGB(120, 125, 135)
-configStatus.TextSize = 11
-configStatus.Font = Enum.Font.Code
-configStatus.TextXAlignment = Enum.TextXAlignment.Left
-configStatus.ZIndex = 9
-configStatus.Parent = settingPage
+local bindingTarget = nil
+local bindingButton = nil
+
+local function setupKeybindListener(btn, keyName)
+	btn.MouseButton1Click:Connect(function()
+		bindingTarget = keyName
+		bindingButton = btn
+		btn.Text = "[ Press a Key ]"
+		btn.TextColor3 = Color3.fromRGB(255, 220, 100)
+	end)
+end
+
+setupKeybindListener(flyKeyBtn, "Fly")
+setupKeybindListener(walkKeyBtn, "Speed")
+setupKeybindListener(espKeyBtn, "ESP")
+setupKeybindListener(noclipKeyBtn, "Noclip")
+setupKeybindListener(rageKeyBtn, "Rage")
 
 ----------------------------------------------------
 -- 기능 구현 로직
@@ -927,7 +937,7 @@ pcall(function()
 	end
 end)
 
--- Rage Bot (무한 거리 및 벽 관통)
+-- Rage Bot
 local function getRageTargetHead()
 	local myChar = player.Character
 	if not myChar then return nil end
@@ -969,7 +979,7 @@ rageConnection = RunService.Heartbeat:Connect(function()
 	end
 end)
 
--- Fake Lag / View Lock (내 화면에서 시점 및 위치 고정)
+-- Fake Lag / View Lock
 fakeLagConnection = RunService.RenderStepped:Connect(function()
 	local char = player.Character
 	if not char then return end
@@ -1014,7 +1024,7 @@ noclipConnection = RunService.Stepped:Connect(function()
 	end
 end)
 
--- UI 토글 초기 상태 반영 함수 호출 (모든 기능 명시적 OFF 동기화)
+-- UI 토글 초기 상태 완벽 동기화 (모두 OFF)
 setToggle(rageButton, rageBotOn, "rage bot")
 setToggle(silentAimButton, silentAimOn, "silent aim")
 setToggle(fakeLagButton, fakeLagOn, "view lock (stay still locally)")
@@ -1146,117 +1156,46 @@ redBox.FocusLost:Connect(updateColorFromBoxes)
 greenBox.FocusLost:Connect(updateColorFromBoxes)
 blueBox.FocusLost:Connect(updateColorFromBoxes)
 
-----------------------------------------------------
--- 설정 매니저(Config Manager)
-----------------------------------------------------
-exportBtn.MouseButton1Click:Connect(function()
-	local configData = {
-		flySpeed = flySpeed,
-		walkSpeed = walkSpeed,
-		jumpPower = jumpPower,
-		fastShotRate = fastShotRate,
-		aimbotSmoothness = aimbotSmoothness,
-		silentAimFOV = silentAimFOV,
-		rageStuds = rageStuds,
-		gammaValue = gammaValue,
-		espColor = {espColor.R * 255, espColor.G * 255, espColor.B * 255},
-		flying = flying,
-		walkOn = walkOn,
-		espOn = espOn,
-		namesOn = namesOn,
-		healthBarOn = healthBarOn,
-		jumpOn = jumpOn,
-		infiniteJumpOn = infiniteJumpOn,
-		fastShotOn = fastShotOn,
-		aimbotOn = aimbotOn,
-		silentAimOn = silentAimOn,
-		rageBotOn = rageBotOn,
-		fakeLagOn = fakeLagOn,
-		shaderOn = shaderOn,
-		noclipOn = noclipOn
-	}
-	
-	local success, encoded = pcall(function()
-		return HttpService:JSONEncode(configData)
-	end)
-	
-	if success then
-		configCodeBox.Text = encoded
-		pcall(function()
-			if setclipboard then
-				setclipboard(encoded)
-			elseif syn and syn.write_clipboard then
-				syn.write_clipboard(encoded)
-			end
-		end)
-		configStatus.Text = "Status: Exported & Copied!"
-		configStatus.TextColor3 = Color3.fromRGB(80, 220, 120)
-	else
-		configStatus.Text = "Status: Export Failed!"
-		configStatus.TextColor3 = Color3.fromRGB(220, 80, 80)
-	end
-end)
-
-loadBtn.MouseButton1Click:Connect(function()
-	local rawText = configCodeBox.Text
-	if rawText and rawText ~= "" then
-		local success, decoded = pcall(function()
-			return HttpService:JSONDecode(rawText)
-		end)
-		
-		if success and type(decoded) == "table" then
-			if decoded.flySpeed then flySpeed = decoded.flySpeed; flyBox.Text = tostring(flySpeed) end
-			if decoded.walkSpeed then walkSpeed = decoded.walkSpeed; walkBox.Text = tostring(walkSpeed); applyWalk() end
-			if decoded.jumpPower then jumpPower = decoded.jumpPower; jumpBox.Text = tostring(jumpPower); applyJump() end
-			if decoded.fastShotRate then fastShotRate = decoded.fastShotRate; fastShotBox.Text = tostring(fastShotRate) end
-			if decoded.aimbotSmoothness then aimbotSmoothness = decoded.aimbotSmoothness; aimbotBox.Text = tostring(aimbotSmoothness) end
-			if decoded.silentAimFOV then silentAimFOV = decoded.silentAimFOV; silentAimBox.Text = tostring(silentAimFOV) end
-			if decoded.rageStuds then rageStuds = decoded.rageStuds; rageStudsBox.Text = tostring(rageStuds) end
-			if decoded.gammaValue then 
-				gammaValue = decoded.gammaValue
-				gammaBox.Text = tostring(gammaValue)
-				gamma.Brightness = (gammaValue - 1) / 99
-			end
-			if decoded.espColor then
-				redBox.Text = tostring(decoded.espColor[1])
-				greenBox.Text = tostring(decoded.espColor[2])
-				blueBox.Text = tostring(decoded.espColor[3])
-				updateColorFromBoxes()
-			end
-
-			-- 각 설정값 토글 상태가 명시적으로 반영되도록 안전하게 전달
-			toggleFly(decoded.flying or false)
-			toggleWalk(decoded.walkOn or false)
-			toggleESP(decoded.espOn or false)
-			toggleNames(decoded.namesOn or false)
-			toggleHealthBar(decoded.healthBarOn or false)
-			toggleJump(decoded.jumpOn or false)
-			toggleInfJump(decoded.infiniteJumpOn or false)
-			toggleFastShot(decoded.fastShotOn or false)
-			toggleAimbot(decoded.aimbotOn or false)
-			toggleSilentAim(decoded.silentAimOn or false)
-			toggleRage(decoded.rageBotOn or false)
-			toggleFakeLag(decoded.fakeLagOn or false)
-			toggleShader(decoded.shaderOn or false)
-			toggleNoclip(decoded.noclipOn or false)
-			
-			configStatus.Text = "Status: Config Loaded Successfully!"
-			configStatus.TextColor3 = Color3.fromRGB(80, 220, 120)
-		else
-			configStatus.Text = "Status: Invalid Config Code!"
-			configStatus.TextColor3 = Color3.fromRGB(220, 80, 80)
-		end
-	else
-		configStatus.Text = "Status: Box is Empty!"
-		configStatus.TextColor3 = Color3.fromRGB(220, 200, 80)
-	end
-end)
-
--- RightShift 키로 UI 켜고 끄기 (+ 마우스 커서 해제 연동)
+-- 키바인드 입력 처리 리스너
 UserInputService.InputBegan:Connect(function(input, gpe)
-	if not gpe and input.KeyCode == Enum.KeyCode.RightShift then
-		window.Visible = not window.Visible
-		updateMouseState(window.Visible)
+	if bindingTarget and bindingButton then
+		if input.UserInputType == Enum.UserInputType.Keyboard then
+			if input.KeyCode == Enum.KeyCode.Escape then
+				keybinds[bindingTarget] = nil
+				bindingButton.Text = "None"
+			else
+				keybinds[bindingTarget] = input.KeyCode
+				bindingButton.Text = input.KeyCode.Name
+			end
+			bindingButton.TextColor3 = Color3.fromRGB(200, 200, 205)
+			bindingTarget = nil
+			bindingButton = nil
+		end
+		return
+	end
+
+	if not gpe then
+		if input.KeyCode == Enum.KeyCode.RightShift then
+			window.Visible = not window.Visible
+			updateMouseState(window.Visible)
+		else
+			-- 설정된 단축키 실행
+			for name, keyCode in pairs(keybinds) do
+				if keyCode and input.KeyCode == keyCode then
+					if name == "Fly" then
+						toggleFly()
+					elseif name == "Speed" then
+						toggleWalk()
+					elseif name == "ESP" then
+						toggleESP()
+					elseif name == "Noclip" then
+						toggleNoclip()
+					elseif name == "Rage" then
+						toggleRage()
+					end
+				end
+			end
+		end
 	end
 end)
 
