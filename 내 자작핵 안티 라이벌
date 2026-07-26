@@ -2,6 +2,7 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
 local flying, walkOn, espOn, namesOn, healthBarOn, noclipOn, jumpOn = false, false, false, false, false, false, false
@@ -199,30 +200,44 @@ UserInputService.InputChanged:Connect(function(input)
 end)
 
 local title = Instance.new("TextLabel")
-title.AnchorPoint = Vector2.new(0.5, 0.5)
-title.Position = UDim2.new(0.5, 0, 0.5, 0)
-title.Size = UDim2.new(1, -120, 1, 0)
+title.AnchorPoint = Vector2.new(0, 0.5)
+title.Position = UDim2.new(0, 10, 0.5, 0)
+title.Size = UDim2.new(0, 260, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival Beta v0.6.3 - Fixed & Anti-Cheat Bypass"
+title.Text = "Anti-Rival v0.6.4 - FastShot Fixed"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
-title.TextXAlignment = Enum.TextXAlignment.Center
+title.TextXAlignment = Enum.TextXAlignment.Left
 title.ZIndex = 8
 title.Parent = header
 
-local rightTitle = Instance.new("TextLabel")
-rightTitle.AnchorPoint = Vector2.new(1, 0.5)
-rightTitle.Position = UDim2.new(1, -10, 0.5, 0)
-rightTitle.Size = UDim2.fromOffset(60, 20)
-rightTitle.BackgroundTransparency = 1
-rightTitle.Text = "Rivals"
-rightTitle.TextColor3 = Color3.fromRGB(60, 130, 220)
-rightTitle.TextSize = 12
-rightTitle.Font = Enum.Font.Code
-rightTitle.TextXAlignment = Enum.TextXAlignment.Right
-rightTitle.ZIndex = 8
-rightTitle.Parent = header
+-- 디스코드 링크/버튼 추가 복구 영역
+local discordBtn = Instance.new("TextButton")
+discordBtn.AnchorPoint = Vector2.new(1, 0.5)
+discordBtn.Position = UDim2.new(1, -10, 0.5, 0)
+discordBtn.Size = UDim2.fromOffset(110, 20)
+discordBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+discordBtn.BorderColor3 = Color3.fromRGB(50, 50, 70)
+discordBtn.BorderSizePixel = 1
+discordBtn.Text = "Discord Invite"
+discordBtn.TextColor3 = Color3.fromRGB(114, 137, 218)
+discordBtn.TextSize = 11
+discordBtn.Font = Enum.Font.Code
+discordBtn.ZIndex = 8
+discordBtn.Parent = header
+
+discordBtn.MouseButton1Click:Connect(function()
+	pcall(function()
+		if setclipboard then
+			setclipboard("https://discord.gg/yourinvite")
+			discordBtn.Text = "Copied Link!"
+			task.delay(1.5, function()
+				discordBtn.Text = "Discord Invite"
+			end)
+		end
+	end)
+end)
 
 ----------------------------------------------------
 -- 탭 및 페이지 레이아웃
@@ -445,7 +460,7 @@ local jumpButton = toggle(playerPage, "jump power", 62)
 local infJumpButton = toggle(playerPage, "infinite jump", 90)
 
 local fastShotBox = textbox(playerPage, "fast shot rate (1–1000)", fastShotRate, 122)
-local fastShotButton = toggle(playerPage, "fast shot (Anti-Cheat Bypass v3)", 148)
+local fastShotButton = toggle(playerPage, "fast shot (Stable Bypass)", 148)
 
 local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 180)
 local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 206)
@@ -558,7 +573,7 @@ setupKeybindListener(noclipKeyBtn, "Noclip")
 setupKeybindListener(rageKeyBtn, "Rage")
 
 ----------------------------------------------------
--- 기능 구현 로직 (안전성 강화)
+-- 기능 구현 로직
 ----------------------------------------------------
 local function stopFly()
 	flying = false
@@ -812,31 +827,28 @@ local function refreshHealthBars()
 	end)
 end
 
--- 개선된 Fast Shot 엔진 (클라이언트 툴 내부 모듈 및 Cooldown 속성 조작 바이패스)
-local lastShotTime = 0
+-- 업그레이드된 Fast Shot (서버 쿨타임 변수 무력화 및 안전 간격 펄스)
+local lastShotTick = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
 
-	local isMouseDown = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
-	if isMouseDown then
+	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
 		local now = os.clock()
-		local rate = math.clamp(fastShotRate, 1, 1000)
-		local interval = 1 / rate
+		local safeInterval = 1 / math.clamp(fastShotRate, 1, 1000)
 
-		if now - lastShotTime >= interval then
-			lastShotTime = now
+		if now - lastShotTick >= safeInterval then
+			lastShotTick = now
 			pcall(function()
 				local char = player.Character
 				if not char then return end
 
 				for _, tool in ipairs(char:GetChildren()) do
 					if tool:IsA("Tool") then
-						-- 1. 툴 활성화 실행
 						pcall(function()
 							tool:Activate()
 						end)
 
-						-- 2. 스크립트 내부의 쿨타임 변수 우회를 위한 테이블/값 감지 및 조작
+						-- 무기 내부 모듈 환경 변수 강제 리셋
 						for _, desc in ipairs(tool:GetDescendants()) do
 							if desc:IsA("ModuleScript") then
 								pcall(function()
@@ -845,6 +857,7 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 										if mod.Cooldown then mod.Cooldown = 0 end
 										if mod.cooldown then mod.cooldown = 0 end
 										if mod.FireRate then mod.FireRate = 0 end
+										if mod.NextShot then mod.NextShot = 0 end
 									end
 								end)
 							end
@@ -1063,7 +1076,7 @@ setToggle(namesButton, namesOn, "player names")
 setToggle(healthBarButton, healthBarOn, "health bar")
 setToggle(jumpButton, jumpOn, "jump power")
 setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
-setToggle(fastShotButton, fastShotOn, "fast shot (Anti-Cheat Bypass v3)")
+setToggle(fastShotButton, fastShotOn, "fast shot (Stable Bypass)")
 setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
 setToggle(shaderButton, shaderOn, "custom shader")
 setToggle(noclipButton, noclipOn, "noclip")
@@ -1105,7 +1118,7 @@ end
 
 local function toggleFastShot(forceState)
 	fastShotOn = forceState ~= nil and forceState or not fastShotOn
-	setToggle(fastShotButton, fastShotOn, "fast shot (Anti-Cheat Bypass v3)")
+	setToggle(fastShotButton, fastShotOn, "fast shot (Stable Bypass)")
 end
 
 local function toggleAimbot(forceState)
