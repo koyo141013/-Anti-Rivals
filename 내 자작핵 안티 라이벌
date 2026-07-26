@@ -79,7 +79,7 @@ gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
 ----------------------------------------------------
--- 창 메인 프레임 (1번 사진 어두운 다크 테마 배경)
+-- 창 메인 프레임
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -91,9 +91,34 @@ window.BorderSizePixel = 1
 window.Visible = true
 window.Parent = gui
 
--- 창이 처음 켜져 있으므로 초기 마우스 상태 활성화
-UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-UserInputService.MouseIconEnabled = true
+-- 마우스 커서 강제 해제를 위한 Modal 버튼 생성 함수
+local modalButton = nil
+local function updateMouseState(isVisible)
+	if isVisible then
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		UserInputService.MouseIconEnabled = true
+		
+		if not modalButton then
+			modalButton = Instance.new("TextButton")
+			modalButton.Size = UDim2.fromScale(1, 1)
+			modalButton.BackgroundTransparency = 1
+			modalButton.Text = ""
+			modalButton.Modal = true -- Roblox 엔진에서 마우스를 확실히 풀어주는 핵심 속성
+			modalButton.Parent = gui
+		end
+	else
+		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+		UserInputService.MouseIconEnabled = false
+		
+		if modalButton then
+			modalButton:Destroy()
+			modalButton = nil
+		end
+	end
+end
+
+-- 초기 실행 시 창이 켜져 있으므로 마우스 활성화
+updateMouseState(true)
 
 -- 이중 테두리
 local innerBorder = Instance.new("Frame")
@@ -152,7 +177,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 가운데 타이틀 (Anti-Rival - discord.gg/dcSGrkPzv)
+-- 가운데 타이틀
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -194,7 +219,6 @@ tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 tabsLayout.Padding = UDim.new(0, 3)
 tabsLayout.Parent = tabs
 
--- 메인 컨텐츠 영역
 local content = Instance.new("Frame")
 content.Size = UDim2.new(1, -16, 1, -64)
 content.Position = UDim2.fromOffset(8, 56)
@@ -1065,14 +1089,7 @@ blueBox.FocusLost:Connect(updateColorFromBoxes)
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if not gpe and input.KeyCode == Enum.KeyCode.RightShift then
 		window.Visible = not window.Visible
-		
-		if window.Visible then
-			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-			UserInputService.MouseIconEnabled = true
-		else
-			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-			UserInputService.MouseIconEnabled = false
-		end
+		updateMouseState(window.Visible)
 	end
 end)
 
