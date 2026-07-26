@@ -88,11 +88,11 @@ gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
 ----------------------------------------------------
--- 창 메인 프레임
+-- 창 메인 프레임 (정중앙 고정 수정)
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
-window.Position = UDim2.fromScale(0.5, 0.5)
+window.Position = UDim2.new(0.5, 0, 0.5, 0)
 window.Size = UDim2.fromOffset(500, 560)
 window.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 window.BorderColor3 = Color3.fromRGB(38, 38, 42)
@@ -211,7 +211,7 @@ title.TextXAlignment = Enum.TextXAlignment.Left
 title.ZIndex = 8
 title.Parent = header
 
--- 디스코드 링크 버튼
+-- 디스코드 링크 버튼 (주소 변경 완료)
 local discordBtn = Instance.new("TextButton")
 discordBtn.AnchorPoint = Vector2.new(1, 0.5)
 discordBtn.Position = UDim2.new(1, -10, 0.5, 0)
@@ -229,7 +229,7 @@ discordBtn.Parent = header
 discordBtn.MouseButton1Click:Connect(function()
 	pcall(function()
 		if setclipboard then
-			setclipboard("https://discord.gg/rivalshub")
+			setclipboard("https://discord.gg/aJmSdtrqE")
 			discordBtn.Text = "Copied Link!"
 			task.delay(1.5, function()
 				discordBtn.Text = "Discord Invite"
@@ -826,7 +826,7 @@ local function refreshHealthBars()
 	end)
 end
 
--- 새롭게 수정된 Ultra Fast Shot 엔진 (메모리 모듈 스캔 및 직접 무기 함수/프로퍼티 강제 조작)
+-- Ultra Fast Shot 엔진
 local lastShotTick = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
@@ -843,12 +843,10 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 
 				for _, tool in ipairs(char:GetChildren()) do
 					if tool:IsA("Tool") then
-						-- 툴 자체 활성화 시도
 						pcall(function()
 							tool:Activate()
 						end)
 
-						-- 무기 내부 스크립트 및 환경 내 쿨타임 변수 값을 강제로 0으로 초기화
 						for _, desc in ipairs(tool:GetDescendants()) do
 							if desc:IsA("ModuleScript") then
 								pcall(function()
