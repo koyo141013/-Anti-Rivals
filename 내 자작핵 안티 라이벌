@@ -78,12 +78,13 @@ gui.Name = "AntiRival"
 gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
+-- 창 메인 프레임 (1번 사진 테마 반영)
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
-window.Position = UDim2.fromScale(0.5, 0.33)
-window.Size = UDim2.fromOffset(680, 520)
-window.BackgroundColor3 = Color3.fromRGB(14, 15, 18)
-window.BorderColor3 = Color3.fromRGB(60, 62, 70)
+window.Position = UDim2.fromScale(0.5, 0.5)
+window.Size = UDim2.fromOffset(520, 580)
+window.BackgroundColor3 = Color3.fromRGB(14, 14, 16)
+window.BorderColor3 = Color3.fromRGB(35, 35, 40)
 window.BorderSizePixel = 1
 window.Visible = false
 window.Parent = gui
@@ -102,13 +103,14 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
+-- Header (1번 사진 레이아웃)
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, 32)
-header.BackgroundColor3 = Color3.fromRGB(22, 23, 28)
+header.Size = UDim2.new(1, 0, 0, 28)
+header.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
 header.BorderSizePixel = 0
 header.Parent = window
 
--- UI 드래그(마우스 이동) 기능
+-- UI 드래그 기능
 local dragging = false
 local dragInput, dragStart, startPos
 
@@ -146,40 +148,46 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
+-- 좌측 타이틀 (1번 사진 스타일)
 local title = Instance.new("TextLabel")
-title.Size = UDim2.fromOffset(500, 32)
-title.Position = UDim2.fromOffset(12, 0)
+title.Size = UDim2.new(1, -70, 1, 0)
+title.Position = UDim2.fromOffset(10, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival | RIVALS | Discord: https://discord.gg/dcSGrkPzv"
-title.TextColor3 = Color3.fromRGB(245, 245, 245)
-title.TextSize = 11
+title.Text = "Anti-Rival - discord.gg/dcSGrkPzv"
+title.TextColor3 = Color3.fromRGB(200, 200, 205)
+title.TextSize = 12
 title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = header
 
-local hint = Instance.new("TextLabel")
-hint.Size = UDim2.fromOffset(130, 32)
-hint.Position = UDim2.new(1, -140, 0, 0)
-hint.BackgroundTransparency = 1
-hint.Text = "RightShift · Toggle UI"
-hint.TextColor3 = Color3.fromRGB(130, 135, 145)
-hint.TextSize = 10
-hint.TextXAlignment = Enum.TextXAlignment.Right
-hint.Font = Enum.Font.Code
-hint.Parent = header
+-- 우측 파란색 게임명 표시 (1번 사진 우측 참고)
+local rightTitle = Instance.new("TextLabel")
+rightTitle.Size = UDim2.fromOffset(60, 28)
+rightTitle.Position = UDim2.new(1, -65, 0, 0)
+rightTitle.BackgroundTransparency = 1
+rightTitle.Text = "Rivals"
+rightTitle.TextColor3 = Color3.fromRGB(60, 120, 210)
+rightTitle.TextSize = 12
+rightTitle.Font = Enum.Font.Code
+rightTitle.TextXAlignment = Enum.TextXAlignment.Right
+rightTitle.Parent = header
 
+-- 탭 버튼 패널
 local tabs = Instance.new("Frame")
-tabs.Size = UDim2.new(1, -16, 0, 36)
-tabs.Position = UDim2.fromOffset(8, 38)
-tabs.BackgroundColor3 = Color3.fromRGB(18, 19, 23)
-tabs.BorderColor3 = Color3.fromRGB(55, 57, 64)
+tabs.Size = UDim2.new(1, -12, 0, 30)
+tabs.Position = UDim2.fromOffset(6, 32)
+tabs.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
+tabs.BorderColor3 = Color3.fromRGB(35, 35, 40)
+tabs.BorderSizePixel = 1
 tabs.Parent = window
 
+-- 메인 컨텐츠 영역
 local content = Instance.new("Frame")
-content.Size = UDim2.new(1, -16, 1, -88)
-content.Position = UDim2.fromOffset(8, 80)
-content.BackgroundColor3 = Color3.fromRGB(17, 18, 22)
-content.BorderColor3 = Color3.fromRGB(55, 57, 64)
+content.Size = UDim2.new(1, -12, 1, -70)
+content.Position = UDim2.fromOffset(6, 64)
+content.BackgroundColor3 = Color3.fromRGB(16, 16, 18)
+content.BorderColor3 = Color3.fromRGB(35, 35, 40)
+content.BorderSizePixel = 1
 content.Parent = window
 
 local pages, tabButtons = {}, {}
@@ -210,19 +218,20 @@ local function showPage(name)
 
 	for tabName, button in pairs(tabButtons) do
 		button.BackgroundColor3 = tabName == name
-			and Color3.fromRGB(58, 92, 160)
-			or Color3.fromRGB(22, 23, 28)
+			and Color3.fromRGB(35, 65, 120)
+			or Color3.fromRGB(20, 20, 24)
 	end
 end
 
 local function tab(text, name, x)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.fromOffset(88, 26)
-	button.Position = UDim2.fromOffset(x, 5)
-	button.BackgroundColor3 = Color3.fromRGB(22, 23, 28)
-	button.BorderColor3 = Color3.fromRGB(70, 72, 80)
+	button.Size = UDim2.fromOffset(68, 22)
+	button.Position = UDim2.fromOffset(x, 4)
+	button.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+	button.BorderColor3 = Color3.fromRGB(45, 45, 50)
+	button.BorderSizePixel = 1
 	button.Text = text
-	button.TextColor3 = Color3.fromRGB(235, 235, 238)
+	button.TextColor3 = Color3.fromRGB(210, 210, 215)
 	button.TextSize = 11
 	button.Font = Enum.Font.Code
 	button.Parent = tabs
@@ -230,22 +239,22 @@ local function tab(text, name, x)
 	tabButtons[name] = button
 end
 
-tab("movement", "movement", 6)
-tab("visuals", "visuals", 98)
-tab("player", "player", 190)
-tab("rage", "rage", 282)
-tab("world", "world", 374)
-tab("collision", "collision", 466)
-tab("setting", "setting", 558)
+tab("movement", "movement", 4)
+tab("visuals", "visuals", 76)
+tab("player", "player", 148)
+tab("rage", "rage", 220)
+tab("world", "world", 292)
+tab("collision", "collision", 364)
+tab("setting", "setting", 436)
 
 local function heading(parent, text)
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, -20, 0, 32)
-	label.Position = UDim2.fromOffset(10, 8)
+	label.Size = UDim2.new(1, -20, 0, 28)
+	label.Position = UDim2.fromOffset(10, 6)
 	label.BackgroundTransparency = 1
 	label.Text = text
-	label.TextColor3 = Color3.fromRGB(238, 238, 242)
-	label.TextSize = 16
+	label.TextColor3 = Color3.fromRGB(220, 220, 225)
+	label.TextSize = 14
 	label.Font = Enum.Font.Code
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = parent
@@ -253,25 +262,26 @@ end
 
 local function textbox(parent, text, value, y)
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromOffset(220, 28)
+	label.Size = UDim2.fromOffset(220, 26)
 	label.Position = UDim2.fromOffset(16, y)
 	label.BackgroundTransparency = 1
 	label.Text = text
-	label.TextColor3 = Color3.fromRGB(210, 210, 215)
-	label.TextSize = 13
+	label.TextColor3 = Color3.fromRGB(190, 190, 195)
+	label.TextSize = 12
 	label.Font = Enum.Font.Code
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = parent
 
 	local box = Instance.new("TextBox")
-	box.Size = UDim2.fromOffset(100, 26)
-	box.Position = UDim2.fromOffset(250, y)
-	box.BackgroundColor3 = Color3.fromRGB(43, 46, 56)
-	box.BorderColor3 = Color3.fromRGB(78, 82, 94)
+	box.Size = UDim2.fromOffset(90, 24)
+	box.Position = UDim2.fromOffset(240, y)
+	box.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+	box.BorderColor3 = Color3.fromRGB(50, 50, 60)
+	box.BorderSizePixel = 1
 	box.Text = tostring(value)
 	box.ClearTextOnFocus = false
 	box.TextColor3 = Color3.new(1, 1, 1)
-	box.TextSize = 13
+	box.TextSize = 12
 	box.Font = Enum.Font.Code
 	box.Parent = parent
 
@@ -280,13 +290,14 @@ end
 
 local function toggle(parent, text, y)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.fromOffset(335, 30)
+	button.Size = UDim2.fromOffset(314, 26)
 	button.Position = UDim2.fromOffset(16, y)
-	button.BackgroundColor3 = Color3.fromRGB(120, 52, 52)
-	button.BorderColor3 = Color3.fromRGB(180, 70, 70)
+	button.BackgroundColor3 = Color3.fromRGB(90, 40, 40)
+	button.BorderColor3 = Color3.fromRGB(140, 55, 55)
+	button.BorderSizePixel = 1
 	button.Text = text .. ": OFF"
 	button.TextColor3 = Color3.new(1, 1, 1)
-	button.TextSize = 13
+	button.TextSize = 12
 	button.Font = Enum.Font.Code
 	button.Parent = parent
 	return button
@@ -295,115 +306,119 @@ end
 local function setToggle(button, enabled, text)
 	button.Text = text .. (enabled and ": ON" or ": OFF")
 	button.BackgroundColor3 = enabled
-		and Color3.fromRGB(47, 118, 75)
-		or Color3.fromRGB(120, 52, 52)
+		and Color3.fromRGB(40, 95, 60)
+		or Color3.fromRGB(90, 40, 40)
 	button.BorderColor3 = enabled
-		and Color3.fromRGB(75, 180, 112)
-		or Color3.fromRGB(180, 70, 70)
+		and Color3.fromRGB(60, 140, 90)
+		or Color3.fromRGB(140, 55, 55)
 end
 
 -- Movement
 heading(movement, "movement")
-local flyBox = textbox(movement, "fly speed  (1–500)", flySpeed, 55)
-local flyButton = toggle(movement, "fly", 88)
-local walkBox = textbox(movement, "walk speed  (1–500)", walkSpeed, 143)
-local walkButton = toggle(movement, "walk speed", 176)
+local flyBox = textbox(movement, "fly speed  (1–500)", flySpeed, 48)
+local flyButton = toggle(movement, "fly", 78)
+local walkBox = textbox(movement, "walk speed  (1–500)", walkSpeed, 126)
+local walkButton = toggle(movement, "walk speed", 156)
 
 -- Visuals
 heading(visuals, "visuals")
-local espButton = toggle(visuals, "player esp", 55)
-local namesButton = toggle(visuals, "player names", 92)
-local healthBarButton = toggle(visuals, "health bar", 129)
+local espButton = toggle(visuals, "player esp", 48)
+local namesButton = toggle(visuals, "player names", 80)
+local healthBarButton = toggle(visuals, "health bar", 112)
 
 local colorText = Instance.new("TextLabel")
 colorText.Size = UDim2.fromOffset(130, 25)
-colorText.Position = UDim2.fromOffset(16, 170)
+colorText.Position = UDim2.fromOffset(16, 148)
 colorText.BackgroundTransparency = 1
 colorText.Text = "esp color (RGB)"
-colorText.TextColor3 = Color3.fromRGB(210, 210, 215)
-colorText.TextSize = 13
+colorText.TextColor3 = Color3.fromRGB(190, 190, 195)
+colorText.TextSize = 12
 colorText.Font = Enum.Font.Code
 colorText.TextXAlignment = Enum.TextXAlignment.Left
 colorText.Parent = visuals
 
 local function rgbBox(value, x)
 	local box = Instance.new("TextBox")
-	box.Size = UDim2.fromOffset(62, 25)
-	box.Position = UDim2.fromOffset(x, 170)
-	box.BackgroundColor3 = Color3.fromRGB(43, 46, 56)
-	box.BorderColor3 = Color3.fromRGB(78, 82, 94)
+	box.Size = UDim2.fromOffset(56, 24)
+	box.Position = UDim2.fromOffset(x, 148)
+	box.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+	box.BorderColor3 = Color3.fromRGB(50, 50, 60)
+	box.BorderSizePixel = 1
 	box.Text = tostring(value)
 	box.ClearTextOnFocus = false
 	box.TextColor3 = Color3.new(1, 1, 1)
-	box.TextSize = 13
+	box.TextSize = 12
 	box.Font = Enum.Font.Code
 	box.Parent = visuals
 	return box
 end
 
-local redBox = rgbBox(255, 150)
-local greenBox = rgbBox(70, 218)
-local blueBox = rgbBox(70, 286)
+local redBox = rgbBox(255, 140)
+local greenBox = rgbBox(70, 202)
+local blueBox = rgbBox(70, 264)
 
 -- Player
 heading(playerPage, "player options")
 local jumpBox = textbox(playerPage, "jump power  (1–100)", jumpPower, 40)
-local jumpButton = toggle(playerPage, "jump power", 70)
-local infJumpButton = toggle(playerPage, "infinite jump", 105)
+local jumpButton = toggle(playerPage, "jump power", 68)
+local infJumpButton = toggle(playerPage, "infinite jump", 98)
 
-local fastShotBox = textbox(playerPage, "fast shot rate (1–700)", fastShotRate, 140)
-local fastShotButton = toggle(playerPage, "fast shot", 170)
+local fastShotBox = textbox(playerPage, "fast shot rate (1–700)", fastShotRate, 130)
+local fastShotButton = toggle(playerPage, "fast shot", 158)
 
-local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 205)
-local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 235)
+local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 190)
+local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 218)
 
 local aimbotPartButton = Instance.new("TextButton")
-aimbotPartButton.Size = UDim2.fromOffset(335, 24)
-aimbotPartButton.Position = UDim2.fromOffset(16, 270)
-aimbotPartButton.BackgroundColor3 = Color3.fromRGB(43, 46, 56)
-aimbotPartButton.BorderColor3 = Color3.fromRGB(78, 82, 94)
+aimbotPartButton.Size = UDim2.fromOffset(314, 24)
+aimbotPartButton.Position = UDim2.fromOffset(16, 248)
+aimbotPartButton.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+aimbotPartButton.BorderColor3 = Color3.fromRGB(50, 50, 60)
+aimbotPartButton.BorderSizePixel = 1
 aimbotPartButton.Text = "aimbot target: HEAD"
-aimbotPartButton.TextColor3 = Color3.fromRGB(235, 235, 238)
+aimbotPartButton.TextColor3 = Color3.fromRGB(220, 220, 225)
 aimbotPartButton.TextSize = 12
 aimbotPartButton.Font = Enum.Font.Code
 aimbotPartButton.Parent = playerPage
 
-local silentAimButton = toggle(playerPage, "silent aim", 300)
-local silentAimBox = textbox(playerPage, "silent aim fov (1–5000)", silentAimFOV, 335)
+local silentAimButton = toggle(playerPage, "silent aim", 278)
+local silentAimBox = textbox(playerPage, "silent aim fov (1–5000)", silentAimFOV, 308)
 
 local silentAimPartButton = Instance.new("TextButton")
-silentAimPartButton.Size = UDim2.fromOffset(335, 24)
-silentAimPartButton.Position = UDim2.fromOffset(16, 368)
-silentAimPartButton.BackgroundColor3 = Color3.fromRGB(43, 46, 56)
-silentAimPartButton.BorderColor3 = Color3.fromRGB(78, 82, 94)
+silentAimPartButton.Size = UDim2.fromOffset(314, 24)
+silentAimPartButton.Position = UDim2.fromOffset(16, 338)
+silentAimPartButton.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+silentAimPartButton.BorderColor3 = Color3.fromRGB(50, 50, 60)
+silentAimPartButton.BorderSizePixel = 1
 silentAimPartButton.Text = "silent target: HEAD"
-silentAimPartButton.TextColor3 = Color3.fromRGB(235, 235, 238)
+silentAimPartButton.TextColor3 = Color3.fromRGB(220, 220, 225)
 silentAimPartButton.TextSize = 12
 silentAimPartButton.Font = Enum.Font.Code
 silentAimPartButton.Parent = playerPage
 
 -- Rage
 heading(ragePage, "rage bot")
-local rageButton = toggle(ragePage, "rage bot", 55)
-local rageStudsBox = textbox(ragePage, "detection range (1–5000 studs)", rageStuds, 92)
+local rageButton = toggle(ragePage, "rage bot", 48)
+local rageStudsBox = textbox(ragePage, "detection range (1–5000 studs)", rageStuds, 80)
 
 -- World
 heading(world, "world")
-local gammaBox = textbox(world, "gamma  (1–100)", gammaValue, 55)
-local shaderButton = toggle(world, "custom shader", 98)
+local gammaBox = textbox(world, "gamma  (1–100)", gammaValue, 48)
+local shaderButton = toggle(world, "custom shader", 84)
 
 -- Collision
 heading(collision, "collision")
-local noclipButton = toggle(collision, "noclip", 55)
+local noclipButton = toggle(collision, "noclip", 48)
 
 -- Setting
-heading(settingPage, "config manager (clipboard mode)")
+heading(settingPage, "config manager")
 
 local configCodeBox = Instance.new("TextBox")
-configCodeBox.Size = UDim2.fromOffset(360, 150)
-configCodeBox.Position = UDim2.fromOffset(16, 45)
-configCodeBox.BackgroundColor3 = Color3.fromRGB(11, 12, 15)
-configCodeBox.BorderColor3 = Color3.fromRGB(40, 42, 50)
+configCodeBox.Size = UDim2.fromOffset(340, 130)
+configCodeBox.Position = UDim2.fromOffset(16, 40)
+configCodeBox.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+configCodeBox.BorderColor3 = Color3.fromRGB(35, 35, 40)
+configCodeBox.BorderSizePixel = 1
 configCodeBox.PlaceholderText = "Paste config code here..."
 configCodeBox.Text = ""
 configCodeBox.TextColor3 = Color3.new(1, 1, 1)
@@ -417,27 +432,28 @@ configCodeBox.Parent = settingPage
 
 local function createConfigBtn(text, y)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.fromOffset(360, 32)
+	btn.Size = UDim2.fromOffset(340, 28)
 	btn.Position = UDim2.fromOffset(16, y)
-	btn.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
-	btn.BorderColor3 = Color3.fromRGB(50, 53, 62)
+	btn.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
+	btn.BorderColor3 = Color3.fromRGB(45, 45, 50)
+	btn.BorderSizePixel = 1
 	btn.Text = text
-	btn.TextColor3 = Color3.fromRGB(230, 230, 235)
-	btn.TextSize = 13
+	btn.TextColor3 = Color3.fromRGB(210, 210, 215)
+	btn.TextSize = 12
 	btn.Font = Enum.Font.Code
 	btn.Parent = settingPage
 	return btn
 end
 
-local exportBtn = createConfigBtn("Copy Current Config (Export)", 205)
-local loadBtn = createConfigBtn("Load Config From Code (Import)", 245)
+local exportBtn = createConfigBtn("Copy Current Config (Export)", 180)
+local loadBtn = createConfigBtn("Load Config From Code (Import)", 214)
 
 local configStatus = Instance.new("TextLabel")
-configStatus.Size = UDim2.fromOffset(360, 20)
-configStatus.Position = UDim2.fromOffset(16, 290)
+configStatus.Size = UDim2.fromOffset(340, 20)
+configStatus.Position = UDim2.fromOffset(16, 250)
 configStatus.BackgroundTransparency = 1
 configStatus.Text = "Status: Ready (Clipboard Mode)"
-configStatus.TextColor3 = Color3.fromRGB(140, 145, 155)
+configStatus.TextColor3 = Color3.fromRGB(130, 135, 145)
 configStatus.TextSize = 11
 configStatus.Font = Enum.Font.Code
 configStatus.TextXAlignment = Enum.TextXAlignment.Left
@@ -779,7 +795,7 @@ local function getClosestTarget(maxFOV, targetPartType)
 	return closestPart
 end
 
--- Silent Aim Hooking (안전한 예외 처리 적용)
+-- Silent Aim Hooking
 pcall(function()
 	if typeof(hookmetamethod) == "function" then
 		local oldNamecall
