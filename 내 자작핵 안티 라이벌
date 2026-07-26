@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
@@ -175,6 +176,7 @@ local playerPage = page("player")
 local ragePage = page("rage")
 local world = page("world")
 local collision = page("collision")
+local settingsPage = page("settings")
 
 local function showPage(name)
 	for pageName, frame in pairs(pages) do
@@ -190,13 +192,13 @@ end
 
 local function tab(text, name, x)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.fromOffset(102, 26)
+	button.Size = UDim2.fromOffset(88, 26)
 	button.Position = UDim2.fromOffset(x, 5)
 	button.BackgroundColor3 = Color3.fromRGB(22, 23, 28)
 	button.BorderColor3 = Color3.fromRGB(70, 72, 80)
 	button.Text = text
 	button.TextColor3 = Color3.fromRGB(235, 235, 238)
-	button.TextSize = 12
+	button.TextSize = 11
 	button.Font = Enum.Font.Code
 	button.Parent = tabs
 	button.MouseButton1Click:Connect(function() showPage(name) end)
@@ -204,11 +206,12 @@ local function tab(text, name, x)
 end
 
 tab("movement", "movement", 6)
-tab("visuals", "visuals", 112)
-tab("player", "player", 218)
-tab("rage", "rage", 324)
-tab("world", "world", 430)
-tab("collision", "collision", 536)
+tab("visuals", "visuals", 98)
+tab("player", "player", 190)
+tab("rage", "rage", 282)
+tab("world", "world", 374)
+tab("collision", "collision", 466)
+tab("settings", "settings", 558)
 
 local function heading(parent, text)
 	local label = Instance.new("TextLabel")
@@ -370,7 +373,125 @@ local shaderButton = toggle(world, "custom shader", 98)
 heading(collision, "collision")
 local noclipButton = toggle(collision, "noclip", 55)
 
+-- Settings (Config Manager)
+heading(settingsPage, "config manager")
+
+local saveConfigButton = Instance.new("TextButton")
+saveConfigButton.Size = UDim2.fromOffset(335, 32)
+saveConfigButton.Position = UDim2.fromOffset(16, 55)
+saveConfigButton.BackgroundColor3 = Color3.fromRGB(43, 86, 156)
+saveConfigButton.BorderColor3 = Color3.fromRGB(70, 120, 200)
+saveConfigButton.Text = "Save Config"
+saveConfigButton.TextColor3 = Color3.new(1, 1, 1)
+saveConfigButton.TextSize = 13
+saveConfigButton.Font = Enum.Font.Code
+saveConfigButton.Parent = settingsPage
+
+local loadConfigButton = Instance.new("TextButton")
+loadConfigButton.Size = UDim2.fromOffset(335, 32)
+loadConfigButton.Position = UDim2.fromOffset(16, 100)
+loadConfigButton.BackgroundColor3 = Color3.fromRGB(47, 118, 75)
+loadConfigButton.BorderColor3 = Color3.fromRGB(75, 180, 112)
+loadConfigButton.Text = "Load Config"
+loadConfigButton.TextColor3 = Color3.new(1, 1, 1)
+loadConfigButton.TextSize = 13
+loadConfigButton.Font = Enum.Font.Code
+loadConfigButton.Parent = settingsPage
+
+local configStatus = Instance.new("TextLabel")
+configStatus.Size = UDim2.fromOffset(335, 25)
+configStatus.Position = UDim2.fromOffset(16, 145)
+configStatus.BackgroundTransparency = 1
+configStatus.Text = "Status: Idle"
+configStatus.TextColor3 = Color3.fromRGB(150, 155, 165)
+configStatus.TextSize = 12
+configStatus.Font = Enum.Font.Code
+configStatus.TextXAlignment = Enum.TextXAlignment.Left
+configStatus.Parent = settingsPage
+
 -- ================= [ 기능 구현 ] =================
+
+-- Config Save & Load Logic
+local configFileName = "AntiRival_Config.json"
+
+local function saveConfig()
+	local configData = {
+		flySpeed = flySpeed,
+		walkSpeed = walkSpeed,
+		jumpPower = jumpPower,
+		gammaValue = gammaValue,
+		fastShotRate = fastShotRate,
+		rageStuds = rageStuds,
+		silentAimFOV = silentAimFOV,
+		aimbotSmoothness = aimbotSmoothness,
+		aimbotTargetPart = aimbotTargetPart,
+		silentAimTargetPart = silentAimTargetPart,
+		espColor = {r = espColor.R * 255, g = espColor.G * 255, b = espColor.B * 255}
+	}
+
+	local success, err = pcall(function()
+		if writefile then
+			writefile(configFileName, HttpService:JSONEncode(configData))
+		end
+	end)
+
+	if success then
+		configStatus.Text = "Status: Config Saved Successfully!"
+		configStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+	else
+		configStatus.Text = "Status: Save Failed!"
+		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+	end
+end
+
+local function loadConfig()
+	local success, err = pcall(function()
+		if readfile and isfile and isfile(configFileName) then
+			local dataStr = readfile(configFileName)
+			local data = HttpService:JSONDecode(dataStr)
+
+			if data.flySpeed then flySpeed = data.flySpeed; flyBox.Text = tostring(flySpeed) end
+			if data.walkSpeed then walkSpeed = data.walkSpeed; walkBox.Text = tostring(walkSpeed) end
+			if data.jumpPower then jumpPower = data.jumpPower; jumpBox.Text = tostring(jumpPower) end
+			if data.gammaValue then 
+				gammaValue = data.gammaValue
+				gammaBox.Text = tostring(gammaValue)
+				gamma.Brightness = (gammaValue - 1) / 99
+			end
+			if data.fastShotRate then fastShotRate = data.fastShotRate; fastShotBox.Text = tostring(fastShotRate) end
+			if data.rageStuds then rageStuds = data.rageStuds; rageStudsBox.Text = tostring(rageStuds) end
+			if data.silentAimFOV then silentAimFOV = data.silentAimFOV; silentAimBox.Text = tostring(silentAimFOV) end
+			if data.aimbotSmoothness then aimbotSmoothness = data.aimbotSmoothness; aimbotBox.Text = tostring(aimbotSmoothness) end
+			if data.aimbotTargetPart then 
+				aimbotTargetPart = data.aimbotTargetPart
+				aimbotPartButton.Text = "aimbot target: " .. aimbotTargetPart:upper()
+			end
+			if data.silentAimTargetPart then 
+				silentAimTargetPart = data.silentAimTargetPart
+				silentAimPartButton.Text = "silent target: " .. silentAimTargetPart:upper()
+			end
+			if data.espColor then
+				espColor = Color3.fromRGB(data.espColor.r, data.espColor.g, data.espColor.b)
+				redBox.Text = tostring(data.espColor.r)
+				greenBox.Text = tostring(data.espColor.g)
+				blueBox.Text = tostring(data.espColor.b)
+			end
+		else
+			error("File not found")
+		end
+	end)
+
+	if success then
+		configStatus.Text = "Status: Config Loaded Successfully!"
+		configStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+	else
+		configStatus.Text = "Status: Load Failed or No Config File!"
+		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+	end
+end
+
+saveConfigButton.MouseButton1Click:Connect(saveConfig)
+loadConfigButton.MouseButton1Click:Connect(loadConfig)
 
 -- Fast Shot
 local lastShotTime = 0
