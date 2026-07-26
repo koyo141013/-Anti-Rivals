@@ -198,7 +198,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 타이틀 (상단 정중앙 배치 및 버전명 변경)
+-- 타이틀 (상단 정중앙 배치 및 요구하신 이름 적용)
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -240,7 +240,7 @@ discordBtn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- 탭 및 페이지 레이아웃
+-- 탭 및 페이지 레이아웃 (스크린샷 순서 반영)
 ----------------------------------------------------
 local tabs = Instance.new("Frame")
 tabs.Size = UDim2.new(1, -16, 0, 24)
@@ -279,13 +279,13 @@ local function page(name)
 	return frame
 end
 
-local movement = page("movement")
-local visuals = page("visuals")
-local playerPage = page("player")
-local ragePage = page("rage")
-local world = page("world")
-local collision = page("collision")
-local settingPage = page("setting")
+local movement = page("main")
+local worldPage = page("world")
+local espPage = page("esp")
+local visualsPage = page("visuals")
+local characterPage = page("character")
+local miscPage = page("misc")
+local settingPage = page("settings")
 
 local function showPage(name)
 	for pageName, frame in pairs(pages) do
@@ -326,13 +326,13 @@ local function tab(text, name, order)
 	tabButtons[name] = button
 end
 
-tab("main", "movement", 1)
-tab("visuals", "visuals", 2)
-tab("player", "player", 3)
-tab("rage", "rage", 4)
-tab("world", "world", 5)
-tab("misc", "collision", 6)
-tab("settings", "setting", 7)
+tab("main", "main", 1)
+tab("world", "world", 2)
+tab("esp", "esp", 3)
+tab("visuals", "visuals", 4)
+tab("character", "character", 5)
+tab("misc", "misc", 6)
+tab("settings", "settings", 7)
 
 ----------------------------------------------------
 -- UI 컨트롤 빌더
@@ -407,18 +407,23 @@ local function setToggle(button, enabled, text)
 		or Color3.fromRGB(100, 45, 45)
 end
 
--- Movement
+-- 1. main 탭 (Movement)
 heading(movement, "movement / main")
 local flyBox = textbox(movement, "fly speed  (1–500)", flySpeed, 40)
 local flyButton = toggle(movement, "fly", 68)
 local walkBox = textbox(movement, "walk speed  (1–500)", walkSpeed, 110)
 local walkButton = toggle(movement, "walk speed", 138)
 
--- Visuals
-heading(visuals, "visuals")
-local espButton = toggle(visuals, "player esp", 40)
-local namesButton = toggle(visuals, "player names", 70)
-local healthBarButton = toggle(visuals, "health bar", 100)
+-- 2. world 탭
+heading(worldPage, "world")
+local gammaBox = textbox(worldPage, "gamma  (1–100)", gammaValue, 40)
+local shaderButton = toggle(worldPage, "custom shader", 72)
+
+-- 3. esp 탭
+heading(espPage, "player esp & visual")
+local espButton = toggle(espPage, "player esp", 40)
+local namesButton = toggle(espPage, "player names", 70)
+local healthBarButton = toggle(espPage, "health bar", 100)
 
 local colorText = Instance.new("TextLabel")
 colorText.Size = UDim2.fromOffset(130, 22)
@@ -430,7 +435,7 @@ colorText.TextSize = 11
 colorText.Font = Enum.Font.Code
 colorText.TextXAlignment = Enum.TextXAlignment.Left
 colorText.ZIndex = 9
-colorText.Parent = visuals
+colorText.Parent = espPage
 
 local function rgbBox(value, x)
 	local box = Instance.new("TextBox")
@@ -445,7 +450,7 @@ local function rgbBox(value, x)
 	box.TextSize = 11
 	box.Font = Enum.Font.Code
 	box.ZIndex = 9
-	box.Parent = visuals
+	box.Parent = espPage
 	return box
 end
 
@@ -453,21 +458,14 @@ local redBox = rgbBox(255, 140)
 local greenBox = rgbBox(70, 206)
 local blueBox = rgbBox(70, 272)
 
--- Player
-heading(playerPage, "player options")
-local jumpBox = textbox(playerPage, "jump power  (1–100)", jumpPower, 36)
-local jumpButton = toggle(playerPage, "jump power", 62)
-local infJumpButton = toggle(playerPage, "infinite jump", 90)
-
-local fastShotBox = textbox(playerPage, "fast shot rate (1–1000)", fastShotRate, 122)
-local fastShotButton = toggle(playerPage, "fast shot (Ultra Bypass)", 148)
-
-local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 180)
-local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 206)
+-- 4. visuals 탭 (Aimbot & Silent Aim)
+heading(visualsPage, "combat visuals & aim")
+local aimbotBox = textbox(visualsPage, "aimbot strength (1–150)", aimbotSmoothness, 36)
+local aimbotButton = toggle(visualsPage, "aimbot (hold rmb)", 62)
 
 local aimbotPartButton = Instance.new("TextButton")
 aimbotPartButton.Size = UDim2.fromOffset(316, 22)
-aimbotPartButton.Position = UDim2.fromOffset(14, 234)
+aimbotPartButton.Position = UDim2.fromOffset(14, 90)
 aimbotPartButton.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 aimbotPartButton.BorderColor3 = Color3.fromRGB(40, 40, 46)
 aimbotPartButton.BorderSizePixel = 1
@@ -476,14 +474,14 @@ aimbotPartButton.TextColor3 = Color3.fromRGB(200, 200, 205)
 aimbotPartButton.TextSize = 11
 aimbotPartButton.Font = Enum.Font.Code
 aimbotPartButton.ZIndex = 9
-aimbotPartButton.Parent = playerPage
+aimbotPartButton.Parent = visualsPage
 
-local silentAimButton = toggle(playerPage, "silent aim", 262)
-local silentAimBox = textbox(playerPage, "silent aim fov (1–5000)", silentAimFOV, 290)
+local silentAimButton = toggle(visualsPage, "silent aim", 124)
+local silentAimBox = textbox(visualsPage, "silent aim fov (1–5000)", silentAimFOV, 152)
 
 local silentAimPartButton = Instance.new("TextButton")
 silentAimPartButton.Size = UDim2.fromOffset(316, 22)
-silentAimPartButton.Position = UDim2.fromOffset(14, 318)
+silentAimPartButton.Position = UDim2.fromOffset(14, 180)
 silentAimPartButton.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 silentAimPartButton.BorderColor3 = Color3.fromRGB(40, 40, 46)
 silentAimPartButton.BorderSizePixel = 1
@@ -492,24 +490,26 @@ silentAimPartButton.TextColor3 = Color3.fromRGB(200, 200, 205)
 silentAimPartButton.TextSize = 11
 silentAimPartButton.Font = Enum.Font.Code
 silentAimPartButton.ZIndex = 9
-silentAimPartButton.Parent = playerPage
+silentAimPartButton.Parent = visualsPage
 
--- Rage
-heading(ragePage, "rage bot & view lock")
-local rageButton = toggle(ragePage, "rage bot", 40)
-local rageStudsBox = textbox(ragePage, "detection range (1–5000 studs)", rageStuds, 70)
-local fakeLagButton = toggle(ragePage, "view lock (stay still locally)", 100)
+-- 5. character 탭 (Player Options, Fast Shot, Rage Bot, View Lock)
+heading(characterPage, "character options & combat")
+local jumpBox = textbox(characterPage, "jump power  (1–100)", jumpPower, 36)
+local jumpButton = toggle(characterPage, "jump power", 62)
+local infJumpButton = toggle(characterPage, "infinite jump", 90)
 
--- World
-heading(world, "world")
-local gammaBox = textbox(world, "gamma  (1–100)", gammaValue, 40)
-local shaderButton = toggle(world, "custom shader", 72)
+local fastShotBox = textbox(characterPage, "fast shot rate (1–1000)", fastShotRate, 122)
+local fastShotButton = toggle(characterPage, "fast shot (Ultra Bypass)", 148)
 
--- Collision
-heading(collision, "misc / collision")
-local noclipButton = toggle(collision, "noclip", 40)
+local rageButton = toggle(characterPage, "rage bot", 182)
+local rageStudsBox = textbox(characterPage, "detection range (1–5000 studs)", rageStuds, 210)
+local fakeLagButton = toggle(characterPage, "view lock (stay still locally)", 242)
 
--- Setting (Keybind Manager UI)
+-- 6. misc 탭 (Collision)
+heading(miscPage, "misc / collision")
+local noclipButton = toggle(miscPage, "noclip", 40)
+
+-- 7. settings 탭 (Keybind Manager)
 heading(settingPage, "keybind manager")
 
 local keybinds = {
@@ -1138,7 +1138,7 @@ local function toggleRage(forceState)
 end
 
 local function toggleFakeLag(forceState)
-	fakeLagOn = forceState ~= nil and forceState or not fakeLagOn
+	fakeLagOn = forceState ~= nil and fakeLagOn or not fakeLagOn
 	setToggle(fakeLagButton, fakeLagOn, "view lock (stay still locally)")
 end
 
@@ -1237,4 +1237,4 @@ UserInputService.InputBegan:Connect(function(input, gpe)
 	end
 end)
 
-showPage("movement")
+showPage("main")
