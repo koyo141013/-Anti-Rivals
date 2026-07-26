@@ -32,6 +32,7 @@ local attachment, velocity, orientation, flyConnection, noclipConnection, aimbot
 
 local checkcaller_fn = checkcaller or function() return false end
 local newcclosure_fn = newcclosure or function(f) return f end
+local unpack_fn = table.unpack or unpack
 
 local function parts()
 	local character = player.Character or player.CharacterAdded:Wait()
@@ -79,7 +80,7 @@ gui.Parent = player.PlayerGui
 
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
-window.Position = UDim2.fromScale(0.5, 0.33) -- 창 위치를 기존(0.42)보다 위로 이동
+window.Position = UDim2.fromScale(0.5, 0.33)
 window.Size = UDim2.fromOffset(680, 520)
 window.BackgroundColor3 = Color3.fromRGB(14, 15, 18)
 window.BorderColor3 = Color3.fromRGB(60, 62, 70)
@@ -107,7 +108,7 @@ header.BackgroundColor3 = Color3.fromRGB(22, 23, 28)
 header.BorderSizePixel = 0
 header.Parent = window
 
--- UI 드래그(마우스 이동) 기능 로직
+-- UI 드래그(마우스 이동) 기능
 local dragging = false
 local dragInput, dragStart, startPos
 
@@ -778,12 +779,14 @@ local function getClosestTarget(maxFOV, targetPartType)
 	return closestPart
 end
 
--- Silent Aim Hooking
+-- Silent Aim Hooking (안전한 예외 처리 적용)
 pcall(function()
 	if typeof(hookmetamethod) == "function" then
 		local oldNamecall
+		local oldIndex
+
 		oldNamecall = hookmetamethod(game, "__namecall", newcclosure_fn(function(self, ...)
-			local method = getnamecallmethod and getnamecallmethod() or ""
+			local method = typeof(getnamecallmethod) == "function" and getnamecallmethod() or ""
 			local args = {...}
 
 			if silentAimOn and not checkcaller_fn() then
@@ -791,28 +794,29 @@ pcall(function()
 					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
 					if targetPart then
 						local origin = args[1]
-						if typeof(origin) == "Vector3" then
+						if typeof(origin) == "Vector3" and oldNamecall then
 							args[2] = (targetPart.Position - origin).Unit * 10000
-							return oldNamecall(self, table.unpack(args))
+							return oldNamecall(self, unpack_fn(args))
 						end
 					end
 				elseif (method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRay") and (self == workspace or self == game.Workspace) then
 					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
 					if targetPart then
 						local camera = workspace.CurrentCamera
-						if camera then
+						if camera and oldNamecall then
 							local origin = camera.CFrame.Position
 							args[1] = Ray.new(origin, (targetPart.Position - origin).Unit * 10000)
-							return oldNamecall(self, table.unpack(args))
+							return oldNamecall(self, unpack_fn(args))
 						end
 					end
 				end
 			end
 
-			return oldNamecall(self, ...)
+			if oldNamecall then
+				return oldNamecall(self, ...)
+			end
 		end))
 
-		local oldIndex
 		oldIndex = hookmetamethod(game, "__index", newcclosure_fn(function(self, index)
 			if silentAimOn and not checkcaller_fn() then
 				if typeof(self) == "Instance" and self:IsA("Mouse") then
@@ -825,7 +829,10 @@ pcall(function()
 					end
 				end
 			end
-			return oldIndex(self, index)
+
+			if oldIndex then
+				return oldIndex(self, index)
+			end
 		end))
 	end
 end)
@@ -1051,7 +1058,7 @@ exportBtn.MouseButton1Click:Connect(function()
 	local jsonStr = HttpService:JSONEncode(getSavedData())
 	configCodeBox.Text = jsonStr
 
-	if setclipboard then
+	if typeof(setclipboard) == "function" then
 		setclipboard(jsonStr)
 		configStatus.Text = "Status: Copied config to clipboard!"
 		configStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
@@ -1064,7 +1071,7 @@ end)
 loadBtn.MouseButton1Click:Connect(function()
 	local inputStr = configCodeBox.Text
 
-	if inputStr == "" and getclipboard then
+	if inputStr == "" and typeof(getclipboard) == "function" then
 		inputStr = getclipboard()
 		configCodeBox.Text = inputStr
 	end
@@ -1076,7 +1083,7 @@ loadBtn.MouseButton1Click:Connect(function()
 	end
 
 	local success, data = pcall(function()
-		return HttpService:JSONDecode(inputStr)
+		return HttpService:JSONEncode(inputStr)
 	end)
 
 	if success and type(data) == "table" then
@@ -1131,7 +1138,7 @@ loadBtn.MouseButton1Click:Connect(function()
 	end
 end)
 
--- UI Toggle Keybind (RightShift) - 토글 방식
+-- UI Toggle Keybind (RightShift)
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if not gpe and input.KeyCode == Enum.KeyCode.RightShift then
 		window.Visible = not window.Visible
