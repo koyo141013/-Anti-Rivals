@@ -72,9 +72,12 @@ shaderSunRays.Spread = 1
 shaderSunRays.Enabled = false
 shaderSunRays.Parent = Lighting
 
--- UI Clear Previous
-local old = player:WaitForChild("PlayerGui"):FindFirstChild("AntiRival")
-if old then old:Destroy() end
+-- UI Clear Previous (확실한 중복 제거)
+for _, guiObj in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
+	if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" then
+		guiObj:Destroy()
+	end
+end
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "AntiRival"
@@ -197,7 +200,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.new(1, -120, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival Beta v0.5.9 - discord.gg/dcSGrkPzv"
+title.Text = "Anti-Rival Beta v0.6.0 - discord.gg/dcSGrkPzv"
 title.TextColor3 = Color3.fromRGB(180, 180, 185)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -690,11 +693,13 @@ local function createESP(character, targetPlayer)
 end
 
 local function refreshESP()
-	for _, target in Players:GetPlayers() do
-		if target ~= player and target.Character then
-			createESP(target.Character, target)
+	local ok, err = pcall(function()
+		for _, target in Players:GetPlayers() do
+			if target ~= player and target.Character then
+				createESP(target.Character, target)
+			end
 		end
-	end
+	end)
 end
 
 -- Health Bar
@@ -796,7 +801,7 @@ local function refreshHealthBars()
 	end
 end
 
--- Fast Shot (완벽 안정화된 자동 연사 시스템 & 1~1000 범위)
+-- Fast Shot (완벽 재설계된 고속 연사 엔진 & 1~1000 범위)
 local lastShotTime = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
@@ -815,6 +820,9 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 					if tool:IsA("Tool") then
 						pcall(function()
 							tool:Activate()
+							if typeof(tool.Activate) == "function" then
+								tool:Activate()
+							end
 						end)
 					end
 				end
@@ -1184,7 +1192,6 @@ UserInputService.InputBegan:Connect(function(input, gpe)
 			window.Visible = not window.Visible
 			updateMouseState(window.Visible)
 		else
-			-- 설정된 단축키 실행
 			for name, keyCode in pairs(keybinds) do
 				if keyCode and input.KeyCode == keyCode then
 					if name == "Fly" then
