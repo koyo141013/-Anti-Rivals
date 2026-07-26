@@ -9,7 +9,7 @@ local infiniteJumpOn = false
 local aimbotOn = false
 local shaderOn = false
 
--- Fast Shot 변수 (초정밀 펄스 간격 조절)
+-- Fast Shot 변수
 local fastShotOn = false
 local fastShotRate = 500
 
@@ -203,7 +203,7 @@ title.AnchorPoint = Vector2.new(0, 0.5)
 title.Position = UDim2.new(0, 10, 0.5, 0)
 title.Size = UDim2.new(0, 260, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival v0.6.5 - Advanced Bypass"
+title.Text = "Anti-Rival v0.7.0 - Final Build"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -211,7 +211,7 @@ title.TextXAlignment = Enum.TextXAlignment.Left
 title.ZIndex = 8
 title.Parent = header
 
--- 디스코드 링크 버튼 (정확한 링크 적용 완료)
+-- 디스코드 링크 버튼 (요청하신 링크 명시 적용)
 local discordBtn = Instance.new("TextButton")
 discordBtn.AnchorPoint = Vector2.new(1, 0.5)
 discordBtn.Position = UDim2.new(1, -10, 0.5, 0)
