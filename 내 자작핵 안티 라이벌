@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local Stats = game:GetService("Stats")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
 
@@ -320,13 +321,13 @@ local redBox = rgbBox(255, 150)
 local greenBox = rgbBox(70, 218)
 local blueBox = rgbBox(70, 286)
 
--- Player (Fast Shot 추가됨)
+-- Player
 heading(playerPage, "player options")
 local jumpBox = textbox(playerPage, "jump power  (1–100)", jumpPower, 40)
 local jumpButton = toggle(playerPage, "jump power", 70)
 local infJumpButton = toggle(playerPage, "infinite jump", 105)
 
--- Fast Shot 섹션
+-- Fast Shot
 local fastShotBox = textbox(playerPage, "fast shot rate (1–700)", fastShotRate, 140)
 local fastShotButton = toggle(playerPage, "fast shot", 170)
 
@@ -344,7 +345,7 @@ aimbotPartButton.TextSize = 12
 aimbotPartButton.Font = Enum.Font.Code
 aimbotPartButton.Parent = playerPage
 
--- Silent Aim 세팅
+-- Silent Aim
 local silentAimButton = toggle(playerPage, "silent aim", 300)
 local silentAimBox = textbox(playerPage, "silent aim fov (1–5000)", silentAimFOV, 335)
 
@@ -375,7 +376,7 @@ local noclipButton = toggle(collision, "noclip", 55)
 
 -- ================= [ 기능 구현 ] =================
 
--- Fast Shot (고속 연사) 루프
+-- Fast Shot (RIVALS 전용 RemoteEvent 바이패스 연사)
 local lastShotTime = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
@@ -383,9 +384,10 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
 		local now = os.clock()
 		local interval = 1 / math.clamp(fastShotRate, 1, 700)
-		
+
 		if now - lastShotTime >= interval then
 			lastShotTime = now
+
 			local char = player.Character
 			if char then
 				local tool = char:FindFirstChildOfClass("Tool")
@@ -393,11 +395,19 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 					tool:Activate()
 				end
 			end
+
+			pcall(function()
+				for _, v in ReplicatedStorage:GetDescendants() do
+					if v:IsA("RemoteEvent") and (v.Name:lower():find("shoot") or v.Name:lower():find("fire") or v.Name:lower():find("gun")) then
+						v:FireServer()
+					end
+				end
+			end)
 		end
 	end
 end)
 
--- Infinite Jump 이벤트 처리
+-- Infinite Jump
 infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
 	if infiniteJumpOn then
 		local character = player.Character
@@ -429,7 +439,7 @@ local function getTargetPart(character, targetPartType)
 	end
 end
 
--- FOV 감지 타깃 검색
+-- FOV 감지
 local function getClosestTarget(maxDistance, targetPartType)
 	local camera = workspace.CurrentCamera
 	if not camera then return nil end
@@ -458,7 +468,7 @@ local function getClosestTarget(maxDistance, targetPartType)
 	return closestPart
 end
 
--- ================= [ 안전한 Silent Aim 구현 ] =================
+-- Silent Aim
 pcall(function()
 	if typeof(hookmetamethod) == "function" then
 		local oldNamecall
@@ -512,7 +522,7 @@ pcall(function()
 	end
 end)
 
--- Rage Bot 전용 감지
+-- Rage Bot
 local function getRageTargetHead()
 	local myChar = player.Character
 	if not myChar then return nil end
@@ -539,7 +549,6 @@ local function getRageTargetHead()
 	return closestHead
 end
 
--- Rage Bot Loop
 rageConnection = RunService.Heartbeat:Connect(function()
 	if not rageBotOn then return end
 
@@ -555,7 +564,7 @@ rageConnection = RunService.Heartbeat:Connect(function()
 	end
 end)
 
--- Aimbot Loop
+-- Aimbot
 aimbotConnection = RunService.RenderStepped:Connect(function()
 	if not aimbotOn then return end
 
@@ -861,7 +870,7 @@ local function startNoclip()
 	setToggle(noclipButton, true, "noclip")
 end
 
--- TextBox Event Handlers
+-- TextBox Events
 flyBox.FocusLost:Connect(function()
 	flySpeed = math.clamp(tonumber(flyBox.Text) or 70, 1, 500)
 	flyBox.Text = tostring(flySpeed)
