@@ -96,13 +96,6 @@ modalButton.Text = ""
 modalButton.Modal = true
 modalButton.Parent = window
 
-local function setCursorVisible(visible)
-	UserInputService.MouseIconEnabled = visible
-	if visible then
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-	end
-end
-
 RunService.RenderStepped:Connect(function()
 	if window.Visible then
 		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
@@ -185,7 +178,6 @@ local function showPage(name)
 	end
 end
 
--- 탭 버튼 위치 및 너비 조정 (7개 탭 맞춤)
 local function tab(text, name, x)
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.fromOffset(88, 26)
@@ -367,34 +359,24 @@ local shaderButton = toggle(world, "custom shader", 98)
 heading(collision, "collision")
 local noclipButton = toggle(collision, "noclip", 55)
 
--- Setting (Config Manager UI)
-heading(settingPage, "config manager")
+-- Setting (Clipboard Config UI)
+heading(settingPage, "config manager (clipboard mode)")
 
-local configNameBox = Instance.new("TextBox")
-configNameBox.Size = UDim2.fromOffset(360, 28)
-configNameBox.Position = UDim2.fromOffset(16, 45)
-configNameBox.BackgroundColor3 = Color3.fromRGB(22, 24, 30)
-configNameBox.BorderColor3 = Color3.fromRGB(55, 58, 68)
-configNameBox.PlaceholderText = "Enter config name..."
-configNameBox.Text = ""
-configNameBox.TextColor3 = Color3.new(1, 1, 1)
-configNameBox.TextSize = 12
-configNameBox.Font = Enum.Font.Code
-configNameBox.Parent = settingPage
-
-local configListFrame = Instance.new("ScrollingFrame")
-configListFrame.Size = UDim2.fromOffset(360, 160)
-configListFrame.Position = UDim2.fromOffset(16, 80)
-configListFrame.BackgroundColor3 = Color3.fromRGB(11, 12, 15)
-configListFrame.BorderColor3 = Color3.fromRGB(40, 42, 50)
-configListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-configListFrame.ScrollBarThickness = 4
-configListFrame.Parent = settingPage
-
-local listLayout = Instance.new("UIListLayout")
-listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-listLayout.Padding = UDim.new(0, 2)
-listLayout.Parent = configListFrame
+local configCodeBox = Instance.new("TextBox")
+configCodeBox.Size = UDim2.fromOffset(360, 150)
+configCodeBox.Position = UDim2.fromOffset(16, 45)
+configCodeBox.BackgroundColor3 = Color3.fromRGB(11, 12, 15)
+configCodeBox.BorderColor3 = Color3.fromRGB(40, 42, 50)
+configCodeBox.PlaceholderText = "Paste config code here..."
+configCodeBox.Text = ""
+configCodeBox.TextColor3 = Color3.new(1, 1, 1)
+configCodeBox.TextSize = 11
+configCodeBox.Font = Enum.Font.Code
+configCodeBox.TextWrapped = true
+configCodeBox.TextXAlignment = Enum.TextXAlignment.Left
+configCodeBox.TextYAlignment = Enum.TextYAlignment.Top
+configCodeBox.ClearTextOnFocus = false
+configCodeBox.Parent = settingPage
 
 local function createConfigBtn(text, y)
 	local btn = Instance.new("TextButton")
@@ -410,428 +392,160 @@ local function createConfigBtn(text, y)
 	return btn
 end
 
-local loadBtn = createConfigBtn("Load", 250)
-local saveBtn = createConfigBtn("Save", 290)
-local deleteBtn = createConfigBtn("Delete", 330)
-local exportBtn = createConfigBtn("Export to Clipboard", 370)
+local exportBtn = createConfigBtn("Copy Current Config (Export)", 205)
+local loadBtn = createConfigBtn("Load Config From Code (Import)", 245)
 
 local configStatus = Instance.new("TextLabel")
 configStatus.Size = UDim2.fromOffset(360, 20)
-configStatus.Position = UDim2.fromOffset(16, 410)
+configStatus.Position = UDim2.fromOffset(16, 290)
 configStatus.BackgroundTransparency = 1
-configStatus.Text = "Status: Ready"
+configStatus.Text = "Status: Ready (Clipboard Mode)"
 configStatus.TextColor3 = Color3.fromRGB(140, 145, 155)
 configStatus.TextSize = 11
 configStatus.Font = Enum.Font.Code
 configStatus.TextXAlignment = Enum.TextXAlignment.Left
 configStatus.Parent = settingPage
 
--- ================= [ 컨피그 시스템 로직 ] =================
+-- ========================================================
+--  기능별 서브 시스템 및 실행 로직 전체
+-- ========================================================
 
-local selectedConfig = ""
-local folderName = "AntiRival_Configs"
+-- Fly 로직
+local function stopFly()
+	flying = false
+	if flyConnection then flyConnection:Disconnect() end
+	if velocity then velocity:Destroy() end
+	if orientation then orientation:Destroy() end
+	if attachment then attachment:Destroy() end
 
-if makefolder and not isfolder(folderName) then
-	pcall(function() makefolder(folderName) end)
+	flyConnection, velocity, orientation, attachment = nil, nil, nil, nil
+
+	local humanoid = parts()
+	humanoid.PlatformStand = false
+	humanoid.AutoRotate = true
+	setToggle(flyButton, false, "fly")
 end
 
-local function refreshConfigList()
-	for _, child in ipairs(configListFrame:GetChildren()) do
-		if child:IsA("TextButton") then
-			child:Destroy()
-		end
-	end
+local function startFly()
+	local humanoid, root = parts()
+	flying = true
+	humanoid.PlatformStand = true
+	humanoid.AutoRotate = false
 
-	local files = {}
-	if listfiles then
-		pcall(function()
-			files = listfiles(folderName)
-		end)
-	end
+	attachment = Instance.new("Attachment")
+	attachment.Parent = root
 
-	local count = 0
-	for _, file in ipairs(files) do
-		local fileName = file:gsub(folderName .. "/", ""):gsub(folderName .. "\\", "")
-		if fileName:sub(-5) == ".json" then
-			local cfgName = fileName:sub(1, -6)
-			count = count + 1
+	velocity = Instance.new("LinearVelocity")
+	velocity.Attachment0 = attachment
+	velocity.RelativeTo = Enum.ActuatorRelativeTo.World
+	velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	velocity.ForceLimitsEnabled = true
+	velocity.MaxForce = 100000
+	velocity.Parent = root
 
-			local itemBtn = Instance.new("TextButton")
-			itemBtn.Size = UDim2.new(1, -6, 0, 28)
-			itemBtn.BackgroundTransparency = 1
-			itemBtn.TextXAlignment = Enum.TextXAlignment.Left
-			itemBtn.TextSize = 13
-			itemBtn.Font = Enum.Font.Code
+	orientation = Instance.new("AlignOrientation")
+	orientation.Attachment0 = attachment
+	orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	orientation.RigidityEnabled = true
+	orientation.Parent = root
 
-			if cfgName == selectedConfig then
-				itemBtn.Text = "  ✓  " .. cfgName
-				itemBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-			else
-				itemBtn.Text = "     " .. cfgName
-				itemBtn.TextColor3 = Color3.fromRGB(140, 145, 155)
-			end
+	flyConnection = RunService.RenderStepped:Connect(function()
+		if not flying or not root.Parent then return end
 
-			itemBtn.Parent = configListFrame
+		local camera = workspace.CurrentCamera
+		if not camera then return end
 
-			itemBtn.MouseButton1Click:Connect(function()
-				selectedConfig = cfgName
-				configNameBox.Text = cfgName
-				refreshConfigList()
-			end)
-		end
-	end
+		local look = Vector3.new(camera.CFrame.LookVector.X, 0, camera.CFrame.LookVector.Z)
+		local right = Vector3.new(camera.CFrame.RightVector.X, 0, camera.CFrame.RightVector.Z)
+		if look.Magnitude > 0 then look = look.Unit end
+		if right.Magnitude > 0 then right = right.Unit end
 
-	configListFrame.CanvasSize = UDim2.new(0, 0, 0, count * 30)
-end
-
-local function getSavedData()
-	return {
-		flySpeed = flySpeed,
-		walkSpeed = walkSpeed,
-		jumpPower = jumpPower,
-		gammaValue = gammaValue,
-		fastShotRate = fastShotRate,
-		rageStuds = rageStuds,
-		silentAimFOV = silentAimFOV,
-		aimbotSmoothness = aimbotSmoothness,
-		aimbotTargetPart = aimbotTargetPart,
-		silentAimTargetPart = silentAimTargetPart,
-		espColor = {r = espColor.R * 255, g = espColor.G * 255, b = espColor.B * 255}
-	}
-end
-
--- Save
-saveBtn.MouseButton1Click:Connect(function()
-	local name = configNameBox.Text
-	if name == "" then
-		configStatus.Text = "Status: Enter a valid config name!"
-		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-		return
-	end
-
-	local filePath = folderName .. "/" .. name .. ".json"
-	local jsonStr = HttpService:JSONEncode(getSavedData())
-
-	local success = pcall(function()
-		if writefile then writefile(filePath, jsonStr) end
-	end)
-
-	if success then
-		selectedConfig = name
-		configStatus.Text = "Status: Saved '" .. name .. "'"
-		configStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
-		refreshConfigList()
-	else
-		configStatus.Text = "Status: Save failed!"
-		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-	end
-end)
-
--- Load
-loadBtn.MouseButton1Click:Connect(function()
-	if selectedConfig == "" then
-		configStatus.Text = "Status: Select a config to load!"
-		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-		return
-	end
-
-	local filePath = folderName .. "/" .. selectedConfig .. ".json"
-	local success = pcall(function()
-		if readfile and isfile and isfile(filePath) then
-			local data = HttpService:JSONDecode(readfile(filePath))
-
-			if data.flySpeed then flySpeed = data.flySpeed; flyBox.Text = tostring(flySpeed) end
-			if data.walkSpeed then walkSpeed = data.walkSpeed; walkBox.Text = tostring(walkSpeed) end
-			if data.jumpPower then jumpPower = data.jumpPower; jumpBox.Text = tostring(jumpPower) end
-			if data.gammaValue then 
-				gammaValue = data.gammaValue
-				gammaBox.Text = tostring(gammaValue)
-				gamma.Brightness = (gammaValue - 1) / 99
-			end
-			if data.fastShotRate then fastShotRate = data.fastShotRate; fastShotBox.Text = tostring(fastShotRate) end
-			if data.rageStuds then rageStuds = data.rageStuds; rageStudsBox.Text = tostring(rageStuds) end
-			if data.silentAimFOV then silentAimFOV = data.silentAimFOV; silentAimBox.Text = tostring(silentAimFOV) end
-			if data.aimbotSmoothness then aimbotSmoothness = data.aimbotSmoothness; aimbotBox.Text = tostring(aimbotSmoothness) end
-			if data.aimbotTargetPart then 
-				aimbotTargetPart = data.aimbotTargetPart
-				aimbotPartButton.Text = "aimbot target: " .. aimbotTargetPart:upper()
-			end
-			if data.silentAimTargetPart then 
-				silentAimTargetPart = data.silentAimTargetPart
-				silentAimPartButton.Text = "silent target: " .. silentAimTargetPart:upper()
-			end
-			if data.espColor then
-				espColor = Color3.fromRGB(data.espColor.r, data.espColor.g, data.espColor.b)
-				redBox.Text = tostring(data.espColor.r)
-				greenBox.Text = tostring(data.espColor.g)
-				blueBox.Text = tostring(data.espColor.b)
-			end
-		else
-			error("File missing")
+		local direction = Vector3.zero
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction += look end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction -= look end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction -= right end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction += right end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction += Vector3.yAxis end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then direction -= Vector3.yAxis end
+		velocity.VectorVelocity = direction.Magnitude > 0
+			and direction.Unit * flySpeed
+			or Vector3.zero
+		if look.Magnitude > 0 then
+			orientation.CFrame = CFrame.lookAt(Vector3.zero, look)
 		end
 	end)
-
-	if success then
-		configStatus.Text = "Status: Loaded '" .. selectedConfig .. "'"
-		configStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
-	else
-		configStatus.Text = "Status: Load failed!"
-		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-	end
-end)
-
--- Delete
-deleteBtn.MouseButton1Click:Connect(function()
-	if selectedConfig == "" then
-		configStatus.Text = "Status: Select a config to delete!"
-		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-		return
-	end
-
-	local filePath = folderName .. "/" .. selectedConfig .. ".json"
-	local success = pcall(function()
-		if delfile and isfile and isfile(filePath) then
-			delfile(filePath)
-		end
-	end)
-
-	if success then
-		configStatus.Text = "Status: Deleted '" .. selectedConfig .. "'"
-		configStatus.TextColor3 = Color3.fromRGB(255, 150, 100)
-		selectedConfig = ""
-		configNameBox.Text = ""
-		refreshConfigList()
-	else
-		configStatus.Text = "Status: Delete failed!"
-		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-	end
-end)
-
--- Export to Clipboard
-exportBtn.MouseButton1Click:Connect(function()
-	if selectedConfig == "" then
-		configStatus.Text = "Status: Select a config to export!"
-		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-		return
-	end
-
-	local filePath = folderName .. "/" .. selectedConfig .. ".json"
-	if isfile and isfile(filePath) then
-		local str = readfile(filePath)
-		if setclipboard then
-			setclipboard(str)
-			configStatus.Text = "Status: Exported to clipboard!"
-			configStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
-		else
-			configStatus.Text = "Status: Clipboard unsupported!"
-			configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-		end
-	end
-end)
-
-refreshConfigList()
-
--- Fast Shot
-local lastShotTime = 0
-fastShotConnection = RunService.RenderStepped:Connect(function()
-	if not fastShotOn then return end
-
-	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-		local now = os.clock()
-		local interval = 1 / math.clamp(fastShotRate, 1, 700)
-
-		if now - lastShotTime >= interval then
-			lastShotTime = now
-
-			local char = player.Character
-			if char then
-				local tool = char:FindFirstChildOfClass("Tool")
-				if tool then
-					tool:Activate()
-				end
-			end
-
-			pcall(function()
-				for _, v in ReplicatedStorage:GetDescendants() do
-					if v:IsA("RemoteEvent") and (v.Name:lower():find("shoot") or v.Name:lower():find("fire") or v.Name:lower():find("gun")) then
-						v:FireServer()
-					end
-				end
-			end)
-		end
-	end
-end)
-
--- Infinite Jump
-infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
-	if infiniteJumpOn then
-		local character = player.Character
-		if character then
-			local humanoid = character:FindFirstChildOfClass("Humanoid")
-			if humanoid then
-				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-			end
-		end
-	end
-end)
-
-local function toggleShader()
-	shaderOn = not shaderOn
-	shaderBloom.Enabled = shaderOn
-	shaderCC.Enabled = shaderOn
-	shaderSunRays.Enabled = shaderOn
-	setToggle(shaderButton, shaderOn, "custom shader")
+	setToggle(flyButton, true, "fly")
 end
 
-local function getTargetPart(character, targetPartType)
-	if not character then return nil end
-	if targetPartType == "head" then
-		return character:FindFirstChild("Head")
-	else
-		return character:FindFirstChild("HumanoidRootPart")
-			or character:FindFirstChild("UpperTorso")
-			or character:FindFirstChild("Torso")
+local function toggleFly()
+	if flying then stopFly() else startFly() end
+end
+
+local function applyWalk()
+	local humanoid = parts()
+	humanoid.WalkSpeed = walkOn and walkSpeed or 16
+end
+
+local function applyJump()
+	local humanoid = parts()
+	humanoid.UseJumpPower = true
+	humanoid.JumpPower = jumpOn and jumpPower or 50
+end
+
+-- ESP System
+local function removeESP(character)
+	if not character then return end
+	local highlight = character:FindFirstChild("AntiRivalESP")
+	local nameTag = character:FindFirstChild("AntiRivalName")
+	if highlight then highlight:Destroy() end
+	if nameTag then nameTag:Destroy() end
+end
+
+local function createESP(character, targetPlayer)
+	if targetPlayer == player or not character then return end
+	removeESP(character)
+
+	if espOn then
+		local highlight = Instance.new("Highlight")
+		highlight.Name = "AntiRivalESP"
+		highlight.FillColor = espColor
+		highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+		highlight.FillTransparency = 0.5
+		highlight.OutlineTransparency = 0
+		highlight.Parent = character
+	end
+
+	if namesOn then
+		local head = character:FindFirstChild("Head")
+		if head then
+			local billboard = Instance.new("BillboardGui")
+			billboard.Name = "AntiRivalName"
+			billboard.Adornee = head
+			billboard.AlwaysOnTop = true
+			billboard.Size = UDim2.fromOffset(100, 20)
+			billboard.StudsOffset = Vector3.new(0, 2, 0)
+			billboard.Parent = head
+
+			local label = Instance.new("TextLabel")
+			label.Size = UDim2.fromScale(1, 1)
+			label.BackgroundTransparency = 1
+			label.Text = targetPlayer.Name
+			label.TextColor3 = espColor
+			label.TextStrokeTransparency = 0
+			label.TextSize = 12
+			label.Font = Enum.Font.Code
+			label.Parent = billboard
+		end
 	end
 end
 
-local function getClosestTarget(maxDistance, targetPartType)
-	local camera = workspace.CurrentCamera
-	if not camera then return nil end
-
-	local closestPart = nil
-	local shortestDistance = maxDistance or math.huge
-	local viewportCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
-
+local function refreshESP()
 	for _, target in Players:GetPlayers() do
 		if target ~= player and target.Character then
-			local part = getTargetPart(target.Character, targetPartType)
-			local humanoid = target.Character:FindFirstChild("Humanoid")
-
-			if part and humanoid and humanoid.Health > 0 then
-				local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
-				if onScreen then
-					local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
-					if mouseDist < shortestDistance then
-						shortestDistance = mouseDist
-						closestPart = part
-					end
-				end
-			end
+			createESP(target.Character, target)
 		end
 	end
-	return closestPart
 end
-
--- Silent Aim
-pcall(function()
-	if typeof(hookmetamethod) == "function" then
-		local oldNamecall
-		oldNamecall = hookmetamethod(game, "__namecall", newcclosure_fn(function(self, ...)
-			local method = getnamecallmethod and getnamecallmethod() or ""
-			local args = {...}
-
-			if silentAimOn and not checkcaller_fn() then
-				if method == "Raycast" then
-					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
-					if targetPart then
-						local origin = args[1]
-						if typeof(origin) == "Vector3" then
-							args[2] = (targetPart.Position - origin).Unit * 10000
-							return oldNamecall(self, table.unpack(args))
-						end
-					end
-				elseif method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRay" then
-					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
-					if targetPart then
-						local origin = workspace.CurrentCamera.CFrame.Position
-						local ray = Ray.new(origin, (targetPart.Position - origin).Unit * 10000)
-						args[1] = ray
-						return oldNamecall(self, table.unpack(args))
-					end
-				end
-			end
-
-			return oldNamecall(self, ...)
-		end))
-
-		local oldIndex
-		oldIndex = hookmetamethod(game, "__index", newcclosure_fn(function(self, index)
-			if silentAimOn and not checkcaller_fn() then
-				if typeof(self) == "Instance" and self:IsA("Mouse") then
-					if index == "Hit" then
-						local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
-						if targetPart then
-							return targetPart.CFrame
-						end
-					elseif index == "Target" then
-						local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
-						if targetPart then
-							return targetPart
-						end
-					end
-				end
-			end
-			return oldIndex(self, index)
-		end))
-	end
-end)
-
--- Rage Bot
-local function getRageTargetHead()
-	local myChar = player.Character
-	if not myChar then return nil end
-	local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-	if not myRoot then return nil end
-
-	local closestHead = nil
-	local shortestDistance = rageStuds
-
-	for _, target in Players:GetPlayers() do
-		if target ~= player and target.Character then
-			local head = target.Character:FindFirstChild("Head")
-			local humanoid = target.Character:FindFirstChild("Humanoid")
-
-			if head and humanoid and humanoid.Health > 0 then
-				local dist = (myRoot.Position - head.Position).Magnitude
-				if dist <= shortestDistance then
-					shortestDistance = dist
-					closestHead = head
-				end
-			end
-		end
-	end
-	return closestHead
-end
-
-rageConnection = RunService.Heartbeat:Connect(function()
-	if not rageBotOn then return end
-
-	local targetHead = getRageTargetHead()
-	if targetHead then
-		local myChar = player.Character
-		if myChar then
-			local myRoot = myChar:FindFirstChild("HumanoidRootPart")
-			if myRoot then
-				myRoot.CFrame = CFrame.new(targetHead.Position + Vector3.new(0, 7, 0))
-			end
-		end
-	end
-end)
-
--- Aimbot
-aimbotConnection = RunService.RenderStepped:Connect(function()
-	if not aimbotOn then return end
-
-	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-		local targetPart = getClosestTarget(math.huge, aimbotTargetPart)
-		if targetPart then
-			local camera = workspace.CurrentCamera
-			local targetCFrame = CFrame.lookAt(camera.CFrame.Position, targetPart.Position)
-			local alpha = math.clamp(aimbotSmoothness / 150, 0.01, 1)
-			camera.CFrame = camera.CFrame:Lerp(targetCFrame, alpha)
-		end
-	end
-end)
 
 -- Health Bar
 local function createHealthGui(character, targetPlayer)
@@ -932,262 +646,245 @@ local function refreshHealthBars()
 	end
 end
 
--- Fly
-local function stopFly()
-	flying = false
-	if flyConnection then flyConnection:Disconnect() end
-	if velocity then velocity:Destroy() end
-	if orientation then orientation:Destroy() end
-	if attachment then attachment:Destroy() end
+-- Fast Shot (안전 수정: 무차별 Remote 호출 제거하여 순간이동 버그 해결)
+local lastShotTime = 0
+fastShotConnection = RunService.RenderStepped:Connect(function()
+	if not fastShotOn then return end
 
-	flyConnection, velocity, orientation, attachment = nil, nil, nil, nil
+	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+		local now = os.clock()
+		local interval = 1 / math.clamp(fastShotRate, 1, 700)
 
-	local humanoid = parts()
-	humanoid.PlatformStand = false
-	humanoid.AutoRotate = true
-	setToggle(flyButton, false, "fly")
-end
+		if now - lastShotTime >= interval then
+			lastShotTime = now
 
-local function startFly()
-	local humanoid, root = parts()
-	flying = true
-	humanoid.PlatformStand = true
-	humanoid.AutoRotate = false
-
-	attachment = Instance.new("Attachment")
-	attachment.Parent = root
-
-	velocity = Instance.new("LinearVelocity")
-	velocity.Attachment0 = attachment
-	velocity.RelativeTo = Enum.ActuatorRelativeTo.World
-	velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	velocity.ForceLimitsEnabled = true
-	velocity.MaxForce = 100000
-	velocity.Parent = root
-
-	orientation = Instance.new("AlignOrientation")
-	orientation.Attachment0 = attachment
-	orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-	orientation.RigidityEnabled = true
-	orientation.Parent = root
-
-	flyConnection = RunService.RenderStepped:Connect(function()
-		if not flying or not root.Parent then return end
-
-		local camera = workspace.CurrentCamera
-		if not camera then return end
-
-		local look = Vector3.new(camera.CFrame.LookVector.X, 0, camera.CFrame.LookVector.Z)
-		local right = Vector3.new(camera.CFrame.RightVector.X, 0, camera.CFrame.RightVector.Z)
-		if look.Magnitude > 0 then look = look.Unit end
-		if right.Magnitude > 0 then right = right.Unit end
-
-		local direction = Vector3.zero
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction += look end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction -= look end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction -= right end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction += right end
-		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction += Vector3.yAxis end
-		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then direction -= Vector3.yAxis end
-
-		velocity.VectorVelocity = direction.Magnitude > 0
-			and direction.Unit * flySpeed
-			or Vector3.zero
-
-		if look.Magnitude > 0 then
-			orientation.CFrame = CFrame.lookAt(Vector3.zero, look)
-		end
-	end)
-
-	setToggle(flyButton, true, "fly")
-end
-
-local function toggleFly()
-	if flying then stopFly() else startFly() end
-end
-
-local function applyWalk()
-	local humanoid = parts()
-	humanoid.WalkSpeed = walkOn and walkSpeed or 16
-end
-
-local function applyJump()
-	local humanoid = parts()
-	humanoid.UseJumpPower = true
-	humanoid.JumpPower = jumpOn and jumpPower or 50
-end
-
--- ESP
-local function removeESP(character)
-	local highlight = character:FindFirstChild("AntiRivalESP")
-	local nameTag = character:FindFirstChild("AntiRivalName")
-	if highlight then highlight:Destroy() end
-	if nameTag then nameTag:Destroy() end
-end
-
-local function addESP(target, character)
-	if not espOn or target == player then return end
-
-	local highlight = Instance.new("Highlight")
-	highlight.Name = "AntiRivalESP"
-	highlight.Adornee = character
-	highlight.FillColor = espColor
-	highlight.FillTransparency = 0.7
-	highlight.OutlineColor = Color3.new(1, 1, 1)
-	highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-	highlight.Parent = character
-
-	if namesOn then
-		local root = character:FindFirstChild("HumanoidRootPart")
-		if root then
-			local tag = Instance.new("BillboardGui")
-			tag.Name = "AntiRivalName"
-			tag.Adornee = root
-			tag.Size = UDim2.fromOffset(180, 28)
-			tag.StudsOffset = Vector3.new(0, 3, 0)
-			tag.AlwaysOnTop = true
-			tag.Parent = character
-
-			local text = Instance.new("TextLabel")
-			text.Size = UDim2.fromScale(1, 1)
-			text.BackgroundTransparency = 1
-			text.Text = target.Name
-			text.TextColor3 = espColor
-			text.TextStrokeTransparency = 0
-			text.TextScaled = true
-			text.Font = Enum.Font.Code
-			text.Parent = tag
-		end
-	end
-end
-
-local function refreshESP()
-	for _, target in Players:GetPlayers() do
-		if target ~= player and target.Character then
-			removeESP(target.Character)
-			if espOn then addESP(target, target.Character) end
-		end
-	end
-end
-
-local function watchPlayer(target)
-	if target == player then return end
-
-	target.CharacterAdded:Connect(function(character)
-		task.wait(0.2)
-		if espOn then addESP(target, character) end
-		if healthBarOn then createHealthGui(character, target) end
-	end)
-
-	if target.Character then
-		if healthBarOn then createHealthGui(target.Character, target) end
-	end
-end
-
-for _, target in Players:GetPlayers() do watchPlayer(target) end
-Players.PlayerAdded:Connect(watchPlayer)
-
--- Noclip
-local function applyNoclip()
-	local character = player.Character
-	if not character then return end
-
-	for _, object in character:GetDescendants() do
-		if object:IsA("BasePart") then
-			if collisionValues[object] == nil then
-				collisionValues[object] = object.CanCollide
+			local char = player.Character
+			if char then
+				local tool = char:FindFirstChildOfClass("Tool")
+				if tool then
+					tool:Activate()
+				end
 			end
-			object.CanCollide = false
 		end
 	end
-end
-
-local function stopNoclip()
-	noclipOn = false
-	if noclipConnection then noclipConnection:Disconnect() end
-	noclipConnection = nil
-
-	for part, previous in pairs(collisionValues) do
-		if part and part.Parent then part.CanCollide = previous end
-	end
-
-	collisionValues = {}
-	setToggle(noclipButton, false, "noclip")
-end
-
-local function startNoclip()
-	noclipOn = true
-	applyNoclip()
-	noclipConnection = RunService.Stepped:Connect(function()
-		if noclipOn then applyNoclip() end
-	end)
-	setToggle(noclipButton, true, "noclip")
-end
-
--- TextBox Events
-flyBox.FocusLost:Connect(function()
-	flySpeed = math.clamp(tonumber(flyBox.Text) or 70, 1, 500)
-	flyBox.Text = tostring(flySpeed)
 end)
 
-walkBox.FocusLost:Connect(function()
-	walkSpeed = math.clamp(tonumber(walkBox.Text) or 16, 1, 500)
-	walkBox.Text = tostring(walkSpeed)
+-- Infinite Jump
+infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
+	if infiniteJumpOn then
+		local character = player.Character
+		if character then
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			if humanoid then
+				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+			end
+		end
+	end
+end)
+
+local function toggleShader()
+	shaderOn = not shaderOn
+	shaderBloom.Enabled = shaderOn
+	shaderCC.Enabled = shaderOn
+	shaderSunRays.Enabled = shaderOn
+	setToggle(shaderButton, shaderOn, "custom shader")
+end
+
+local function getTargetPart(character, targetPartType)
+	if not character then return nil end
+	if targetPartType == "head" then
+		return character:FindFirstChild("Head")
+	else
+		return character:FindFirstChild("HumanoidRootPart")
+			or character:FindFirstChild("UpperTorso")
+			or character:FindFirstChild("Torso")
+	end
+end
+
+local function getClosestTarget(maxDistance, targetPartType)
+	local camera = workspace.CurrentCamera
+	if not camera then return nil end
+
+	local closestPart = nil
+	local shortestDistance = maxDistance or math.huge
+	local viewportCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+
+	for _, target in Players:GetPlayers() do
+		if target ~= player and target.Character then
+			local part = getTargetPart(target.Character, targetPartType)
+			local humanoid = target.Character:FindFirstChild("Humanoid")
+
+			if part and humanoid and humanoid.Health > 0 then
+				local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
+				if onScreen then
+					local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
+					if mouseDist < shortestDistance then
+						shortestDistance = mouseDist
+						closestPart = part
+					end
+				end
+			end
+		end
+	end
+	return closestPart
+end
+
+-- Silent Aim Hooking
+pcall(function()
+	if typeof(hookmetamethod) == "function" then
+		local oldNamecall
+		oldNamecall = hookmetamethod(game, "__namecall", newcclosure_fn(function(self, ...)
+			local method = getnamecallmethod and getnamecallmethod() or ""
+			local args = {...}
+
+			if silentAimOn and not checkcaller_fn() then
+				if method == "Raycast" then
+					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
+					if targetPart then
+						local origin = args[1]
+						if typeof(origin) == "Vector3" then
+							args[2] = (targetPart.Position - origin).Unit * 10000
+							return oldNamecall(self, table.unpack(args))
+						end
+					end
+				elseif method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRay" then
+					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
+					if targetPart then
+						local origin = workspace.CurrentCamera.CFrame.Position
+						local ray = Ray.new(origin, (targetPart.Position - origin).Unit * 10000)
+						args[1] = ray
+						return oldNamecall(self, table.unpack(args))
+					end
+				end
+			end
+
+			return oldNamecall(self, ...)
+		end))
+
+		local oldIndex
+		oldIndex = hookmetamethod(game, "__index", newcclosure_fn(function(self, index)
+			if silentAimOn and not checkcaller_fn() then
+				if typeof(self) == "Instance" and self:IsA("Mouse") then
+					if index == "Hit" then
+						local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
+						if targetPart then return targetPart.CFrame end
+					elseif index == "Target" then
+						local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
+						if targetPart then return targetPart end
+					end
+				end
+			end
+			return oldIndex(self, index)
+		end))
+	end
+end)
+
+-- Rage Bot
+local function getRageTargetHead()
+	local myChar = player.Character
+	if not myChar then return nil end
+	local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+	if not myRoot then return nil end
+
+	local closestHead = nil
+	local shortestDistance = rageStuds
+
+	for _, target in Players:GetPlayers() do
+		if target ~= player and target.Character then
+			local head = target.Character:FindFirstChild("Head")
+			local humanoid = target.Character:FindFirstChild("Humanoid")
+
+			if head and humanoid and humanoid.Health > 0 then
+				local dist = (myRoot.Position - head.Position).Magnitude
+				if dist <= shortestDistance then
+					shortestDistance = dist
+					closestHead = head
+				end
+			end
+		end
+	end
+	return closestHead
+end
+
+rageConnection = RunService.Heartbeat:Connect(function()
+	if not rageBotOn then return end
+
+	local targetHead = getRageTargetHead()
+	if targetHead then
+		local myChar = player.Character
+		if myChar then
+			local myRoot = myChar:FindFirstChild("HumanoidRootPart")
+			if myRoot then
+				myRoot.CFrame = CFrame.new(targetHead.Position + Vector3.new(0, 7, 0))
+			end
+		end
+	end
+end)
+
+-- Aimbot
+aimbotConnection = RunService.RenderStepped:Connect(function()
+	if not aimbotOn then return end
+
+	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+		local targetPart = getClosestTarget(math.huge, aimbotTargetPart)
+		if targetPart then
+			local camera = workspace.CurrentCamera
+			local targetCFrame = CFrame.lookAt(camera.CFrame.Position, targetPart.Position)
+			local alpha = math.clamp(aimbotSmoothness / 150, 0.01, 1)
+			camera.CFrame = camera.CFrame:Lerp(targetCFrame, alpha)
+		end
+	end
+end)
+
+-- Noclip
+noclipConnection = RunService.Stepped:Connect(function()
+	if noclipOn and player.Character then
+		for _, part in ipairs(player.Character:GetDescendants()) do
+			if part:IsA("BasePart") then
+				part.CanCollide = false
+			end
+		end
+	end
+end)
+
+-- ========================================================
+--  UI 이벤트 연결
+-- ========================================================
+
+flyButton.MouseButton1Click:Connect(toggleFly)
+walkButton.MouseButton1Click:Connect(function()
+	walkOn = not walkOn
+	setToggle(walkButton, walkOn, "walk speed")
 	applyWalk()
 end)
 
-fastShotBox.FocusLost:Connect(function()
-	fastShotRate = math.clamp(tonumber(fastShotBox.Text) or 350, 1, 700)
-	fastShotBox.Text = tostring(fastShotRate)
+espButton.MouseButton1Click:Connect(function()
+	espOn = not espOn
+	setToggle(espButton, espOn, "player esp")
+	refreshESP()
 end)
 
-aimbotBox.FocusLost:Connect(function()
-	aimbotSmoothness = math.clamp(tonumber(aimbotBox.Text) or 50, 1, 150)
-	aimbotBox.Text = tostring(aimbotSmoothness)
+namesButton.MouseButton1Click:Connect(function()
+	namesOn = not namesOn
+	setToggle(namesButton, namesOn, "player names")
+	refreshESP()
 end)
 
-silentAimBox.FocusLost:Connect(function()
-	silentAimFOV = math.clamp(tonumber(silentAimBox.Text) or 200, 1, 5000)
-	silentAimBox.Text = tostring(silentAimFOV)
+healthBarButton.MouseButton1Click:Connect(function()
+	healthBarOn = not healthBarOn
+	setToggle(healthBarButton, healthBarOn, "health bar")
+	refreshHealthBars()
 end)
 
-jumpBox.FocusLost:Connect(function()
-	jumpPower = math.clamp(tonumber(jumpBox.Text) or 50, 1, 100)
-	jumpBox.Text = tostring(jumpPower)
+jumpButton.MouseButton1Click:Connect(function()
+	jumpOn = not jumpOn
+	setToggle(jumpButton, jumpOn, "jump power")
 	applyJump()
 end)
 
-rageStudsBox.FocusLost:Connect(function()
-	rageStuds = math.clamp(tonumber(rageStudsBox.Text) or 5000, 1, 5000)
-	rageStudsBox.Text = tostring(rageStuds)
-end)
-
-gammaBox.FocusLost:Connect(function()
-	gammaValue = math.clamp(tonumber(gammaBox.Text) or 1, 1, 100)
-	gammaBox.Text = tostring(gammaValue)
-	gamma.Brightness = (gammaValue - 1) / 99
-end)
-
-local function updateColor()
-	local r = math.clamp(tonumber(redBox.Text) or 255, 0, 255)
-	local g = math.clamp(tonumber(greenBox.Text) or 70, 0, 255)
-	local b = math.clamp(tonumber(blueBox.Text) or 70, 0, 255)
-	redBox.Text, greenBox.Text, blueBox.Text = r, g, b
-	espColor = Color3.fromRGB(r, g, b)
-	refreshESP()
-end
-
-redBox.FocusLost:Connect(updateColor)
-greenBox.FocusLost:Connect(updateColor)
-blueBox.FocusLost:Connect(updateColor)
-
--- Buttons
-flyButton.MouseButton1Click:Connect(toggleFly)
-
-walkButton.MouseButton1Click:Connect(function()
-	walkOn = not walkOn
-	applyWalk()
-	setToggle(walkButton, walkOn, "walk speed")
+infJumpButton.MouseButton1Click:Connect(function()
+	infiniteJumpOn = not infiniteJumpOn
+	setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
 end)
 
 fastShotButton.MouseButton1Click:Connect(function()
@@ -1201,13 +898,8 @@ aimbotButton.MouseButton1Click:Connect(function()
 end)
 
 aimbotPartButton.MouseButton1Click:Connect(function()
-	if aimbotTargetPart == "head" then
-		aimbotTargetPart = "torso"
-		aimbotPartButton.Text = "aimbot target: TORSO"
-	else
-		aimbotTargetPart = "head"
-		aimbotPartButton.Text = "aimbot target: HEAD"
-	end
+	aimbotTargetPart = aimbotTargetPart == "head" and "torso" or "head"
+	aimbotPartButton.Text = "aimbot target: " .. aimbotTargetPart:upper()
 end)
 
 silentAimButton.MouseButton1Click:Connect(function()
@@ -1216,13 +908,8 @@ silentAimButton.MouseButton1Click:Connect(function()
 end)
 
 silentAimPartButton.MouseButton1Click:Connect(function()
-	if silentAimTargetPart == "head" then
-		silentAimTargetPart = "torso"
-		silentAimPartButton.Text = "silent target: TORSO"
-	else
-		silentAimTargetPart = "head"
-		silentAimPartButton.Text = "silent target: HEAD"
-	end
+	silentAimTargetPart = silentAimTargetPart == "head" and "torso" or "head"
+	silentAimPartButton.Text = "silent target: " .. silentAimTargetPart:upper()
 end)
 
 rageButton.MouseButton1Click:Connect(function()
@@ -1230,108 +917,150 @@ rageButton.MouseButton1Click:Connect(function()
 	setToggle(rageButton, rageBotOn, "rage bot")
 end)
 
-jumpButton.MouseButton1Click:Connect(function()
-	jumpOn = not jumpOn
-	applyJump()
-	setToggle(jumpButton, jumpOn, "jump power")
-end)
-
-infJumpButton.MouseButton1Click:Connect(function()
-	infiniteJumpOn = not infiniteJumpOn
-	setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
-end)
-
-espButton.MouseButton1Click:Connect(function()
-	espOn = not espOn
-	refreshESP()
-	setToggle(espButton, espOn, "player esp")
-end)
-
-namesButton.MouseButton1Click:Connect(function()
-	namesOn = not namesOn
-	refreshESP()
-	setToggle(namesButton, namesOn, "player names")
-end)
-
-healthBarButton.MouseButton1Click:Connect(function()
-	healthBarOn = not healthBarOn
-	refreshHealthBars()
-	setToggle(healthBarButton, healthBarOn, "health bar")
-end)
-
 shaderButton.MouseButton1Click:Connect(toggleShader)
 
 noclipButton.MouseButton1Click:Connect(function()
-	if noclipOn then stopNoclip() else startNoclip() end
+	noclipOn = not noclipOn
+	setToggle(noclipButton, noclipOn, "noclip")
 end)
 
--- Dragging
-local dragging, dragStart, windowStart, dragInput = false, nil, nil, nil
-
-header.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		windowStart = window.Position
-
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
+-- 텍스트 박스 실시간 적용 이벤트
+flyBox.FocusLost:Connect(function()
+	flySpeed = tonumber(flyBox.Text) or flySpeed
 end)
-
-header.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement then
-		dragInput = input
-	end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		local move = input.Position - dragStart
-		window.Position = UDim2.new(
-			windowStart.X.Scale, windowStart.X.Offset + move.X,
-			windowStart.Y.Scale, windowStart.Y.Offset + move.Y
-		)
-	end
-end)
-
--- Key Binds
-UserInputService.InputBegan:Connect(function(input, processed)
-	if processed then return end
-
-	if input.KeyCode == Enum.KeyCode.RightShift then
-		window.Visible = not window.Visible
-		setCursorVisible(window.Visible)
-	elseif input.KeyCode == Enum.KeyCode.F then
-		toggleFly()
-	elseif input.KeyCode == Enum.KeyCode.E then
-		espOn = not espOn
-		refreshESP()
-		setToggle(espButton, espOn, "player esp")
-	elseif input.KeyCode == Enum.KeyCode.N then
-		if noclipOn then stopNoclip() else startNoclip() end
-	elseif input.KeyCode == Enum.KeyCode.X then
-		aimbotOn = not aimbotOn
-		setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
-	elseif input.KeyCode == Enum.KeyCode.C then
-		silentAimOn = not silentAimOn
-		setToggle(silentAimButton, silentAimOn, "silent aim")
-	elseif input.KeyCode == Enum.KeyCode.Z then
-		rageBotOn = not rageBotOn
-		setToggle(rageButton, rageBotOn, "rage bot")
-	end
-end)
-
-player.CharacterAdded:Connect(function()
-	task.wait(0.2)
-	if flying then stopFly() end
+walkBox.FocusLost:Connect(function()
+	walkSpeed = tonumber(walkBox.Text) or walkSpeed
 	applyWalk()
+end)
+jumpBox.FocusLost:Connect(function()
+	jumpPower = tonumber(jumpBox.Text) or jumpPower
 	applyJump()
 end)
+fastShotBox.FocusLost:Connect(function()
+	fastShotRate = tonumber(fastShotBox.Text) or fastShotRate
+end)
+aimbotBox.FocusLost:Connect(function()
+	aimbotSmoothness = tonumber(aimbotBox.Text) or aimbotSmoothness
+end)
+silentAimBox.FocusLost:Connect(function()
+	silentAimFOV = tonumber(silentAimBox.Text) or silentAimFOV
+end)
+rageStudsBox.FocusLost:Connect(function()
+	rageStuds = tonumber(rageStudsBox.Text) or rageStuds
+end)
+gammaBox.FocusLost:Connect(function()
+	gammaValue = tonumber(gammaBox.Text) or gammaValue
+	gamma.Brightness = (gammaValue - 1) / 99
+end)
 
-showPage("setting")
-window.Visible = true
-setCursorVisible(true)
+local function updateColorFromBoxes()
+	local r = tonumber(redBox.Text) or 255
+	local g = tonumber(greenBox.Text) or 70
+	local b = tonumber(blueBox.Text) or 70
+	espColor = Color3.fromRGB(r, g, b)
+	refreshESP()
+end
+
+redBox.FocusLost:Connect(updateColorFromBoxes)
+greenBox.FocusLost:Connect(updateColorFromBoxes)
+blueBox.FocusLost:Connect(updateColorFromBoxes)
+
+-- ========================================================
+-- Config Export / Import (클립보드 방식)
+-- ========================================================
+local function getSavedData()
+	return {
+		flySpeed = tonumber(flyBox.Text) or flySpeed,
+		walkSpeed = tonumber(walkBox.Text) or walkSpeed,
+		jumpPower = tonumber(jumpBox.Text) or jumpPower,
+		gammaValue = tonumber(gammaBox.Text) or gammaValue,
+		fastShotRate = tonumber(fastShotBox.Text) or fastShotRate,
+		rageStuds = tonumber(rageStudsBox.Text) or rageStuds,
+		silentAimFOV = tonumber(silentAimBox.Text) or silentAimFOV,
+		aimbotSmoothness = tonumber(aimbotBox.Text) or aimbotSmoothness,
+		aimbotTargetPart = aimbotTargetPart,
+		silentAimTargetPart = silentAimTargetPart,
+		espColor = {
+			r = tonumber(redBox.Text) or (espColor.R * 255),
+			g = tonumber(greenBox.Text) or (espColor.G * 255),
+			b = tonumber(blueBox.Text) or (espColor.B * 255)
+		}
+	}
+end
+
+exportBtn.MouseButton1Click:Connect(function()
+	local jsonStr = HttpService:JSONEncode(getSavedData())
+	configCodeBox.Text = jsonStr
+
+	if setclipboard then
+		setclipboard(jsonStr)
+		configStatus.Text = "Status: Copied config to clipboard!"
+		configStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+	else
+		configStatus.Text = "Status: Generated code in box!"
+		configStatus.TextColor3 = Color3.fromRGB(255, 255, 100)
+	end
+end)
+
+loadBtn.MouseButton1Click:Connect(function()
+	local inputStr = configCodeBox.Text
+
+	if inputStr == "" and getclipboard then
+		inputStr = getclipboard()
+		configCodeBox.Text = inputStr
+	end
+
+	if inputStr == "" then
+		configStatus.Text = "Status: Paste code or copy first!"
+		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+		return
+	end
+
+	local success, data = pcall(function()
+		return HttpService:JSONDecode(inputStr)
+	end)
+
+	if success and type(data) == "table" then
+		if data.flySpeed then flySpeed = data.flySpeed; flyBox.Text = tostring(flySpeed) end
+		if data.walkSpeed then walkSpeed = data.walkSpeed; walkBox.Text = tostring(walkSpeed) end
+		if data.jumpPower then jumpPower = data.jumpPower; jumpBox.Text = tostring(jumpPower) end
+		if data.gammaValue then 
+			gammaValue = data.gammaValue
+			gammaBox.Text = tostring(gammaValue)
+			gamma.Brightness = (gammaValue - 1) / 99
+		end
+		if data.fastShotRate then fastShotRate = data.fastShotRate; fastShotBox.Text = tostring(fastShotRate) end
+		if data.rageStuds then rageStuds = data.rageStuds; rageStudsBox.Text = tostring(rageStuds) end
+		if data.silentAimFOV then silentAimFOV = data.silentAimFOV; silentAimBox.Text = tostring(silentAimFOV) end
+		if data.aimbotSmoothness then aimbotSmoothness = data.aimbotSmoothness; aimbotBox.Text = tostring(aimbotSmoothness) end
+		if data.aimbotTargetPart then 
+			aimbotTargetPart = data.aimbotTargetPart
+			aimbotPartButton.Text = "aimbot target: " .. aimbotTargetPart:upper()
+		end
+		if data.silentAimTargetPart then 
+			silentAimTargetPart = data.silentAimTargetPart
+			silentAimPartButton.Text = "silent target: " .. silentAimTargetPart:upper()
+		end
+		if data.espColor then
+			espColor = Color3.fromRGB(data.espColor.r, data.espColor.g, data.espColor.b)
+			redBox.Text = tostring(data.espColor.r)
+			greenBox.Text = tostring(data.espColor.g)
+			blueBox.Text = tostring(data.espColor.b)
+		end
+
+		configStatus.Text = "Status: Config successfully applied!"
+		configStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+	else
+		configStatus.Text = "Status: Invalid config format!"
+		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+	end
+end)
+
+-- UI Toggle Keybind (RightShift)
+UserInputService.InputBegan:Connect(function(input, gpe)
+	if not gpe and input.KeyCode == Enum.KeyCode.RightShift then
+		window.Visible = not window.Visible
+	end
+end)
+
+showPage("movement")
