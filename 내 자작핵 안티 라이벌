@@ -83,7 +83,7 @@ gui.Parent = player.PlayerGui
 
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
-window.Position = UDim2.fromScale(0.5, 0.5)
+window.Position = UDim2.fromScale(0.5, 0.42) -- 창 위치를 조금 위로 조정
 window.Size = UDim2.fromOffset(680, 520)
 window.BackgroundColor3 = Color3.fromRGB(14, 15, 18)
 window.BorderColor3 = Color3.fromRGB(60, 62, 70)
@@ -113,35 +113,36 @@ header.BackgroundColor3 = Color3.fromRGB(22, 23, 28)
 header.BorderSizePixel = 0
 header.Parent = window
 
+-- 디스코드 주소 포함 타이틀
 local title = Instance.new("TextLabel")
-title.Size = UDim2.fromOffset(220, 32)
+title.Size = UDim2.fromOffset(360, 32)
 title.Position = UDim2.fromOffset(12, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival | RIVALS"
+title.Text = "Anti-Rival | RIVALS | Discord: https://discord.gg/dcSGrkPzv"
 title.TextColor3 = Color3.fromRGB(245, 245, 245)
-title.TextSize = 14
+title.TextSize = 11
 title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = header
 
 local statsLabel = Instance.new("TextLabel")
 statsLabel.AnchorPoint = Vector2.new(0.5, 0)
-statsLabel.Position = UDim2.new(0.5, 0, 0, 0)
-statsLabel.Size = UDim2.fromOffset(190, 32)
+statsLabel.Position = UDim2.new(0.62, 0, 0, 0)
+statsLabel.Size = UDim2.fromOffset(140, 32)
 statsLabel.BackgroundTransparency = 1
-statsLabel.Text = "FPS: --  |  Ping: --"
+statsLabel.Text = "FPS: -- | Ping: --"
 statsLabel.TextColor3 = Color3.fromRGB(150, 170, 220)
-statsLabel.TextSize = 12
+statsLabel.TextSize = 11
 statsLabel.Font = Enum.Font.Code
 statsLabel.Parent = header
 
 local hint = Instance.new("TextLabel")
-hint.Size = UDim2.fromOffset(180, 32)
-hint.Position = UDim2.new(1, -190, 0, 0)
+hint.Size = UDim2.fromOffset(130, 32)
+hint.Position = UDim2.new(1, -140, 0, 0)
 hint.BackgroundTransparency = 1
 hint.Text = "RightShift · Toggle UI"
 hint.TextColor3 = Color3.fromRGB(130, 135, 145)
-hint.TextSize = 11
+hint.TextSize = 10
 hint.TextXAlignment = Enum.TextXAlignment.Right
 hint.Font = Enum.Font.Code
 hint.Parent = header
@@ -376,7 +377,7 @@ local noclipButton = toggle(collision, "noclip", 55)
 
 -- ================= [ 기능 구현 ] =================
 
--- Fast Shot (RIVALS 전용 RemoteEvent 바이패스 연사)
+-- Fast Shot
 local lastShotTime = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
@@ -1022,7 +1023,7 @@ RunService.RenderStepped:Connect(function()
 			ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValueString()
 		end)
 
-		statsLabel.Text = "FPS: " .. frames .. "  |  Ping: " .. ping
+		statsLabel.Text = "FPS: " .. frames .. " | Ping: " .. ping
 		frames = 0
 		lastSecond = os.clock()
 	end
@@ -1061,13 +1062,12 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- Key Binds
+-- Key Binds (위치 초기화 로직 제거하여 이동된 창 위치를 그대로 유지)
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed then return end
 
 	if input.KeyCode == Enum.KeyCode.RightShift then
 		window.Visible = not window.Visible
-		if window.Visible then window.Position = UDim2.fromScale(0.5, 0.5) end
 	elseif input.KeyCode == Enum.KeyCode.F then
 		toggleFly()
 	elseif input.KeyCode == Enum.KeyCode.E then
