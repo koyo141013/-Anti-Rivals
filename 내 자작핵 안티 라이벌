@@ -18,11 +18,10 @@ local lastTriggerTick = 0
 local fastShotOn = false
 local fastShotRate = 500
 
--- [신규] 연사력(Fast Fire) 조절 변수 추가
+-- Fast Fire 변수
 local fastFireOn = false
-local fastFireMultiplier = 0.2
 
--- [신규] 무한 탄창 및 즉시 장전 변수 추가
+-- 무한 탄창 및 즉시 장전 변수 (정밀 보완)
 local infiniteAmmoOn = false
 local instantReloadOn = false
 
@@ -101,7 +100,7 @@ gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
 ----------------------------------------------------
--- 창 메인 프레임 (화면 정중앙 고정)
+-- 창 메인 프레임
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -211,13 +210,12 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 타이틀 (버전 업그레이드 반영 V0.7.4 - Fast Fire 통합)
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.fromOffset(280, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival-V0.7.4-FREE Build"
+title.Text = "Anti-Rival-V0.7.5-FREE Build"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -225,7 +223,6 @@ title.TextXAlignment = Enum.TextXAlignment.Center
 title.ZIndex = 8
 title.Parent = header
 
--- 디스코드 링크 버튼
 local discordBtn = Instance.new("TextButton")
 discordBtn.AnchorPoint = Vector2.new(1, 0.5)
 discordBtn.Position = UDim2.new(1, -10, 0.5, 0)
@@ -285,7 +282,7 @@ local function page(name)
 	frame.Name = name
 	frame.Size = UDim2.fromScale(1, 1)
 	frame.BackgroundTransparency = 1
-	frame.CanvasSize = UDim2.new(0, 0, 1.5, 0) -- 캔버스 크기 확장 (추가된 기능 UI 수용)
+	frame.CanvasSize = UDim2.new(0, 0, 1.5, 0)
 	frame.ScrollBarThickness = 4
 	frame.Visible = false
 	frame.ZIndex = 8
@@ -510,7 +507,7 @@ silentAimPartButton.Parent = visualsPage
 local triggerBotButton = toggle(visualsPage, "triggerbot", 214)
 local triggerBotDelayBox = textbox(visualsPage, "trigger delay (0–1s)", triggerBotDelay, 246)
 
--- 5. character 탭 (여기에 Fast Fire 및 무한 탄창/장전 기능 UI 추가 통합)
+-- 5. character 탭
 heading(characterPage, "character capabilities & combat")
 local jumpBox = textbox(characterPage, "jump power  (1–100)", jumpPower, 36)
 local jumpButton = toggle(characterPage, "jump power", 62)
@@ -519,7 +516,6 @@ local infJumpButton = toggle(characterPage, "infinite jump", 90)
 local fastShotBox = textbox(characterPage, "fast shot rate (1–1000)", fastShotRate, 122)
 local fastShotButton = toggle(characterPage, "fast shot (Ultra Bypass)", 148)
 
--- [신규 추가] 연사력 및 탄창 제어 UI 컨트롤
 local fastFireButton = toggle(characterPage, "fast fire (rate of fire)", 182)
 local infiniteAmmoButton = toggle(characterPage, "infinite ammo", 210)
 local instantReloadButton = toggle(characterPage, "instant reload", 238)
@@ -853,7 +849,7 @@ local function refreshHealthBars()
 	end)
 end
 
--- Triggerbot 엔진 정밀 구현
+-- Triggerbot 엔진
 triggerBotConnection = RunService.RenderStepped:Connect(function()
 	if not triggerBotOn then return end
 
@@ -930,17 +926,22 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 end)
 
 ----------------------------------------------------
--- [신규 통합] Fast Fire, Infinite Ammo, Instant Reload 엔진 루프
+-- [정밀 보완] Fast Fire, Infinite Ammo, Instant Reload 엔진
 ----------------------------------------------------
 fastFireConnection = RunService.Stepped:Connect(function()
 	if not fastFireOn then return end
 	pcall(function()
 		local char = player.Character
-		if char then
-			local tool = char:FindFirstChildOfClass("Tool")
-			if tool then
-				if tool:FindFirstChild("Cooldown") then
-					tool.Cooldown.Value = 0
+		if not char then return end
+		local tool = char:FindFirstChildOfClass("Tool")
+		if not tool then return end
+
+		-- 툴 내 모든 속성/값(Value/NumberValue/Intvalue) 검사 후 쿨타임 제거
+		for _, obj in ipairs(tool:GetDescendants()) do
+			if obj:IsA("NumberValue") or obj:IsA("IntValue") then
+				local name = obj.Name:lower()
+				if name:find("cooldown") or name:find("firerate") or name:find("delay") or name:find("fire") then
+					obj.Value = 0
 				end
 			end
 		end
@@ -954,17 +955,27 @@ ammoConnection = RunService.Heartbeat:Connect(function()
 		local tool = char:FindFirstChildOfClass("Tool")
 		if not tool then return end
 		
+		-- 1. 무한 탄창 정밀 제어 (다양한 커스텀 총기 변수 및 모듈 완벽 대응)
 		if infiniteAmmoOn then
-			if tool:FindFirstChild("Ammo") then
-				tool.Ammo.Value = 999
-			elseif tool:FindFirstChild("Clip") then
-				tool.Clip.Value = 999
+			for _, obj in ipairs(tool:GetDescendants()) do
+				if obj:IsA("NumberValue") or obj:IsA("IntValue") then
+					local name = obj.Name:lower()
+					if name:find("ammo") or name:find("clip") or name:find("mag") or name:find("bullet") or name:find("stored") then
+						obj.Value = 9999
+					end
+				end
 			end
 		end
 		
+		-- 2. 즉시 장전 제어 (장전 중 상태 변수 해제)
 		if instantReloadOn then
-			if tool:FindFirstChild("Reloading") then
-				tool.Reloading.Value = false
+			for _, obj in ipairs(tool:GetDescendants()) do
+				if obj:IsA("BoolValue") then
+					local name = obj.Name:lower()
+					if name:find("reload") or name:find("reloading") then
+						obj.Value = false
+					end
+				end
 			end
 		end
 	end)
@@ -1292,7 +1303,6 @@ fastShotBox.FocusLost:Connect(function()
 	end
 end)
 
--- [신규 바인딩] Fast Fire, Infinite Ammo, Instant Reload UI 이벤트 연결
 fastFireButton.MouseButton1Click:Connect(function()
 	fastFireOn = not fastFireOn
 	setToggle(fastFireButton, fastFireOn, "fast fire (rate of fire)")
@@ -1339,7 +1349,6 @@ noclipButton.MouseButton1Click:Connect(function()
 	setToggle(noclipButton, noclipOn, "noclip")
 end)
 
--- Noclip 루프
 noclipConnection = RunService.Stepped:Connect(function()
 	if not noclipOn then return end
 	pcall(function()
@@ -1354,12 +1363,10 @@ noclipConnection = RunService.Stepped:Connect(function()
 	end)
 end)
 
--- Aimbot / View Lock / Rage Bot 통합 루프
 aimbotConnection = RunService.RenderStepped:Connect(function()
 	local camera = workspace.CurrentCamera
 	local _, root = getSafeParts()
 
-	-- Fake Lag (View Lock) 처리
 	if fakeLagOn and root and fakeLagPosition then
 		pcall(function()
 			root.CFrame = fakeLagPosition
@@ -1368,7 +1375,6 @@ aimbotConnection = RunService.RenderStepped:Connect(function()
 		end)
 	end
 
-	-- Rage Bot 처리
 	if rageBotOn and root then
 		pcall(function()
 			local head = getRageTargetHead()
@@ -1378,7 +1384,6 @@ aimbotConnection = RunService.RenderStepped:Connect(function()
 		end)
 	end
 
-	-- Aimbot 처리 (마우스 우클릭 유지 시)
 	if aimbotOn and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
 		pcall(function()
 			local targetPart = getClosestTarget(9999, aimbotTargetPart)
@@ -1390,7 +1395,6 @@ aimbotConnection = RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- 플레이어 리스폰 연동 이벤트
 Players.PlayerAdded:Connect(function(targetPlayer)
 	targetPlayer.CharacterAdded:Connect(function(char)
 		task.delay(1, function()
@@ -1409,8 +1413,15 @@ player.CharacterAdded:Connect(function(char)
 	end)
 end)
 
--- 키보드 단축키 관리 리스너
+-- 단축키 관리 및 [오른쪽 쉬프트] UI 토글 기능 결합
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	-- [수정] 오른쪽 쉬프트(RightShift) 입력 시 UI 토글 및 마우스 상태 갱신
+	if input.KeyCode == Enum.KeyCode.RightShift then
+		window.Visible = not window.Visible
+		updateMouseState(window.Visible)
+		return
+	end
+
 	if bindingTarget and bindingButton then
 		if input.KeyCode ~= Enum.KeyCode.Unknown then
 			keybinds[bindingTarget] = input.KeyCode
@@ -1448,8 +1459,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	end
 end)
 
--- 초기화 실행
 showPage("main")
 refreshESP()
 refreshHealthBars()
-print("Anti-Rival-V0.7.4-FREE Build Successfully Loaded with Fast Fire Integration!")
+print("Anti-Rival-V0.7.5-FREE Build Successfully Loaded with Fixed RightShift & Ammo System!")
