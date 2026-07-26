@@ -79,7 +79,7 @@ gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
 ----------------------------------------------------
--- 창 메인 프레임 (1번 사진 디자인 정확 구현)
+-- 창 메인 프레임
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -91,7 +91,7 @@ window.BorderSizePixel = 1
 window.Visible = true
 window.Parent = gui
 
--- 1번 사진 스타일 내부 테두리 이중선 효과
+-- 이중 테두리
 local innerBorder = Instance.new("Frame")
 innerBorder.Size = UDim2.new(1, -2, 1, -2)
 innerBorder.Position = UDim2.fromOffset(1, 1)
@@ -100,22 +100,8 @@ innerBorder.BorderColor3 = Color3.fromRGB(22, 22, 26)
 innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
-local modalButton = Instance.new("TextButton")
-modalButton.Size = UDim2.fromScale(1, 1)
-modalButton.BackgroundTransparency = 1
-modalButton.Text = ""
-modalButton.Modal = true
-modalButton.Parent = window
-
-RunService.RenderStepped:Connect(function()
-	if window.Visible then
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-		UserInputService.MouseIconEnabled = true
-	end
-end)
-
 ----------------------------------------------------
--- Header (1번 사진 레이아웃 참고)
+-- Header (디스코드 중앙 배치, 파란색 Rivals 우측 배치)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 26)
@@ -162,19 +148,19 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 좌측 타이틀 (1번 사진 형태)
+-- 가운데 타이틀 (Anti-Rival - discord.gg/dcSGrkPzv)
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -80, 1, 0)
-title.Position = UDim2.fromOffset(12, 0)
+title.Size = UDim2.new(1, -160, 1, 0)
+title.Position = UDim2.fromOffset(80, 0)
 title.BackgroundTransparency = 1
 title.Text = "Anti-Rival - discord.gg/dcSGrkPzv"
 title.TextColor3 = Color3.fromRGB(180, 180, 185)
 title.TextSize = 12
 title.Font = Enum.Font.Code
-title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextXAlignment = Enum.TextXAlignment.Center
 title.Parent = header
 
--- 우측 파란색 Rivals 텍스트 (1번 사진 오른쪽 'Rivals' 위치)
+-- 우측 파란색 Rivals 텍스트
 local rightTitle = Instance.new("TextLabel")
 rightTitle.Size = UDim2.fromOffset(70, 26)
 rightTitle.Position = UDim2.new(1, -78, 0, 0)
@@ -187,7 +173,7 @@ rightTitle.TextXAlignment = Enum.TextXAlignment.Right
 rightTitle.Parent = header
 
 ----------------------------------------------------
--- 탭 메뉴 및 콘텐츠 레이아웃 (1번 사진 가로폭 반영)
+-- 탭 메뉴 및 콘텐츠 레이아웃
 ----------------------------------------------------
 local tabs = Instance.new("Frame")
 tabs.Size = UDim2.new(1, -16, 0, 24)
