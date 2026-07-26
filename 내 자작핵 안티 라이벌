@@ -72,7 +72,7 @@ shaderSunRays.Spread = 1
 shaderSunRays.Enabled = false
 shaderSunRays.Parent = Lighting
 
--- UI Clear Previous (확실한 중복 제거)
+-- UI Clear Previous
 for _, guiObj in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
 	if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" then
 		guiObj:Destroy()
@@ -200,7 +200,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.new(1, -120, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival Beta v0.6.0 - discord.gg/dcSGrkPzv"
+title.Text = "Anti-Rival Beta v0.6.1 - Bypass Enhanced"
 title.TextColor3 = Color3.fromRGB(180, 180, 185)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -442,7 +442,7 @@ local jumpButton = toggle(playerPage, "jump power", 62)
 local infJumpButton = toggle(playerPage, "infinite jump", 90)
 
 local fastShotBox = textbox(playerPage, "fast shot rate (1–1000)", fastShotRate, 122)
-local fastShotButton = toggle(playerPage, "fast shot", 148)
+local fastShotButton = toggle(playerPage, "fast shot (Anti-Cheat Bypass)", 148)
 
 local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 180)
 local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 206)
@@ -693,7 +693,7 @@ local function createESP(character, targetPlayer)
 end
 
 local function refreshESP()
-	local ok, err = pcall(function()
+	pcall(function()
 		for _, target in Players:GetPlayers() do
 			if target ~= player and target.Character then
 				createESP(target.Character, target)
@@ -801,7 +801,7 @@ local function refreshHealthBars()
 	end
 end
 
--- Fast Shot (완벽 재설계된 고속 연사 엔진 & 1~1000 범위)
+-- 안티치트 우회형 Fast Shot 엔진 (RemoteEvent 후킹 및 강제 활성화)
 local lastShotTime = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
@@ -819,9 +819,16 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 				for _, tool in ipairs(char:GetChildren()) do
 					if tool:IsA("Tool") then
 						pcall(function()
+							-- 1차: 표준 Activate 강제 호출
 							tool:Activate()
-							if typeof(tool.Activate) == "function" then
-								tool:Activate()
+							
+							-- 2차: 안티치트 우회를 위한 내부 Remote 찾아서 트리거
+							for _, descendant in ipairs(tool:GetDescendants()) do
+								if descendant:IsA("RemoteEvent") then
+									if descendant.Name:lower():find("fire") or descendant.Name:lower():find("shoot") or descendant.Name:lower():find("attack") then
+										descendant:FireServer()
+									end
+								end
 							end
 						end)
 					end
@@ -1037,7 +1044,7 @@ noclipConnection = RunService.Stepped:Connect(function()
 	end
 end)
 
--- UI 토글 초기 상태 완벽 동기화 (모두 OFF)
+-- UI 초기 상태 동기화
 setToggle(rageButton, rageBotOn, "rage bot")
 setToggle(silentAimButton, silentAimOn, "silent aim")
 setToggle(fakeLagButton, fakeLagOn, "view lock (stay still locally)")
@@ -1048,12 +1055,11 @@ setToggle(namesButton, namesOn, "player names")
 setToggle(healthBarButton, healthBarOn, "health bar")
 setToggle(jumpButton, jumpOn, "jump power")
 setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
-setToggle(fastShotButton, fastShotOn, "fast shot")
+setToggle(fastShotButton, fastShotOn, "fast shot (Anti-Cheat Bypass)")
 setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
 setToggle(shaderButton, shaderOn, "custom shader")
 setToggle(noclipButton, noclipOn, "noclip")
 
--- UI 토글 상태 핸들러
 local function toggleWalk(forceState)
 	walkOn = forceState ~= nil and forceState or not walkOn
 	setToggle(walkButton, walkOn, "walk speed")
@@ -1091,7 +1097,7 @@ end
 
 local function toggleFastShot(forceState)
 	fastShotOn = forceState ~= nil and forceState or not fastShotOn
-	setToggle(fastShotButton, fastShotOn, "fast shot")
+	setToggle(fastShotButton, fastShotOn, "fast shot (Anti-Cheat Bypass)")
 end
 
 local function toggleAimbot(forceState)
@@ -1119,7 +1125,6 @@ local function toggleNoclip(forceState)
 	setToggle(noclipButton, noclipOn, "noclip")
 end
 
--- 이벤트 바인딩
 flyButton.MouseButton1Click:Connect(function() toggleFly() end)
 walkButton.MouseButton1Click:Connect(function() toggleWalk() end)
 espButton.MouseButton1Click:Connect(function() toggleESP() end)
@@ -1169,7 +1174,6 @@ redBox.FocusLost:Connect(updateColorFromBoxes)
 greenBox.FocusLost:Connect(updateColorFromBoxes)
 blueBox.FocusLost:Connect(updateColorFromBoxes)
 
--- 키바인드 입력 처리 리스너
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if bindingTarget and bindingButton then
 		if input.UserInputType == Enum.UserInputType.Keyboard then
