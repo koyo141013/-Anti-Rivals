@@ -79,7 +79,7 @@ gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
 ----------------------------------------------------
--- 창 메인 프레임
+-- 창 메인 프레임 (1번 사진 어두운 다크 테마 배경)
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -91,6 +91,10 @@ window.BorderSizePixel = 1
 window.Visible = true
 window.Parent = gui
 
+-- 창이 처음 켜져 있으므로 초기 마우스 상태 활성화
+UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+UserInputService.MouseIconEnabled = true
+
 -- 이중 테두리
 local innerBorder = Instance.new("Frame")
 innerBorder.Size = UDim2.new(1, -2, 1, -2)
@@ -101,10 +105,10 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (디스코드 중앙 배치, 파란색 Rivals 우측 배치)
+-- Header (디스코드 중앙 정렬, 우측 파란색 Rivals)
 ----------------------------------------------------
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, 26)
+header.Size = UDim2.new(1, 0, 0, 28)
 header.Position = UDim2.fromOffset(0, 0)
 header.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 header.BorderSizePixel = 0
@@ -150,8 +154,9 @@ end)
 
 -- 가운데 타이틀 (Anti-Rival - discord.gg/dcSGrkPzv)
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -160, 1, 0)
-title.Position = UDim2.fromOffset(80, 0)
+title.AnchorPoint = Vector2.new(0.5, 0.5)
+title.Position = UDim2.new(0.5, 0, 0.5, 0)
+title.Size = UDim2.new(1, -120, 1, 0)
 title.BackgroundTransparency = 1
 title.Text = "Anti-Rival - discord.gg/dcSGrkPzv"
 title.TextColor3 = Color3.fromRGB(180, 180, 185)
@@ -162,8 +167,9 @@ title.Parent = header
 
 -- 우측 파란색 Rivals 텍스트
 local rightTitle = Instance.new("TextLabel")
-rightTitle.Size = UDim2.fromOffset(70, 26)
-rightTitle.Position = UDim2.new(1, -78, 0, 0)
+rightTitle.AnchorPoint = Vector2.new(1, 0.5)
+rightTitle.Position = UDim2.new(1, -10, 0.5, 0)
+rightTitle.Size = UDim2.fromOffset(60, 20)
 rightTitle.BackgroundTransparency = 1
 rightTitle.Text = "Rivals"
 rightTitle.TextColor3 = Color3.fromRGB(60, 130, 220)
@@ -177,7 +183,7 @@ rightTitle.Parent = header
 ----------------------------------------------------
 local tabs = Instance.new("Frame")
 tabs.Size = UDim2.new(1, -16, 0, 24)
-tabs.Position = UDim2.fromOffset(8, 28)
+tabs.Position = UDim2.fromOffset(8, 30)
 tabs.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 tabs.BorderSizePixel = 0
 tabs.Parent = innerBorder
@@ -190,8 +196,8 @@ tabsLayout.Parent = tabs
 
 -- 메인 컨텐츠 영역
 local content = Instance.new("Frame")
-content.Size = UDim2.new(1, -16, 1, -62)
-content.Position = UDim2.fromOffset(8, 54)
+content.Size = UDim2.new(1, -16, 1, -64)
+content.Position = UDim2.fromOffset(8, 56)
 content.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 content.BorderColor3 = Color3.fromRGB(30, 30, 34)
 content.BorderSizePixel = 1
@@ -220,7 +226,7 @@ local settingPage = page("setting")
 
 local function showPage(name)
 	for pageName, frame in pairs(pages) do
-		frame.Visible = pageName == name
+		frame.Visible = (pageName == name)
 	end
 
 	for tabName, button in pairs(tabButtons) do
@@ -248,7 +254,11 @@ local function tab(text, name, order)
 	button.TextSize = 11
 	button.Font = Enum.Font.Code
 	button.Parent = tabs
-	button.MouseButton1Click:Connect(function() showPage(name) end)
+	
+	button.MouseButton1Click:Connect(function() 
+		showPage(name) 
+	end)
+	
 	tabButtons[name] = button
 end
 
@@ -1051,10 +1061,18 @@ redBox.FocusLost:Connect(updateColorFromBoxes)
 greenBox.FocusLost:Connect(updateColorFromBoxes)
 blueBox.FocusLost:Connect(updateColorFromBoxes)
 
--- RightShift 키로 UI 켜고 끄기
+-- RightShift 키로 UI 켜고 끄기 (+ 마우스 커서 연동)
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if not gpe and input.KeyCode == Enum.KeyCode.RightShift then
 		window.Visible = not window.Visible
+		
+		if window.Visible then
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+			UserInputService.MouseIconEnabled = true
+		else
+			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+			UserInputService.MouseIconEnabled = false
+		end
 	end
 end)
 
