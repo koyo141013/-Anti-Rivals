@@ -404,10 +404,6 @@ configStatus.Font = Enum.Font.Code
 configStatus.TextXAlignment = Enum.TextXAlignment.Left
 configStatus.Parent = settingPage
 
--- ========================================================
---  기능별 서브 시스템 및 실행 로직
--- ========================================================
-
 -- Fly 로직
 local function stopFly()
 	flying = false
@@ -651,7 +647,7 @@ local function refreshHealthBars()
 	end
 end
 
--- Fast Shot 수정 (마우스 누름 연사 방식 개편)
+-- Fast Shot
 local lastShotTime = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
@@ -694,7 +690,6 @@ local function toggleShader(forceState)
 	setToggle(shaderButton, shaderOn, "custom shader")
 end
 
--- Target Finding Logic Optimization (Silent Aim 멈춤 수정)
 local function getTargetPart(character, targetPartType)
 	if not character then return nil end
 	if targetPartType == "head" then
@@ -745,7 +740,7 @@ local function getClosestTarget(maxFOV, targetPartType)
 	return closestPart
 end
 
--- Silent Aim Hooking (안전 처리 추가)
+-- Silent Aim Hooking (workspace 자원 호출 예외 검사 완벽 고침)
 pcall(function()
 	if typeof(hookmetamethod) == "function" then
 		local oldNamecall
@@ -754,7 +749,7 @@ pcall(function()
 			local args = {...}
 
 			if silentAimOn and not checkcaller_fn() then
-				if method == "Raycast" then
+				if (method == "Raycast" or method == "raycast") and (self == workspace or self == game.Workspace) then
 					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
 					if targetPart then
 						local origin = args[1]
@@ -763,7 +758,7 @@ pcall(function()
 							return oldNamecall(self, table.unpack(args))
 						end
 					end
-				elseif method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRay" then
+				elseif (method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRay") and (self == workspace or self == game.Workspace) then
 					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
 					if targetPart then
 						local camera = workspace.CurrentCamera
@@ -867,10 +862,7 @@ noclipConnection = RunService.Stepped:Connect(function()
 	end
 end)
 
--- ========================================================
---  UI 토글 상태 조절 핸들러
--- ========================================================
-
+-- UI 토글 상태 조절 핸들러
 local function toggleWalk(forceState)
 	walkOn = forceState ~= nil and forceState or not walkOn
 	setToggle(walkButton, walkOn, "walk speed")
@@ -956,7 +948,7 @@ silentAimPartButton.MouseButton1Click:Connect(function()
 	silentAimPartButton.Text = "silent target: " .. silentAimTargetPart:upper()
 end)
 
--- 텍스트 박스 실시간 수정 이벤트
+-- 텍스트 박스 이벤트
 flyBox.FocusLost:Connect(function() flySpeed = tonumber(flyBox.Text) or flySpeed end)
 walkBox.FocusLost:Connect(function() walkSpeed = tonumber(walkBox.Text) or walkSpeed; applyWalk() end)
 jumpBox.FocusLost:Connect(function() jumpPower = tonumber(jumpBox.Text) or jumpPower; applyJump() end)
@@ -981,9 +973,7 @@ redBox.FocusLost:Connect(updateColorFromBoxes)
 greenBox.FocusLost:Connect(updateColorFromBoxes)
 blueBox.FocusLost:Connect(updateColorFromBoxes)
 
--- ========================================================
--- Config Export / Import (버튼 상태 자동 연동 포함)
--- ========================================================
+-- Config Export / Import
 local function getSavedData()
 	return {
 		flySpeed = tonumber(flyBox.Text) or flySpeed,
@@ -996,7 +986,6 @@ local function getSavedData()
 		aimbotSmoothness = tonumber(aimbotBox.Text) or aimbotSmoothness,
 		aimbotTargetPart = aimbotTargetPart,
 		silentAimTargetPart = silentAimTargetPart,
-		-- 버튼 ON/OFF 상태까지 함께 저장
 		toggles = {
 			flying = flying,
 			walkOn = walkOn,
@@ -1053,7 +1042,6 @@ loadBtn.MouseButton1Click:Connect(function()
 	end)
 
 	if success and type(data) == "table" then
-		-- 수치 복원
 		if data.flySpeed then flySpeed = data.flySpeed; flyBox.Text = tostring(flySpeed) end
 		if data.walkSpeed then walkSpeed = data.walkSpeed; walkBox.Text = tostring(walkSpeed) end
 		if data.jumpPower then jumpPower = data.jumpPower; jumpBox.Text = tostring(jumpPower) end
@@ -1081,7 +1069,6 @@ loadBtn.MouseButton1Click:Connect(function()
 			blueBox.Text = tostring(data.espColor.b)
 		end
 
-		-- 토글 버튼 상태 실제 적용
 		if data.toggles then
 			if data.toggles.flying ~= nil then toggleFly(data.toggles.flying) end
 			if data.toggles.walkOn ~= nil then toggleWalk(data.toggles.walkOn) end
