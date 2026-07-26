@@ -11,6 +11,10 @@ local infiniteJumpOn = false
 local aimbotOn = false
 local shaderOn = false
 
+-- Fast Shot 변수
+local fastShotOn = false
+local fastShotRate = 350 -- 기본값 350 (1~700)
+
 -- Rage Bot 변수
 local rageBotOn = false
 local rageStuds = 5000
@@ -25,7 +29,7 @@ local aimbotSmoothness = 50
 local aimbotTargetPart = "head"
 local espColor = Color3.fromRGB(255, 70, 70)
 
-local attachment, velocity, orientation, flyConnection, noclipConnection, aimbotConnection, rageConnection, infiniteJumpConnection
+local attachment, velocity, orientation, flyConnection, noclipConnection, aimbotConnection, rageConnection, infiniteJumpConnection, fastShotConnection
 local collisionValues = {}
 
 -- 실행기 호환성 예외 처리 함수들
@@ -79,7 +83,7 @@ gui.Parent = player.PlayerGui
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
 window.Position = UDim2.fromScale(0.5, 0.5)
-window.Size = UDim2.fromOffset(680, 480)
+window.Size = UDim2.fromOffset(680, 520)
 window.BackgroundColor3 = Color3.fromRGB(14, 15, 18)
 window.BorderColor3 = Color3.fromRGB(60, 62, 70)
 window.BorderSizePixel = 1
@@ -316,20 +320,22 @@ local redBox = rgbBox(255, 150)
 local greenBox = rgbBox(70, 218)
 local blueBox = rgbBox(70, 286)
 
--- Player
+-- Player (Fast Shot 추가됨)
 heading(playerPage, "player options")
 local jumpBox = textbox(playerPage, "jump power  (1–100)", jumpPower, 40)
 local jumpButton = toggle(playerPage, "jump power", 70)
-
--- Infinite Jump 토글 추가
 local infJumpButton = toggle(playerPage, "infinite jump", 105)
 
-local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 145)
-local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 175)
+-- Fast Shot 섹션
+local fastShotBox = textbox(playerPage, "fast shot rate (1–700)", fastShotRate, 140)
+local fastShotButton = toggle(playerPage, "fast shot", 170)
+
+local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 205)
+local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 235)
 
 local aimbotPartButton = Instance.new("TextButton")
-aimbotPartButton.Size = UDim2.fromOffset(335, 26)
-aimbotPartButton.Position = UDim2.fromOffset(16, 210)
+aimbotPartButton.Size = UDim2.fromOffset(335, 24)
+aimbotPartButton.Position = UDim2.fromOffset(16, 270)
 aimbotPartButton.BackgroundColor3 = Color3.fromRGB(43, 46, 56)
 aimbotPartButton.BorderColor3 = Color3.fromRGB(78, 82, 94)
 aimbotPartButton.Text = "aimbot target: HEAD"
@@ -339,12 +345,12 @@ aimbotPartButton.Font = Enum.Font.Code
 aimbotPartButton.Parent = playerPage
 
 -- Silent Aim 세팅
-local silentAimButton = toggle(playerPage, "silent aim", 242)
-local silentAimBox = textbox(playerPage, "silent aim fov (1–5000)", silentAimFOV, 275)
+local silentAimButton = toggle(playerPage, "silent aim", 300)
+local silentAimBox = textbox(playerPage, "silent aim fov (1–5000)", silentAimFOV, 335)
 
 local silentAimPartButton = Instance.new("TextButton")
-silentAimPartButton.Size = UDim2.fromOffset(335, 26)
-silentAimPartButton.Position = UDim2.fromOffset(16, 308)
+silentAimPartButton.Size = UDim2.fromOffset(335, 24)
+silentAimPartButton.Position = UDim2.fromOffset(16, 368)
 silentAimPartButton.BackgroundColor3 = Color3.fromRGB(43, 46, 56)
 silentAimPartButton.BorderColor3 = Color3.fromRGB(78, 82, 94)
 silentAimPartButton.Text = "silent target: HEAD"
@@ -368,6 +374,28 @@ heading(collision, "collision")
 local noclipButton = toggle(collision, "noclip", 55)
 
 -- ================= [ 기능 구현 ] =================
+
+-- Fast Shot (고속 연사) 루프
+local lastShotTime = 0
+fastShotConnection = RunService.RenderStepped:Connect(function()
+	if not fastShotOn then return end
+
+	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+		local now = os.clock()
+		local interval = 1 / math.clamp(fastShotRate, 1, 700)
+		
+		if now - lastShotTime >= interval then
+			lastShotTime = now
+			local char = player.Character
+			if char then
+				local tool = char:FindFirstChildOfClass("Tool")
+				if tool then
+					tool:Activate()
+				end
+			end
+		end
+	end
+end)
 
 -- Infinite Jump 이벤트 처리
 infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
@@ -845,6 +873,11 @@ walkBox.FocusLost:Connect(function()
 	applyWalk()
 end)
 
+fastShotBox.FocusLost:Connect(function()
+	fastShotRate = math.clamp(tonumber(fastShotBox.Text) or 350, 1, 700)
+	fastShotBox.Text = tostring(fastShotRate)
+end)
+
 aimbotBox.FocusLost:Connect(function()
 	aimbotSmoothness = math.clamp(tonumber(aimbotBox.Text) or 50, 1, 150)
 	aimbotBox.Text = tostring(aimbotSmoothness)
@@ -892,6 +925,11 @@ walkButton.MouseButton1Click:Connect(function()
 	walkOn = not walkOn
 	applyWalk()
 	setToggle(walkButton, walkOn, "walk speed")
+end)
+
+fastShotButton.MouseButton1Click:Connect(function()
+	fastShotOn = not fastShotOn
+	setToggle(fastShotButton, fastShotOn, "fast shot")
 end)
 
 aimbotButton.MouseButton1Click:Connect(function()
