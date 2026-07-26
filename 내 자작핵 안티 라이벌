@@ -1,1 +1,669 @@
+-- [클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 강제 종료
+pcall(function()
+	if getgenv().AntiRivalConnectionList then
+		for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
+			if typeof(conn) == "RBXScriptConnection" then
+				conn:Disconnect()
+			end
+		end
+	end
+end)
 
+getgenv().AntiRivalConnectionList = {}
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local player = Players.LocalPlayer
+
+-- 기존 구버전 UI 제거
+for _, guiObj in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
+	if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
+		guiObj:Destroy()
+	end
+end
+
+local flying, walkOn, espOn, namesOn, healthBarOn, noclipOn, jumpOn = false, false, false, false, false, false, false
+local infiniteJumpOn = false
+local aimbotOn = false
+local shaderOn = false
+
+local triggerBotOn = false
+local triggerBotDelay = 0.05
+local lastTriggerTick = 0
+
+local fastShotOn = false
+local fastShotRate = 800
+local lastShotTick = 0
+
+local fastFireOn = false
+local infiniteAmmoOn = false
+local instantReloadOn = false
+local rageBotOn = false
+local silentAimOn = false
+local fakeLagOn = false
+
+local flySpeed, walkSpeed, jumpPower, gammaValue = 70, 16, 50, 1
+local aimbotSmoothness = 50
+
+local attachment, velocity, orientation
+
+local function trackConn(conn)
+	if conn then
+		table.insert(getgenv().AntiRivalConnectionList, conn)
+	end
+	return conn
+end
+
+local function getSafeParts()
+	local character = player.Character
+	if not character then return nil, nil end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local rootPart = character:FindFirstChild("HumanoidRootPart")
+	return humanoid, rootPart
+end
+
+local gamma = Lighting:FindFirstChild("AntiRivalGamma") or Instance.new("ColorCorrectionEffect")
+gamma.Name = "AntiRivalGamma"
+gamma.Parent = Lighting
+
+local shaderBloom = Instance.new("BloomEffect")
+shaderBloom.Name = "LocalShader_Bloom"
+shaderBloom.Intensity = 1.2
+shaderBloom.Size = 30
+shaderBloom.Threshold = 0.8
+shaderBloom.Enabled = false
+shaderBloom.Parent = Lighting
+
+local shaderCC = Instance.new("ColorCorrectionEffect")
+shaderCC.Name = "LocalShader_CC"
+shaderCC.Brightness = 0.05
+shaderCC.Contrast = 0.25
+shaderCC.Saturation = 0.35
+shaderCC.TintColor = Color3.fromRGB(255, 245, 235)
+shaderCC.Enabled = false
+shaderCC.Parent = Lighting
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "AntiRival"
+gui.ResetOnSpawn = false
+gui.Parent = player.PlayerGui
+
+----------------------------------------------------
+-- 메인 UI 창
+----------------------------------------------------
+local window = Instance.new("Frame")
+window.AnchorPoint = Vector2.new(0.5, 0.5)
+window.Position = UDim2.new(0.5, 0, 0.5, 0)
+window.Size = UDim2.fromOffset(500, 580)
+window.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+window.BorderColor3 = Color3.fromRGB(38, 38, 42)
+window.BorderSizePixel = 1
+window.ZIndex = 5
+window.Visible = true
+window.Parent = gui
+
+local modalButton = nil
+local mouseLoopConnection = nil
+
+local function updateMouseState(isVisible)
+	if mouseLoopConnection then
+		mouseLoopConnection:Disconnect()
+		mouseLoopConnection = nil
+	end
+
+	if isVisible then
+		if not modalButton then
+			modalButton = Instance.new("TextButton")
+			modalButton.Size = UDim2.fromScale(1, 1)
+			modalButton.BackgroundTransparency = 1
+			modalButton.Text = ""
+			modalButton.Modal = true
+			modalButton.Active = false
+			modalButton.ZIndex = 1
+			modalButton.Parent = gui
+		end
+
+		mouseLoopConnection = trackConn(RunService.RenderStepped:Connect(function()
+			if window.Visible then
+				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+				UserInputService.MouseIconEnabled = true
+			end
+		end))
+	else
+		if modalButton then
+			modalButton:Destroy()
+			modalButton = nil
+		end
+		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+		UserInputService.MouseIconEnabled = false
+	end
+end
+
+updateMouseState(true)
+
+local innerBorder = Instance.new("Frame")
+innerBorder.Size = UDim2.new(1, -2, 1, -2)
+innerBorder.Position = UDim2.fromOffset(1, 1)
+innerBorder.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+innerBorder.BorderColor3 = Color3.fromRGB(22, 22, 26)
+innerBorder.BorderSizePixel = 1
+innerBorder.ZIndex = 6
+innerBorder.Parent = window
+
+----------------------------------------------------
+-- Header
+----------------------------------------------------
+local header = Instance.new("Frame")
+header.Size = UDim2.new(1, 0, 0, 28)
+header.Position = UDim2.fromOffset(0, 0)
+header.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+header.BorderSizePixel = 0
+header.ZIndex = 7
+header.Parent = innerBorder
+
+local dragging = false
+local dragInput, dragStart, startPos
+
+header.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = window.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+header.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		window.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y
+		)
+	end
+end)
+
+local title = Instance.new("TextLabel")
+title.AnchorPoint = Vector2.new(0.5, 0.5)
+title.Position = UDim2.new(0.5, -30, 0.5, 0)
+title.Size = UDim2.fromOffset(280, 20)
+title.BackgroundTransparency = 1
+title.Text = "Anti-Rival-V0.7.6-FREE Build"
+title.TextColor3 = Color3.fromRGB(220, 100, 100)
+title.TextSize = 11
+title.Font = Enum.Font.Code
+title.TextXAlignment = Enum.TextXAlignment.Center
+title.ZIndex = 8
+title.Parent = header
+
+local discordBtn = Instance.new("TextButton")
+discordBtn.AnchorPoint = Vector2.new(1, 0.5)
+discordBtn.Position = UDim2.new(1, -10, 0.5, 0)
+discordBtn.Size = UDim2.fromOffset(110, 20)
+discordBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+discordBtn.BorderColor3 = Color3.fromRGB(50, 50, 70)
+discordBtn.BorderSizePixel = 1
+discordBtn.Text = "Discord Invite"
+discordBtn.TextColor3 = Color3.fromRGB(114, 137, 218)
+discordBtn.TextSize = 11
+discordBtn.Font = Enum.Font.Code
+discordBtn.ZIndex = 8
+discordBtn.Parent = header
+
+discordBtn.MouseButton1Click:Connect(function()
+	pcall(function()
+		if setclipboard then
+			setclipboard("https://discord.gg/aJmSdtrqE")
+			discordBtn.Text = "Copied Link!"
+			task.delay(1.5, function()
+				discordBtn.Text = "Discord Invite"
+			end)
+		end
+	end)
+end)
+
+----------------------------------------------------
+-- 탭 및 페이지 레이아웃
+----------------------------------------------------
+local tabs = Instance.new("Frame")
+tabs.Size = UDim2.new(1, -16, 0, 24)
+tabs.Position = UDim2.fromOffset(8, 30)
+tabs.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+tabs.BorderSizePixel = 0
+tabs.ZIndex = 7
+tabs.Parent = innerBorder
+
+local tabsLayout = Instance.new("UIListLayout")
+tabsLayout.FillDirection = Enum.FillDirection.Horizontal
+tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabsLayout.Padding = UDim.new(0, 3)
+tabsLayout.Parent = tabs
+
+local content = Instance.new("Frame")
+content.Size = UDim2.new(1, -16, 1, -64)
+content.Position = UDim2.fromOffset(8, 56)
+content.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+content.BorderColor3 = Color3.fromRGB(30, 30, 34)
+content.BorderSizePixel = 1
+content.ZIndex = 7
+content.Parent = innerBorder
+
+local pages, tabButtons = {}, {}
+
+local function page(name)
+	local frame = Instance.new("ScrollingFrame")
+	frame.Name = name
+	frame.Size = UDim2.fromScale(1, 1)
+	frame.BackgroundTransparency = 1
+	frame.CanvasSize = UDim2.new(0, 0, 1.8, 0)
+	frame.ScrollBarThickness = 4
+	frame.Visible = false
+	frame.ZIndex = 8
+	frame.Parent = content
+	pages[name] = frame
+	return frame
+end
+
+local mainPage = page("main")
+local worldPage = page("world")
+local espPage = page("esp")
+local visualsPage = page("visuals")
+local characterPage = page("character")
+local miscPage = page("misc")
+local settingPage = page("settings")
+
+local function showPage(name)
+	for pageName, frame in pairs(pages) do
+		frame.Visible = (pageName == name)
+	end
+	for tabName, button in pairs(tabButtons) do
+		if tabName == name then
+			button.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+			button.TextColor3 = Color3.fromRGB(255, 255, 255)
+			button.BorderColor3 = Color3.fromRGB(50, 50, 58)
+		else
+			button.BackgroundColor3 = Color3.fromRGB(16, 16, 18)
+			button.TextColor3 = Color3.fromRGB(140, 140, 145)
+			button.BorderColor3 = Color3.fromRGB(28, 28, 32)
+		end
+	end
+end
+
+local function tab(text, name, order)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.fromOffset(66, 22)
+	button.LayoutOrder = order
+	button.BackgroundColor3 = Color3.fromRGB(16, 16, 18)
+	button.BorderColor3 = Color3.fromRGB(28, 28, 32)
+	button.BorderSizePixel = 1
+	button.Text = text
+	button.TextColor3 = Color3.fromRGB(140, 140, 145)
+	button.TextSize = 11
+	button.Font = Enum.Font.Code
+	button.ZIndex = 8
+	button.Parent = tabs
+	button.MouseButton1Click:Connect(function() showPage(name) end)
+	tabButtons[name] = button
+end
+
+tab("main", "main", 1)
+tab("world", "world", 2)
+tab("esp", "esp", 3)
+tab("visuals", "visuals", 4)
+tab("character", "character", 5)
+tab("misc", "misc", 6)
+tab("settings", "settings", 7)
+
+----------------------------------------------------
+-- UI 컨트롤 빌더
+----------------------------------------------------
+local function heading(parent, text)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, -20, 0, 24)
+	label.Position = UDim2.fromOffset(10, 6)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(200, 200, 205)
+	label.TextSize = 13
+	label.Font = Enum.Font.Code
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.ZIndex = 9
+	label.Parent = parent
+end
+
+local function textbox(parent, text, value, y)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromOffset(220, 24)
+	label.Position = UDim2.fromOffset(14, y)
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = Color3.fromRGB(170, 170, 175)
+	label.TextSize = 11
+	label.Font = Enum.Font.Code
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.ZIndex = 9
+	label.Parent = parent
+
+	local box = Instance.new("TextBox")
+	box.Size = UDim2.fromOffset(90, 22)
+	box.Position = UDim2.fromOffset(240, y)
+	box.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+	box.BorderColor3 = Color3.fromRGB(40, 40, 46)
+	box.BorderSizePixel = 1
+	box.Text = tostring(value)
+	box.ClearTextOnFocus = false
+	box.TextColor3 = Color3.new(1, 1, 1)
+	box.TextSize = 11
+	box.Font = Enum.Font.Code
+	box.ZIndex = 9
+	box.Parent = parent
+	return box
+end
+
+local function toggle(parent, text, y)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.fromOffset(316, 24)
+	button.Position = UDim2.fromOffset(14, y)
+	button.BackgroundColor3 = Color3.fromRGB(70, 30, 30)
+	button.BorderColor3 = Color3.fromRGB(100, 45, 45)
+	button.BorderSizePixel = 1
+	button.Text = text .. ": OFF"
+	button.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+	button.TextSize = 11
+	button.Font = Enum.Font.Code
+	button.ZIndex = 9
+	button.Parent = parent
+	return button
+end
+
+local function setToggle(button, enabled, text)
+	button.Text = text .. (enabled and ": ON" or ": OFF")
+	button.BackgroundColor3 = enabled and Color3.fromRGB(35, 75, 50) or Color3.fromRGB(70, 30, 30)
+	button.BorderColor3 = enabled and Color3.fromRGB(50, 110, 70) or Color3.fromRGB(100, 45, 45)
+end
+
+-- 탭 컴포넌트 배치 (텔레포트 및 1000출 관련 UI 완전 제거)
+heading(mainPage, "movement / main controls")
+local flyBox = textbox(mainPage, "fly speed  (1–500)", flySpeed, 40)
+local flyButton = toggle(mainPage, "fly", 68)
+local walkBox = textbox(mainPage, "walk speed  (1–500)", walkSpeed, 110)
+local walkButton = toggle(mainPage, "walk speed", 138)
+
+heading(worldPage, "world environment")
+local gammaBox = textbox(worldPage, "gamma  (1–100)", gammaValue, 40)
+local shaderButton = toggle(worldPage, "custom shader", 72)
+
+heading(espPage, "player esp & information")
+local espButton = toggle(espPage, "player esp", 40)
+local namesButton = toggle(espPage, "player names", 70)
+
+heading(visualsPage, "combat visuals & aimbot")
+local aimbotButton = toggle(visualsPage, "aimbot (hold rmb)", 40)
+
+heading(characterPage, "character capabilities & combat")
+local fastShotBox = textbox(characterPage, "fast shot rate (1–1000)", fastShotRate, 40)
+local fastShotButton = toggle(characterPage, "fast shot (Engine Bypass)", 68)
+
+heading(miscPage, "misc / collision settings")
+local noclipButton = toggle(miscPage, "noclip", 40)
+
+----------------------------------------------------
+-- [Settings 탭] 키바인드 매니저 유지
+----------------------------------------------------
+heading(settingPage, "keybind manager")
+
+local keybinds = {
+	Fly = nil,
+	Speed = nil,
+	ESP = nil,
+	Noclip = nil
+}
+
+local function createKeybindRow(name, y, defaultKeyText)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromOffset(180, 24)
+	label.Position = UDim2.fromOffset(14, y)
+	label.BackgroundTransparency = 1
+	label.Text = name .. " Key:"
+	label.TextColor3 = Color3.fromRGB(170, 170, 175)
+	label.TextSize = 11
+	label.Font = Enum.Font.Code
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.ZIndex = 9
+	label.Parent = settingPage
+
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.fromOffset(130, 22)
+	btn.Position = UDim2.fromOffset(200, y)
+	btn.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+	btn.BorderColor3 = Color3.fromRGB(40, 40, 46)
+	btn.BorderSizePixel = 1
+	btn.Text = defaultKeyText
+	btn.TextColor3 = Color3.fromRGB(200, 200, 205)
+	btn.TextSize = 11
+	btn.Font = Enum.Font.Code
+	btn.ZIndex = 9
+	btn.Parent = settingPage
+	return btn
+end
+
+local flyKeyBtn = createKeybindRow("Fly", 40, "None")
+local walkKeyBtn = createKeybindRow("WalkSpeed", 70, "None")
+local espKeyBtn = createKeybindRow("ESP", 100, "None")
+local noclipKeyBtn = createKeybindRow("Noclip", 130, "None")
+
+local bindingTarget = nil
+local bindingButton = nil
+
+local function setupKeybindListener(btn, keyName)
+	btn.MouseButton1Click:Connect(function()
+		bindingTarget = keyName
+		bindingButton = btn
+		btn.Text = "[ Press a Key ]"
+		btn.TextColor3 = Color3.fromRGB(255, 220, 100)
+	end)
+end
+
+setupKeybindListener(flyKeyBtn, "Fly")
+setupKeybindListener(walkKeyBtn, "Speed")
+setupKeybindListener(espKeyBtn, "ESP")
+setupKeybindListener(noclipKeyBtn, "Noclip")
+
+trackConn(UserInputService.InputBegan:Connect(function(input, gp)
+	if bindingTarget and bindingButton then
+		if input.KeyCode ~= Enum.KeyCode.Unknown then
+			keybinds[bindingTarget] = input.KeyCode
+			bindingButton.Text = input.KeyCode.Name
+			bindingButton.TextColor3 = Color3.fromRGB(200, 200, 205)
+			bindingTarget, bindingButton = nil, nil
+			return
+		end
+	end
+
+	if input.KeyCode == Enum.KeyCode.RightShift then
+		window.Visible = not window.Visible
+		updateMouseState(window.Visible)
+	end
+end))
+
+----------------------------------------------------
+-- 기능 구현 로직
+----------------------------------------------------
+local function stopFly()
+	flying = false
+	if velocity then velocity:Destroy() end
+	if orientation then orientation:Destroy() end
+	if attachment then attachment:Destroy() end
+	velocity, orientation, attachment = nil, nil, nil
+
+	local humanoid, _ = getSafeParts()
+	if humanoid then
+		humanoid.PlatformStand = false
+		humanoid.AutoRotate = true
+	end
+	setToggle(flyButton, false, "fly")
+end
+
+local function startFly()
+	local humanoid, root = getSafeParts()
+	if not humanoid or not root then return end
+	
+	flying = true
+	humanoid.PlatformStand = true
+	humanoid.AutoRotate = false
+
+	attachment = Instance.new("Attachment", root)
+	velocity = Instance.new("LinearVelocity", root)
+	velocity.Attachment0 = attachment
+	velocity.RelativeTo = Enum.ActuatorRelativeTo.World
+	velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+	velocity.ForceLimitsEnabled = true
+	velocity.MaxForce = 100000
+
+	orientation = Instance.new("AlignOrientation", root)
+	orientation.Attachment0 = attachment
+	orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
+	orientation.RigidityEnabled = true
+
+	trackConn(RunService.RenderStepped:Connect(function()
+		if not flying or not root or not root.Parent then return end
+		local camera = workspace.CurrentCamera
+		if not camera then return end
+
+		local look = Vector3.new(camera.CFrame.LookVector.X, 0, camera.CFrame.LookVector.Z).Unit
+		local right = Vector3.new(camera.CFrame.RightVector.X, 0, camera.CFrame.RightVector.Z).Unit
+		local direction = Vector3.zero
+
+		if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction += look end
+		if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction -= look end
+		if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction -= right end
+		if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction += right end
+		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction += Vector3.yAxis end
+		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then direction -= Vector3.yAxis end
+		
+		if velocity then
+			velocity.VectorVelocity = direction.Magnitude > 0 and direction.Unit * flySpeed or Vector3.zero
+		end
+		if orientation and look.Magnitude > 0 then
+			orientation.CFrame = CFrame.lookAt(Vector3.zero, look)
+		end
+	end))
+	setToggle(flyButton, true, "fly")
+end
+
+-- Fast Shot 엔진 루프
+trackConn(RunService.RenderStepped:Connect(function()
+	if not fastShotOn then return end
+
+	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+		local now = os.clock()
+		local interval = 1 / math.clamp(fastShotRate, 1, 1000)
+
+		if now - lastShotTick >= interval then
+			lastShotTick = now
+			pcall(function()
+				local char = player.Character
+				if not char then return end
+
+				for _, tool in ipairs(char:GetChildren()) do
+					if tool:IsA("Tool") then
+						pcall(function() tool:Activate() end)
+						for _, desc in ipairs(tool:GetDescendants()) do
+							if desc:IsA("RemoteEvent") then
+								pcall(function()
+									local name = desc.Name:lower()
+									if name:find("fire") or name:find("shoot") or name:find("gun") or name:find("attack") then
+										desc:FireServer()
+									end
+								end)
+							end
+						end
+					end
+				end
+			end)
+		end
+	end
+end))
+
+-- Noclip 루프
+trackConn(RunService.Stepped:Connect(function()
+	if noclipOn then
+		pcall(function()
+			local char = player.Character
+			if char then
+				for _, part in ipairs(char:GetDescendants()) do
+					if part:IsA("BasePart") and part.CanCollide then
+						part.CanCollide = false
+					end
+				end
+			end
+		end)
+	end
+end))
+
+-- UI 버튼 이벤트 바인딩
+flyButton.MouseButton1Click:Connect(function()
+	if flying then stopFly() else startFly() end
+end)
+
+flyBox.FocusLost:Connect(function()
+	flySpeed = math.clamp(tonumber(flyBox.Text) or 70, 1, 500)
+	flyBox.Text = tostring(flySpeed)
+end)
+
+walkButton.MouseButton1Click:Connect(function()
+	walkOn = not walkOn
+	setToggle(walkButton, walkOn, "walk speed")
+	local h, _ = getSafeParts()
+	if h then h.WalkSpeed = walkOn and walkSpeed or 16 end
+end)
+
+walkBox.FocusLost:Connect(function()
+	walkSpeed = math.clamp(tonumber(walkBox.Text) or 16, 1, 500)
+	walkBox.Text = tostring(walkSpeed)
+	local h, _ = getSafeParts()
+	if h and walkOn then h.WalkSpeed = walkSpeed end
+end)
+
+gammaBox.FocusLost:Connect(function()
+	gammaValue = math.clamp(tonumber(gammaBox.Text) or 1, 1, 100)
+	gammaBox.Text = tostring(gammaValue)
+	gamma.Brightness = (gammaValue - 1) * 0.05
+end)
+
+shaderButton.MouseButton1Click:Connect(function()
+	shaderOn = not shaderOn
+	shaderBloom.Enabled = shaderOn
+	shaderCC.Enabled = shaderOn
+	setToggle(shaderButton, shaderOn, "custom shader")
+end)
+
+fastShotButton.MouseButton1Click:Connect(function()
+	fastShotOn = not fastShotOn
+	setToggle(fastShotButton, fastShotOn, "fast shot (Engine Bypass)")
+end)
+
+fastShotBox.FocusLost:Connect(function()
+	fastShotRate = math.clamp(tonumber(fastShotBox.Text) or 800, 1, 1000)
+	fastShotBox.Text = tostring(fastShotRate)
+end)
+
+noclipButton.MouseButton1Click:Connect(function()
+	noclipOn = not noclipOn
+	setToggle(noclipButton, noclipOn, "noclip")
+end)
+
+showPage("main")
+print("Anti-Rival-V0.7.6-FREE Build (Teleport Removed) Loaded Successfully!")
