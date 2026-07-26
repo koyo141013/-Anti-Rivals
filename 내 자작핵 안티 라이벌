@@ -10,20 +10,20 @@ local infiniteJumpOn = false
 local aimbotOn = false
 local shaderOn = false
 
--- Fast Shot 변수
+-- Fast Shot 변수 (기본 OFF)
 local fastShotOn = false
 local fastShotRate = 350
 
--- Rage Bot 변수 (기본 OFF로 변경)
+-- Rage Bot 변수 (기본 OFF)
 local rageBotOn = false
 local rageStuds = math.huge
 
--- Silent Aim 변수 (기본 OFF로 변경)
+-- Silent Aim 변수 (기본 OFF)
 local silentAimOn = false
 local silentAimTargetPart = "Head"
 local silentAimFOV = 9999
 
--- Fake Lag / View Lock 변수 (기본 OFF로 변경 - 이제 정상 이동 가능)
+-- Fake Lag / View Lock 변수 (기본 OFF)
 local fakeLagOn = false
 local fakeLagPosition = nil
 
@@ -198,7 +198,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.new(1, -120, 1, 0)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival Beta v0.5.5 - discord.gg/dcSGrkPzv"
+title.Text = "Anti-Rival Beta v0.5.6 - discord.gg/dcSGrkPzv"
 title.TextColor3 = Color3.fromRGB(180, 180, 185)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -474,7 +474,7 @@ silentAimPartButton.Font = Enum.Font.Code
 silentAimPartButton.ZIndex = 9
 silentAimPartButton.Parent = playerPage
 
--- Rage (기본 OFF 설정)
+-- Rage
 heading(ragePage, "rage bot & view lock")
 local rageButton = toggle(ragePage, "rage bot", 40)
 local rageStudsBox = textbox(ragePage, "detection range (1–5000 studs)", rageStuds, 70)
@@ -1014,10 +1014,21 @@ noclipConnection = RunService.Stepped:Connect(function()
 	end
 end)
 
--- UI 토글 초기 상태 반영 함수 호출
+-- UI 토글 초기 상태 반영 함수 호출 (모든 기능 명시적 OFF 동기화)
 setToggle(rageButton, rageBotOn, "rage bot")
 setToggle(silentAimButton, silentAimOn, "silent aim")
 setToggle(fakeLagButton, fakeLagOn, "view lock (stay still locally)")
+setToggle(flyButton, flying, "fly")
+setToggle(walkButton, walkOn, "walk speed")
+setToggle(espButton, espOn, "player esp")
+setToggle(namesButton, namesOn, "player names")
+setToggle(healthBarButton, healthBarOn, "health bar")
+setToggle(jumpButton, jumpOn, "jump power")
+setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
+setToggle(fastShotButton, fastShotOn, "fast shot")
+setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
+setToggle(shaderButton, shaderOn, "custom shader")
+setToggle(noclipButton, noclipOn, "noclip")
 
 -- UI 토글 상태 핸들러
 local function toggleWalk(forceState)
@@ -1213,20 +1224,21 @@ loadBtn.MouseButton1Click:Connect(function()
 				updateColorFromBoxes()
 			end
 
-			if decoded.flying ~= nil then toggleFly(decoded.flying) end
-			if decoded.walkOn ~= nil then toggleWalk(decoded.walkOn) end
-			if decoded.espOn ~= nil then toggleESP(decoded.espOn) end
-			if decoded.namesOn ~= nil then toggleNames(decoded.namesOn) end
-			if decoded.healthBarOn ~= nil then toggleHealthBar(decoded.healthBarOn) end
-			if decoded.jumpOn ~= nil then toggleJump(decoded.jumpOn) end
-			if decoded.infiniteJumpOn ~= nil then toggleInfJump(decoded.infiniteJumpOn) end
-			if decoded.fastShotOn ~= nil then toggleFastShot(decoded.fastShotOn) end
-			if decoded.aimbotOn ~= nil then toggleAimbot(decoded.aimbotOn) end
-			if decoded.silentAimOn ~= nil then toggleSilentAim(decoded.silentAimOn) end
-			if decoded.rageBotOn ~= nil then toggleRage(decoded.rageBotOn) end
-			if decoded.fakeLagOn ~= nil then toggleFakeLag(decoded.fakeLagOn) end
-			if decoded.shaderOn ~= nil then toggleShader(decoded.shaderOn) end
-			if decoded.noclipOn ~= nil then toggleNoclip(decoded.noclipOn) end
+			-- 각 설정값 토글 상태가 명시적으로 반영되도록 안전하게 전달
+			toggleFly(decoded.flying or false)
+			toggleWalk(decoded.walkOn or false)
+			toggleESP(decoded.espOn or false)
+			toggleNames(decoded.namesOn or false)
+			toggleHealthBar(decoded.healthBarOn or false)
+			toggleJump(decoded.jumpOn or false)
+			toggleInfJump(decoded.infiniteJumpOn or false)
+			toggleFastShot(decoded.fastShotOn or false)
+			toggleAimbot(decoded.aimbotOn or false)
+			toggleSilentAim(decoded.silentAimOn or false)
+			toggleRage(decoded.rageBotOn or false)
+			toggleFakeLag(decoded.fakeLagOn or false)
+			toggleShader(decoded.shaderOn or false)
+			toggleNoclip(decoded.noclipOn or false)
 			
 			configStatus.Text = "Status: Config Loaded Successfully!"
 			configStatus.TextColor3 = Color3.fromRGB(80, 220, 120)
