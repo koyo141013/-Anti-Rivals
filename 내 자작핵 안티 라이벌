@@ -21,7 +21,7 @@ local fastShotRate = 500
 -- Fast Fire 변수
 local fastFireOn = false
 
--- 무한 탄창 및 즉시 장전 변수 (정밀 보완)
+-- 무한 탄창 및 즉시 장전 변수 (v0.7.6 심층 패치)
 local infiniteAmmoOn = false
 local instantReloadOn = false
 
@@ -163,7 +163,7 @@ innerBorder.ZIndex = 6
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header
+-- Header (V0.7.6 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -215,7 +215,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.fromOffset(280, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival-V0.7.5-FREE Build"
+title.Text = "Anti-Rival-V0.7.6-FREE Build"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -926,7 +926,7 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 end)
 
 ----------------------------------------------------
--- [정밀 보완] Fast Fire, Infinite Ammo, Instant Reload 엔진
+-- [V0.7.6 심층 패치] Fast Fire, Infinite Ammo, Instant Reload 엔진
 ----------------------------------------------------
 fastFireConnection = RunService.Stepped:Connect(function()
 	if not fastFireOn then return end
@@ -936,7 +936,6 @@ fastFireConnection = RunService.Stepped:Connect(function()
 		local tool = char:FindFirstChildOfClass("Tool")
 		if not tool then return end
 
-		-- 툴 내 모든 속성/값(Value/NumberValue/Intvalue) 검사 후 쿨타임 제거
 		for _, obj in ipairs(tool:GetDescendants()) do
 			if obj:IsA("NumberValue") or obj:IsA("IntValue") then
 				local name = obj.Name:lower()
@@ -955,25 +954,44 @@ ammoConnection = RunService.Heartbeat:Connect(function()
 		local tool = char:FindFirstChildOfClass("Tool")
 		if not tool then return end
 		
-		-- 1. 무한 탄창 정밀 제어 (다양한 커스텀 총기 변수 및 모듈 완벽 대응)
+		-- 1. 무한 탄창 강화 스캔 (속성, 값 객체, 모듈 테이블 내부 값 모두 조작)
 		if infiniteAmmoOn then
 			for _, obj in ipairs(tool:GetDescendants()) do
 				if obj:IsA("NumberValue") or obj:IsA("IntValue") then
 					local name = obj.Name:lower()
-					if name:find("ammo") or name:find("clip") or name:find("mag") or name:find("bullet") or name:find("stored") then
+					if name:find("ammo") or name:find("clip") or name:find("mag") or name:find("bullet") or name:find("stored") or name:find("capacity") then
 						obj.Value = 9999
 					end
+				elseif obj:IsA("ModuleScript") then
+					pcall(function()
+						local mod = require(obj)
+						if typeof(mod) == "table" then
+							for k, v in pairs(mod) do
+								local kLower = tostring(k):lower()
+								if kLower:find("ammo") or kLower:find("clip") or kLower:find("mag") or kLower:find("bullet") or kLower:find("stored") then
+									if typeof(v) == "number" then
+										mod[k] = 9999
+									end
+								end
+							end
+						end
+					end)
 				end
 			end
 		end
 		
-		-- 2. 즉시 장전 제어 (장전 중 상태 변수 해제)
+		-- 2. 즉시 장전 강화 제어 (재장전 상태 및 딜레이 끄기)
 		if instantReloadOn then
 			for _, obj in ipairs(tool:GetDescendants()) do
 				if obj:IsA("BoolValue") then
 					local name = obj.Name:lower()
 					if name:find("reload") or name:find("reloading") then
 						obj.Value = false
+					end
+				elseif obj:IsA("NumberValue") or obj:IsA("IntValue") then
+					local name = obj.Name:lower()
+					if name:find("reloadtime") or name:find("reloaddelay") then
+						obj.Value = 0
 					end
 				end
 			end
@@ -1413,9 +1431,8 @@ player.CharacterAdded:Connect(function(char)
 	end)
 end)
 
--- 단축키 관리 및 [오른쪽 쉬프트] UI 토글 기능 결합
+-- [V0.7.6 핵심 수정] 단축키 관리 및 [오른쪽 쉬프트] 독립 토글 핸들러
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	-- [수정] 오른쪽 쉬프트(RightShift) 입력 시 UI 토글 및 마우스 상태 갱신
 	if input.KeyCode == Enum.KeyCode.RightShift then
 		window.Visible = not window.Visible
 		updateMouseState(window.Visible)
@@ -1462,4 +1479,4 @@ end)
 showPage("main")
 refreshESP()
 refreshHealthBars()
-print("Anti-Rival-V0.7.5-FREE Build Successfully Loaded with Fixed RightShift & Ammo System!")
+print("Anti-Rival-V0.7.6-FREE Build Successfully Loaded with Patched RightShift & Deep Ammo/Reload System!")
