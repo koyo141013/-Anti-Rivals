@@ -88,7 +88,7 @@ gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
 ----------------------------------------------------
--- 창 메인 프레임 (정중앙 고정 수정)
+-- 창 메인 프레임 (완벽한 화면 정중앙 고정)
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -211,7 +211,7 @@ title.TextXAlignment = Enum.TextXAlignment.Left
 title.ZIndex = 8
 title.Parent = header
 
--- 디스코드 링크 버튼 (주소 변경 완료)
+-- 디스코드 링크 버튼 (정확한 링크 적용 완료)
 local discordBtn = Instance.new("TextButton")
 discordBtn.AnchorPoint = Vector2.new(1, 0.5)
 discordBtn.Position = UDim2.new(1, -10, 0.5, 0)
