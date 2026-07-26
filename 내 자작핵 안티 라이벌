@@ -2,7 +2,6 @@ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
@@ -30,7 +29,6 @@ local aimbotTargetPart = "head"
 local espColor = Color3.fromRGB(255, 70, 70)
 
 local attachment, velocity, orientation, flyConnection, noclipConnection, aimbotConnection, rageConnection, infiniteJumpConnection, fastShotConnection
-local collisionValues = {}
 
 local checkcaller_fn = checkcaller or function() return false end
 local newcclosure_fn = newcclosure or function(f) return f end
@@ -407,7 +405,7 @@ configStatus.TextXAlignment = Enum.TextXAlignment.Left
 configStatus.Parent = settingPage
 
 -- ========================================================
---  기능별 서브 시스템 및 실행 로직 전체
+--  기능별 서브 시스템 및 실행 로직
 -- ========================================================
 
 -- Fly 로직
@@ -421,8 +419,10 @@ local function stopFly()
 	flyConnection, velocity, orientation, attachment = nil, nil, nil, nil
 
 	local humanoid = parts()
-	humanoid.PlatformStand = false
-	humanoid.AutoRotate = true
+	if humanoid then
+		humanoid.PlatformStand = false
+		humanoid.AutoRotate = true
+	end
 	setToggle(flyButton, false, "fly")
 end
 
@@ -477,19 +477,24 @@ local function startFly()
 	setToggle(flyButton, true, "fly")
 end
 
-local function toggleFly()
-	if flying then stopFly() else startFly() end
+local function toggleFly(forceState)
+	local targetState = forceState ~= nil and forceState or not flying
+	if targetState then startFly() else stopFly() end
 end
 
 local function applyWalk()
 	local humanoid = parts()
-	humanoid.WalkSpeed = walkOn and walkSpeed or 16
+	if humanoid then
+		humanoid.WalkSpeed = walkOn and walkSpeed or 16
+	end
 end
 
 local function applyJump()
 	local humanoid = parts()
-	humanoid.UseJumpPower = true
-	humanoid.JumpPower = jumpOn and jumpPower or 50
+	if humanoid then
+		humanoid.UseJumpPower = true
+		humanoid.JumpPower = jumpOn and jumpPower or 50
+	end
 end
 
 -- ESP System
@@ -646,7 +651,7 @@ local function refreshHealthBars()
 	end
 end
 
--- Fast Shot (안전 수정: 무차별 Remote 호출 제거하여 순간이동 버그 해결)
+-- Fast Shot 수정 (마우스 누름 연사 방식 개편)
 local lastShotTime = 0
 fastShotConnection = RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
@@ -657,7 +662,6 @@ fastShotConnection = RunService.RenderStepped:Connect(function()
 
 		if now - lastShotTime >= interval then
 			lastShotTime = now
-
 			local char = player.Character
 			if char then
 				local tool = char:FindFirstChildOfClass("Tool")
@@ -682,14 +686,15 @@ infiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
 	end
 end)
 
-local function toggleShader()
-	shaderOn = not shaderOn
+local function toggleShader(forceState)
+	shaderOn = forceState ~= nil and forceState or not shaderOn
 	shaderBloom.Enabled = shaderOn
 	shaderCC.Enabled = shaderOn
 	shaderSunRays.Enabled = shaderOn
 	setToggle(shaderButton, shaderOn, "custom shader")
 end
 
+-- Target Finding Logic Optimization (Silent Aim 멈춤 수정)
 local function getTargetPart(character, targetPartType)
 	if not character then return nil end
 	if targetPartType == "head" then
@@ -701,22 +706,31 @@ local function getTargetPart(character, targetPartType)
 	end
 end
 
-local function getClosestTarget(maxDistance, targetPartType)
+local cachedTarget = nil
+local lastTargetCheck = 0
+
+local function getClosestTarget(maxFOV, targetPartType)
+	local now = os.clock()
+	if now - lastTargetCheck < 0.03 and cachedTarget and cachedTarget.Parent then
+		return cachedTarget
+	end
+	lastTargetCheck = now
+
 	local camera = workspace.CurrentCamera
 	if not camera then return nil end
 
 	local closestPart = nil
-	local shortestDistance = maxDistance or math.huge
+	local shortestDistance = maxFOV or math.huge
 	local viewportCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
 
-	for _, target in Players:GetPlayers() do
+	for _, target in ipairs(Players:GetPlayers()) do
 		if target ~= player and target.Character then
 			local part = getTargetPart(target.Character, targetPartType)
 			local humanoid = target.Character:FindFirstChild("Humanoid")
 
 			if part and humanoid and humanoid.Health > 0 then
 				local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
-				if onScreen then
+				if onScreen and screenPos.Z > 0 then
 					local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
 					if mouseDist < shortestDistance then
 						shortestDistance = mouseDist
@@ -726,10 +740,12 @@ local function getClosestTarget(maxDistance, targetPartType)
 			end
 		end
 	end
+
+	cachedTarget = closestPart
 	return closestPart
 end
 
--- Silent Aim Hooking
+-- Silent Aim Hooking (안전 처리 추가)
 pcall(function()
 	if typeof(hookmetamethod) == "function" then
 		local oldNamecall
@@ -750,10 +766,12 @@ pcall(function()
 				elseif method == "FindPartOnRayWithIgnoreList" or method == "FindPartOnRay" then
 					local targetPart = getClosestTarget(silentAimFOV, silentAimTargetPart)
 					if targetPart then
-						local origin = workspace.CurrentCamera.CFrame.Position
-						local ray = Ray.new(origin, (targetPart.Position - origin).Unit * 10000)
-						args[1] = ray
-						return oldNamecall(self, table.unpack(args))
+						local camera = workspace.CurrentCamera
+						if camera then
+							local origin = camera.CFrame.Position
+							args[1] = Ray.new(origin, (targetPart.Position - origin).Unit * 10000)
+							return oldNamecall(self, table.unpack(args))
+						end
 					end
 				end
 			end
@@ -789,7 +807,7 @@ local function getRageTargetHead()
 	local closestHead = nil
 	local shortestDistance = rageStuds
 
-	for _, target in Players:GetPlayers() do
+	for _, target in ipairs(Players:GetPlayers()) do
 		if target ~= player and target.Character then
 			local head = target.Character:FindFirstChild("Head")
 			local humanoid = target.Character:FindFirstChild("Humanoid")
@@ -829,9 +847,11 @@ aimbotConnection = RunService.RenderStepped:Connect(function()
 		local targetPart = getClosestTarget(math.huge, aimbotTargetPart)
 		if targetPart then
 			local camera = workspace.CurrentCamera
-			local targetCFrame = CFrame.lookAt(camera.CFrame.Position, targetPart.Position)
-			local alpha = math.clamp(aimbotSmoothness / 150, 0.01, 1)
-			camera.CFrame = camera.CFrame:Lerp(targetCFrame, alpha)
+			if camera then
+				local targetCFrame = CFrame.lookAt(camera.CFrame.Position, targetPart.Position)
+				local alpha = math.clamp(aimbotSmoothness / 150, 0.01, 1)
+				camera.CFrame = camera.CFrame:Lerp(targetCFrame, alpha)
+			end
 		end
 	end
 end)
@@ -848,63 +868,87 @@ noclipConnection = RunService.Stepped:Connect(function()
 end)
 
 -- ========================================================
---  UI 이벤트 연결
+--  UI 토글 상태 조절 핸들러
 -- ========================================================
 
-flyButton.MouseButton1Click:Connect(toggleFly)
-walkButton.MouseButton1Click:Connect(function()
-	walkOn = not walkOn
+local function toggleWalk(forceState)
+	walkOn = forceState ~= nil and forceState or not walkOn
 	setToggle(walkButton, walkOn, "walk speed")
 	applyWalk()
-end)
+end
 
-espButton.MouseButton1Click:Connect(function()
-	espOn = not espOn
+local function toggleESP(forceState)
+	espOn = forceState ~= nil and forceState or not espOn
 	setToggle(espButton, espOn, "player esp")
 	refreshESP()
-end)
+end
 
-namesButton.MouseButton1Click:Connect(function()
-	namesOn = not namesOn
+local function toggleNames(forceState)
+	namesOn = forceState ~= nil and forceState or not namesOn
 	setToggle(namesButton, namesOn, "player names")
 	refreshESP()
-end)
+end
 
-healthBarButton.MouseButton1Click:Connect(function()
-	healthBarOn = not healthBarOn
+local function toggleHealthBar(forceState)
+	healthBarOn = forceState ~= nil and forceState or not healthBarOn
 	setToggle(healthBarButton, healthBarOn, "health bar")
 	refreshHealthBars()
-end)
+end
 
-jumpButton.MouseButton1Click:Connect(function()
-	jumpOn = not jumpOn
+local function toggleJump(forceState)
+	jumpOn = forceState ~= nil and forceState or not jumpOn
 	setToggle(jumpButton, jumpOn, "jump power")
 	applyJump()
-end)
+end
 
-infJumpButton.MouseButton1Click:Connect(function()
-	infiniteJumpOn = not infiniteJumpOn
+local function toggleInfJump(forceState)
+	infiniteJumpOn = forceState ~= nil and forceState or not infiniteJumpOn
 	setToggle(infJumpButton, infiniteJumpOn, "infinite jump")
-end)
+end
 
-fastShotButton.MouseButton1Click:Connect(function()
-	fastShotOn = not fastShotOn
+local function toggleFastShot(forceState)
+	fastShotOn = forceState ~= nil and forceState or not fastShotOn
 	setToggle(fastShotButton, fastShotOn, "fast shot")
-end)
+end
 
-aimbotButton.MouseButton1Click:Connect(function()
-	aimbotOn = not aimbotOn
+local function toggleAimbot(forceState)
+	aimbotOn = forceState ~= nil and forceState or not aimbotOn
 	setToggle(aimbotButton, aimbotOn, "aimbot (hold rmb)")
-end)
+end
+
+local function toggleSilentAim(forceState)
+	silentAimOn = forceState ~= nil and forceState or not silentAimOn
+	setToggle(silentAimButton, silentAimOn, "silent aim")
+end
+
+local function toggleRage(forceState)
+	rageBotOn = forceState ~= nil and forceState or not rageBotOn
+	setToggle(rageButton, rageBotOn, "rage bot")
+end
+
+local function toggleNoclip(forceState)
+	noclipOn = forceState ~= nil and forceState or not noclipOn
+	setToggle(noclipButton, noclipOn, "noclip")
+end
+
+-- 클릭 이벤트 바인딩
+flyButton.MouseButton1Click:Connect(function() toggleFly() end)
+walkButton.MouseButton1Click:Connect(function() toggleWalk() end)
+espButton.MouseButton1Click:Connect(function() toggleESP() end)
+namesButton.MouseButton1Click:Connect(function() toggleNames() end)
+healthBarButton.MouseButton1Click:Connect(function() toggleHealthBar() end)
+jumpButton.MouseButton1Click:Connect(function() toggleJump() end)
+infJumpButton.MouseButton1Click:Connect(function() toggleInfJump() end)
+fastShotButton.MouseButton1Click:Connect(function() toggleFastShot() end)
+aimbotButton.MouseButton1Click:Connect(function() toggleAimbot() end)
+silentAimButton.MouseButton1Click:Connect(function() toggleSilentAim() end)
+rageButton.MouseButton1Click:Connect(function() toggleRage() end)
+shaderButton.MouseButton1Click:Connect(function() toggleShader() end)
+noclipButton.MouseButton1Click:Connect(function() toggleNoclip() end)
 
 aimbotPartButton.MouseButton1Click:Connect(function()
 	aimbotTargetPart = aimbotTargetPart == "head" and "torso" or "head"
 	aimbotPartButton.Text = "aimbot target: " .. aimbotTargetPart:upper()
-end)
-
-silentAimButton.MouseButton1Click:Connect(function()
-	silentAimOn = not silentAimOn
-	setToggle(silentAimButton, silentAimOn, "silent aim")
 end)
 
 silentAimPartButton.MouseButton1Click:Connect(function()
@@ -912,42 +956,14 @@ silentAimPartButton.MouseButton1Click:Connect(function()
 	silentAimPartButton.Text = "silent target: " .. silentAimTargetPart:upper()
 end)
 
-rageButton.MouseButton1Click:Connect(function()
-	rageBotOn = not rageBotOn
-	setToggle(rageButton, rageBotOn, "rage bot")
-end)
-
-shaderButton.MouseButton1Click:Connect(toggleShader)
-
-noclipButton.MouseButton1Click:Connect(function()
-	noclipOn = not noclipOn
-	setToggle(noclipButton, noclipOn, "noclip")
-end)
-
--- 텍스트 박스 실시간 적용 이벤트
-flyBox.FocusLost:Connect(function()
-	flySpeed = tonumber(flyBox.Text) or flySpeed
-end)
-walkBox.FocusLost:Connect(function()
-	walkSpeed = tonumber(walkBox.Text) or walkSpeed
-	applyWalk()
-end)
-jumpBox.FocusLost:Connect(function()
-	jumpPower = tonumber(jumpBox.Text) or jumpPower
-	applyJump()
-end)
-fastShotBox.FocusLost:Connect(function()
-	fastShotRate = tonumber(fastShotBox.Text) or fastShotRate
-end)
-aimbotBox.FocusLost:Connect(function()
-	aimbotSmoothness = tonumber(aimbotBox.Text) or aimbotSmoothness
-end)
-silentAimBox.FocusLost:Connect(function()
-	silentAimFOV = tonumber(silentAimBox.Text) or silentAimFOV
-end)
-rageStudsBox.FocusLost:Connect(function()
-	rageStuds = tonumber(rageStudsBox.Text) or rageStuds
-end)
+-- 텍스트 박스 실시간 수정 이벤트
+flyBox.FocusLost:Connect(function() flySpeed = tonumber(flyBox.Text) or flySpeed end)
+walkBox.FocusLost:Connect(function() walkSpeed = tonumber(walkBox.Text) or walkSpeed; applyWalk() end)
+jumpBox.FocusLost:Connect(function() jumpPower = tonumber(jumpBox.Text) or jumpPower; applyJump() end)
+fastShotBox.FocusLost:Connect(function() fastShotRate = tonumber(fastShotBox.Text) or fastShotRate end)
+aimbotBox.FocusLost:Connect(function() aimbotSmoothness = tonumber(aimbotBox.Text) or aimbotSmoothness end)
+silentAimBox.FocusLost:Connect(function() silentAimFOV = tonumber(silentAimBox.Text) or silentAimFOV end)
+rageStudsBox.FocusLost:Connect(function() rageStuds = tonumber(rageStudsBox.Text) or rageStuds end)
 gammaBox.FocusLost:Connect(function()
 	gammaValue = tonumber(gammaBox.Text) or gammaValue
 	gamma.Brightness = (gammaValue - 1) / 99
@@ -966,7 +982,7 @@ greenBox.FocusLost:Connect(updateColorFromBoxes)
 blueBox.FocusLost:Connect(updateColorFromBoxes)
 
 -- ========================================================
--- Config Export / Import (클립보드 방식)
+-- Config Export / Import (버튼 상태 자동 연동 포함)
 -- ========================================================
 local function getSavedData()
 	return {
@@ -980,6 +996,22 @@ local function getSavedData()
 		aimbotSmoothness = tonumber(aimbotBox.Text) or aimbotSmoothness,
 		aimbotTargetPart = aimbotTargetPart,
 		silentAimTargetPart = silentAimTargetPart,
+		-- 버튼 ON/OFF 상태까지 함께 저장
+		toggles = {
+			flying = flying,
+			walkOn = walkOn,
+			espOn = espOn,
+			namesOn = namesOn,
+			healthBarOn = healthBarOn,
+			jumpOn = jumpOn,
+			infiniteJumpOn = infiniteJumpOn,
+			fastShotOn = fastShotOn,
+			aimbotOn = aimbotOn,
+			silentAimOn = silentAimOn,
+			rageBotOn = rageBotOn,
+			shaderOn = shaderOn,
+			noclipOn = noclipOn
+		},
 		espColor = {
 			r = tonumber(redBox.Text) or (espColor.R * 255),
 			g = tonumber(greenBox.Text) or (espColor.G * 255),
@@ -1021,6 +1053,7 @@ loadBtn.MouseButton1Click:Connect(function()
 	end)
 
 	if success and type(data) == "table" then
+		-- 수치 복원
 		if data.flySpeed then flySpeed = data.flySpeed; flyBox.Text = tostring(flySpeed) end
 		if data.walkSpeed then walkSpeed = data.walkSpeed; walkBox.Text = tostring(walkSpeed) end
 		if data.jumpPower then jumpPower = data.jumpPower; jumpBox.Text = tostring(jumpPower) end
@@ -1048,7 +1081,24 @@ loadBtn.MouseButton1Click:Connect(function()
 			blueBox.Text = tostring(data.espColor.b)
 		end
 
-		configStatus.Text = "Status: Config successfully applied!"
+		-- 토글 버튼 상태 실제 적용
+		if data.toggles then
+			if data.toggles.flying ~= nil then toggleFly(data.toggles.flying) end
+			if data.toggles.walkOn ~= nil then toggleWalk(data.toggles.walkOn) end
+			if data.toggles.espOn ~= nil then toggleESP(data.toggles.espOn) end
+			if data.toggles.namesOn ~= nil then toggleNames(data.toggles.namesOn) end
+			if data.toggles.healthBarOn ~= nil then toggleHealthBar(data.toggles.healthBarOn) end
+			if data.toggles.jumpOn ~= nil then toggleJump(data.toggles.jumpOn) end
+			if data.toggles.infiniteJumpOn ~= nil then toggleInfJump(data.toggles.infiniteJumpOn) end
+			if data.toggles.fastShotOn ~= nil then toggleFastShot(data.toggles.fastShotOn) end
+			if data.toggles.aimbotOn ~= nil then toggleAimbot(data.toggles.aimbotOn) end
+			if data.toggles.silentAimOn ~= nil then toggleSilentAim(data.toggles.silentAimOn) end
+			if data.toggles.rageBotOn ~= nil then toggleRage(data.toggles.rageBotOn) end
+			if data.toggles.shaderOn ~= nil then toggleShader(data.toggles.shaderOn) end
+			if data.toggles.noclipOn ~= nil then toggleNoclip(data.toggles.noclipOn) end
+		end
+
+		configStatus.Text = "Status: Config & Toggles Applied!"
 		configStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
 	else
 		configStatus.Text = "Status: Invalid config format!"
