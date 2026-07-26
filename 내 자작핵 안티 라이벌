@@ -198,20 +198,21 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
+-- 타이틀 (상단 정중앙 배치 및 버전명 변경)
 local title = Instance.new("TextLabel")
-title.AnchorPoint = Vector2.new(0, 0.5)
-title.Position = UDim2.new(0, 10, 0.5, 0)
-title.Size = UDim2.new(0, 260, 1, 0)
+title.AnchorPoint = Vector2.new(0.5, 0.5)
+title.Position = UDim2.new(0.5, 0, 0.5, 0)
+title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival v0.7.0 - Final Build"
+title.Text = "Anti-Rival-V0.7.1-FREE Build"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
-title.TextXAlignment = Enum.TextXAlignment.Left
+title.TextXAlignment = Enum.TextXAlignment.Center
 title.ZIndex = 8
 title.Parent = header
 
--- 디스코드 링크 버튼 (요청하신 링크 명시 적용)
+-- 디스코드 링크 버튼 (우측 고정)
 local discordBtn = Instance.new("TextButton")
 discordBtn.AnchorPoint = Vector2.new(1, 0.5)
 discordBtn.Position = UDim2.new(1, -10, 0.5, 0)
