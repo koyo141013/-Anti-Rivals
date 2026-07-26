@@ -69,7 +69,7 @@ shaderSunRays.Spread = 1
 shaderSunRays.Enabled = false
 shaderSunRays.Parent = Lighting
 
--- UI Setup
+-- UI Clear Previous
 local old = player:WaitForChild("PlayerGui"):FindFirstChild("AntiRival")
 if old then old:Destroy() end
 
@@ -78,16 +78,27 @@ gui.Name = "AntiRival"
 gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
--- 창 메인 프레임 (1번 사진 테마 반영)
+----------------------------------------------------
+-- 창 메인 프레임 (1번 사진 디자인 정확 구현)
+----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
 window.Position = UDim2.fromScale(0.5, 0.5)
-window.Size = UDim2.fromOffset(520, 580)
-window.BackgroundColor3 = Color3.fromRGB(14, 14, 16)
-window.BorderColor3 = Color3.fromRGB(35, 35, 40)
+window.Size = UDim2.fromOffset(500, 560)
+window.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+window.BorderColor3 = Color3.fromRGB(38, 38, 42)
 window.BorderSizePixel = 1
-window.Visible = false
+window.Visible = true
 window.Parent = gui
+
+-- 1번 사진 스타일 내부 테두리 이중선 효과
+local innerBorder = Instance.new("Frame")
+innerBorder.Size = UDim2.new(1, -2, 1, -2)
+innerBorder.Position = UDim2.fromOffset(1, 1)
+innerBorder.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+innerBorder.BorderColor3 = Color3.fromRGB(22, 22, 26)
+innerBorder.BorderSizePixel = 1
+innerBorder.Parent = window
 
 local modalButton = Instance.new("TextButton")
 modalButton.Size = UDim2.fromScale(1, 1)
@@ -103,12 +114,15 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- Header (1번 사진 레이아웃)
+----------------------------------------------------
+-- Header (1번 사진 레이아웃 참고)
+----------------------------------------------------
 local header = Instance.new("Frame")
-header.Size = UDim2.new(1, 0, 0, 28)
-header.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
+header.Size = UDim2.new(1, 0, 0, 26)
+header.Position = UDim2.fromOffset(0, 0)
+header.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 header.BorderSizePixel = 0
-header.Parent = window
+header.Parent = innerBorder
 
 -- UI 드래그 기능
 local dragging = false
@@ -148,47 +162,54 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 좌측 타이틀 (1번 사진 스타일)
+-- 좌측 타이틀 (1번 사진 형태)
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, -70, 1, 0)
-title.Position = UDim2.fromOffset(10, 0)
+title.Size = UDim2.new(1, -80, 1, 0)
+title.Position = UDim2.fromOffset(12, 0)
 title.BackgroundTransparency = 1
 title.Text = "Anti-Rival - discord.gg/dcSGrkPzv"
-title.TextColor3 = Color3.fromRGB(200, 200, 205)
+title.TextColor3 = Color3.fromRGB(180, 180, 185)
 title.TextSize = 12
 title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Left
 title.Parent = header
 
--- 우측 파란색 게임명 표시 (1번 사진 우측 참고)
+-- 우측 파란색 Rivals 텍스트 (1번 사진 오른쪽 'Rivals' 위치)
 local rightTitle = Instance.new("TextLabel")
-rightTitle.Size = UDim2.fromOffset(60, 28)
-rightTitle.Position = UDim2.new(1, -65, 0, 0)
+rightTitle.Size = UDim2.fromOffset(70, 26)
+rightTitle.Position = UDim2.new(1, -78, 0, 0)
 rightTitle.BackgroundTransparency = 1
 rightTitle.Text = "Rivals"
-rightTitle.TextColor3 = Color3.fromRGB(60, 120, 210)
+rightTitle.TextColor3 = Color3.fromRGB(60, 130, 220)
 rightTitle.TextSize = 12
 rightTitle.Font = Enum.Font.Code
 rightTitle.TextXAlignment = Enum.TextXAlignment.Right
 rightTitle.Parent = header
 
--- 탭 버튼 패널
+----------------------------------------------------
+-- 탭 메뉴 및 콘텐츠 레이아웃 (1번 사진 가로폭 반영)
+----------------------------------------------------
 local tabs = Instance.new("Frame")
-tabs.Size = UDim2.new(1, -12, 0, 30)
-tabs.Position = UDim2.fromOffset(6, 32)
-tabs.BackgroundColor3 = Color3.fromRGB(18, 18, 20)
-tabs.BorderColor3 = Color3.fromRGB(35, 35, 40)
-tabs.BorderSizePixel = 1
-tabs.Parent = window
+tabs.Size = UDim2.new(1, -16, 0, 24)
+tabs.Position = UDim2.fromOffset(8, 28)
+tabs.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+tabs.BorderSizePixel = 0
+tabs.Parent = innerBorder
+
+local tabsLayout = Instance.new("UIListLayout")
+tabsLayout.FillDirection = Enum.FillDirection.Horizontal
+tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+tabsLayout.Padding = UDim.new(0, 3)
+tabsLayout.Parent = tabs
 
 -- 메인 컨텐츠 영역
 local content = Instance.new("Frame")
-content.Size = UDim2.new(1, -12, 1, -70)
-content.Position = UDim2.fromOffset(6, 64)
-content.BackgroundColor3 = Color3.fromRGB(16, 16, 18)
-content.BorderColor3 = Color3.fromRGB(35, 35, 40)
+content.Size = UDim2.new(1, -16, 1, -62)
+content.Position = UDim2.fromOffset(8, 54)
+content.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
+content.BorderColor3 = Color3.fromRGB(30, 30, 34)
 content.BorderSizePixel = 1
-content.Parent = window
+content.Parent = innerBorder
 
 local pages, tabButtons = {}, {}
 
@@ -217,21 +238,27 @@ local function showPage(name)
 	end
 
 	for tabName, button in pairs(tabButtons) do
-		button.BackgroundColor3 = tabName == name
-			and Color3.fromRGB(35, 65, 120)
-			or Color3.fromRGB(20, 20, 24)
+		if tabName == name then
+			button.BackgroundColor3 = Color3.fromRGB(24, 24, 28)
+			button.TextColor3 = Color3.fromRGB(255, 255, 255)
+			button.BorderColor3 = Color3.fromRGB(50, 50, 58)
+		else
+			button.BackgroundColor3 = Color3.fromRGB(16, 16, 18)
+			button.TextColor3 = Color3.fromRGB(140, 140, 145)
+			button.BorderColor3 = Color3.fromRGB(28, 28, 32)
+		end
 	end
 end
 
-local function tab(text, name, x)
+local function tab(text, name, order)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.fromOffset(68, 22)
-	button.Position = UDim2.fromOffset(x, 4)
-	button.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
-	button.BorderColor3 = Color3.fromRGB(45, 45, 50)
+	button.Size = UDim2.fromOffset(66, 22)
+	button.LayoutOrder = order
+	button.BackgroundColor3 = Color3.fromRGB(16, 16, 18)
+	button.BorderColor3 = Color3.fromRGB(28, 28, 32)
 	button.BorderSizePixel = 1
 	button.Text = text
-	button.TextColor3 = Color3.fromRGB(210, 210, 215)
+	button.TextColor3 = Color3.fromRGB(140, 140, 145)
 	button.TextSize = 11
 	button.Font = Enum.Font.Code
 	button.Parent = tabs
@@ -239,22 +266,25 @@ local function tab(text, name, x)
 	tabButtons[name] = button
 end
 
-tab("movement", "movement", 4)
-tab("visuals", "visuals", 76)
-tab("player", "player", 148)
-tab("rage", "rage", 220)
-tab("world", "world", 292)
-tab("collision", "collision", 364)
-tab("setting", "setting", 436)
+tab("main", "movement", 1)
+tab("visuals", "visuals", 2)
+tab("player", "player", 3)
+tab("rage", "rage", 4)
+tab("world", "world", 5)
+tab("misc", "collision", 6)
+tab("settings", "setting", 7)
 
+----------------------------------------------------
+-- UI 컨트롤 빌더
+----------------------------------------------------
 local function heading(parent, text)
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, -20, 0, 28)
+	label.Size = UDim2.new(1, -20, 0, 24)
 	label.Position = UDim2.fromOffset(10, 6)
 	label.BackgroundTransparency = 1
 	label.Text = text
-	label.TextColor3 = Color3.fromRGB(220, 220, 225)
-	label.TextSize = 14
+	label.TextColor3 = Color3.fromRGB(200, 200, 205)
+	label.TextSize = 13
 	label.Font = Enum.Font.Code
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = parent
@@ -262,26 +292,26 @@ end
 
 local function textbox(parent, text, value, y)
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromOffset(220, 26)
-	label.Position = UDim2.fromOffset(16, y)
+	label.Size = UDim2.fromOffset(220, 24)
+	label.Position = UDim2.fromOffset(14, y)
 	label.BackgroundTransparency = 1
 	label.Text = text
-	label.TextColor3 = Color3.fromRGB(190, 190, 195)
-	label.TextSize = 12
+	label.TextColor3 = Color3.fromRGB(170, 170, 175)
+	label.TextSize = 11
 	label.Font = Enum.Font.Code
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = parent
 
 	local box = Instance.new("TextBox")
-	box.Size = UDim2.fromOffset(90, 24)
+	box.Size = UDim2.fromOffset(90, 22)
 	box.Position = UDim2.fromOffset(240, y)
-	box.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-	box.BorderColor3 = Color3.fromRGB(50, 50, 60)
+	box.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+	box.BorderColor3 = Color3.fromRGB(40, 40, 46)
 	box.BorderSizePixel = 1
 	box.Text = tostring(value)
 	box.ClearTextOnFocus = false
 	box.TextColor3 = Color3.new(1, 1, 1)
-	box.TextSize = 12
+	box.TextSize = 11
 	box.Font = Enum.Font.Code
 	box.Parent = parent
 
@@ -290,14 +320,14 @@ end
 
 local function toggle(parent, text, y)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.fromOffset(314, 26)
-	button.Position = UDim2.fromOffset(16, y)
-	button.BackgroundColor3 = Color3.fromRGB(90, 40, 40)
-	button.BorderColor3 = Color3.fromRGB(140, 55, 55)
+	button.Size = UDim2.fromOffset(316, 24)
+	button.Position = UDim2.fromOffset(14, y)
+	button.BackgroundColor3 = Color3.fromRGB(70, 30, 30)
+	button.BorderColor3 = Color3.fromRGB(100, 45, 45)
 	button.BorderSizePixel = 1
 	button.Text = text .. ": OFF"
-	button.TextColor3 = Color3.new(1, 1, 1)
-	button.TextSize = 12
+	button.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+	button.TextSize = 11
 	button.Font = Enum.Font.Code
 	button.Parent = parent
 	return button
@@ -306,48 +336,48 @@ end
 local function setToggle(button, enabled, text)
 	button.Text = text .. (enabled and ": ON" or ": OFF")
 	button.BackgroundColor3 = enabled
-		and Color3.fromRGB(40, 95, 60)
-		or Color3.fromRGB(90, 40, 40)
+		and Color3.fromRGB(35, 75, 50)
+		or Color3.fromRGB(70, 30, 30)
 	button.BorderColor3 = enabled
-		and Color3.fromRGB(60, 140, 90)
-		or Color3.fromRGB(140, 55, 55)
+		and Color3.fromRGB(50, 110, 70)
+		or Color3.fromRGB(100, 45, 45)
 end
 
--- Movement
-heading(movement, "movement")
-local flyBox = textbox(movement, "fly speed  (1–500)", flySpeed, 48)
-local flyButton = toggle(movement, "fly", 78)
-local walkBox = textbox(movement, "walk speed  (1–500)", walkSpeed, 126)
-local walkButton = toggle(movement, "walk speed", 156)
+-- Movement (main)
+heading(movement, "movement / main")
+local flyBox = textbox(movement, "fly speed  (1–500)", flySpeed, 40)
+local flyButton = toggle(movement, "fly", 68)
+local walkBox = textbox(movement, "walk speed  (1–500)", walkSpeed, 110)
+local walkButton = toggle(movement, "walk speed", 138)
 
 -- Visuals
 heading(visuals, "visuals")
-local espButton = toggle(visuals, "player esp", 48)
-local namesButton = toggle(visuals, "player names", 80)
-local healthBarButton = toggle(visuals, "health bar", 112)
+local espButton = toggle(visuals, "player esp", 40)
+local namesButton = toggle(visuals, "player names", 70)
+local healthBarButton = toggle(visuals, "health bar", 100)
 
 local colorText = Instance.new("TextLabel")
-colorText.Size = UDim2.fromOffset(130, 25)
-colorText.Position = UDim2.fromOffset(16, 148)
+colorText.Size = UDim2.fromOffset(130, 22)
+colorText.Position = UDim2.fromOffset(14, 134)
 colorText.BackgroundTransparency = 1
 colorText.Text = "esp color (RGB)"
-colorText.TextColor3 = Color3.fromRGB(190, 190, 195)
-colorText.TextSize = 12
+colorText.TextColor3 = Color3.fromRGB(170, 170, 175)
+colorText.TextSize = 11
 colorText.Font = Enum.Font.Code
 colorText.TextXAlignment = Enum.TextXAlignment.Left
 colorText.Parent = visuals
 
 local function rgbBox(value, x)
 	local box = Instance.new("TextBox")
-	box.Size = UDim2.fromOffset(56, 24)
-	box.Position = UDim2.fromOffset(x, 148)
-	box.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-	box.BorderColor3 = Color3.fromRGB(50, 50, 60)
+	box.Size = UDim2.fromOffset(56, 22)
+	box.Position = UDim2.fromOffset(x, 134)
+	box.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+	box.BorderColor3 = Color3.fromRGB(40, 40, 46)
 	box.BorderSizePixel = 1
 	box.Text = tostring(value)
 	box.ClearTextOnFocus = false
 	box.TextColor3 = Color3.new(1, 1, 1)
-	box.TextSize = 12
+	box.TextSize = 11
 	box.Font = Enum.Font.Code
 	box.Parent = visuals
 	return box
@@ -359,65 +389,65 @@ local blueBox = rgbBox(70, 264)
 
 -- Player
 heading(playerPage, "player options")
-local jumpBox = textbox(playerPage, "jump power  (1–100)", jumpPower, 40)
-local jumpButton = toggle(playerPage, "jump power", 68)
-local infJumpButton = toggle(playerPage, "infinite jump", 98)
+local jumpBox = textbox(playerPage, "jump power  (1–100)", jumpPower, 36)
+local jumpButton = toggle(playerPage, "jump power", 62)
+local infJumpButton = toggle(playerPage, "infinite jump", 90)
 
-local fastShotBox = textbox(playerPage, "fast shot rate (1–700)", fastShotRate, 130)
-local fastShotButton = toggle(playerPage, "fast shot", 158)
+local fastShotBox = textbox(playerPage, "fast shot rate (1–700)", fastShotRate, 122)
+local fastShotButton = toggle(playerPage, "fast shot", 148)
 
-local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 190)
-local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 218)
+local aimbotBox = textbox(playerPage, "aimbot strength (1–150)", aimbotSmoothness, 180)
+local aimbotButton = toggle(playerPage, "aimbot (hold rmb)", 206)
 
 local aimbotPartButton = Instance.new("TextButton")
-aimbotPartButton.Size = UDim2.fromOffset(314, 24)
-aimbotPartButton.Position = UDim2.fromOffset(16, 248)
-aimbotPartButton.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-aimbotPartButton.BorderColor3 = Color3.fromRGB(50, 50, 60)
+aimbotPartButton.Size = UDim2.fromOffset(316, 22)
+aimbotPartButton.Position = UDim2.fromOffset(14, 234)
+aimbotPartButton.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+aimbotPartButton.BorderColor3 = Color3.fromRGB(40, 40, 46)
 aimbotPartButton.BorderSizePixel = 1
 aimbotPartButton.Text = "aimbot target: HEAD"
-aimbotPartButton.TextColor3 = Color3.fromRGB(220, 220, 225)
-aimbotPartButton.TextSize = 12
+aimbotPartButton.TextColor3 = Color3.fromRGB(200, 200, 205)
+aimbotPartButton.TextSize = 11
 aimbotPartButton.Font = Enum.Font.Code
 aimbotPartButton.Parent = playerPage
 
-local silentAimButton = toggle(playerPage, "silent aim", 278)
-local silentAimBox = textbox(playerPage, "silent aim fov (1–5000)", silentAimFOV, 308)
+local silentAimButton = toggle(playerPage, "silent aim", 262)
+local silentAimBox = textbox(playerPage, "silent aim fov (1–5000)", silentAimFOV, 290)
 
 local silentAimPartButton = Instance.new("TextButton")
-silentAimPartButton.Size = UDim2.fromOffset(314, 24)
-silentAimPartButton.Position = UDim2.fromOffset(16, 338)
-silentAimPartButton.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-silentAimPartButton.BorderColor3 = Color3.fromRGB(50, 50, 60)
+silentAimPartButton.Size = UDim2.fromOffset(316, 22)
+silentAimPartButton.Position = UDim2.fromOffset(14, 318)
+silentAimPartButton.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+silentAimPartButton.BorderColor3 = Color3.fromRGB(40, 40, 46)
 silentAimPartButton.BorderSizePixel = 1
 silentAimPartButton.Text = "silent target: HEAD"
-silentAimPartButton.TextColor3 = Color3.fromRGB(220, 220, 225)
-silentAimPartButton.TextSize = 12
+silentAimPartButton.TextColor3 = Color3.fromRGB(200, 200, 205)
+silentAimPartButton.TextSize = 11
 silentAimPartButton.Font = Enum.Font.Code
 silentAimPartButton.Parent = playerPage
 
 -- Rage
 heading(ragePage, "rage bot")
-local rageButton = toggle(ragePage, "rage bot", 48)
-local rageStudsBox = textbox(ragePage, "detection range (1–5000 studs)", rageStuds, 80)
+local rageButton = toggle(ragePage, "rage bot", 40)
+local rageStudsBox = textbox(ragePage, "detection range (1–5000 studs)", rageStuds, 70)
 
 -- World
 heading(world, "world")
-local gammaBox = textbox(world, "gamma  (1–100)", gammaValue, 48)
-local shaderButton = toggle(world, "custom shader", 84)
+local gammaBox = textbox(world, "gamma  (1–100)", gammaValue, 40)
+local shaderButton = toggle(world, "custom shader", 72)
 
--- Collision
-heading(collision, "collision")
-local noclipButton = toggle(collision, "noclip", 48)
+-- Collision (misc)
+heading(collision, "misc / collision")
+local noclipButton = toggle(collision, "noclip", 40)
 
 -- Setting
 heading(settingPage, "config manager")
 
 local configCodeBox = Instance.new("TextBox")
-configCodeBox.Size = UDim2.fromOffset(340, 130)
-configCodeBox.Position = UDim2.fromOffset(16, 40)
-configCodeBox.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
-configCodeBox.BorderColor3 = Color3.fromRGB(35, 35, 40)
+configCodeBox.Size = UDim2.fromOffset(340, 120)
+configCodeBox.Position = UDim2.fromOffset(14, 36)
+configCodeBox.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+configCodeBox.BorderColor3 = Color3.fromRGB(30, 30, 36)
 configCodeBox.BorderSizePixel = 1
 configCodeBox.PlaceholderText = "Paste config code here..."
 configCodeBox.Text = ""
@@ -432,34 +462,36 @@ configCodeBox.Parent = settingPage
 
 local function createConfigBtn(text, y)
 	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.fromOffset(340, 28)
-	btn.Position = UDim2.fromOffset(16, y)
-	btn.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
-	btn.BorderColor3 = Color3.fromRGB(45, 45, 50)
+	btn.Size = UDim2.fromOffset(340, 24)
+	btn.Position = UDim2.fromOffset(14, y)
+	btn.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+	btn.BorderColor3 = Color3.fromRGB(40, 40, 46)
 	btn.BorderSizePixel = 1
 	btn.Text = text
-	btn.TextColor3 = Color3.fromRGB(210, 210, 215)
-	btn.TextSize = 12
+	btn.TextColor3 = Color3.fromRGB(200, 200, 205)
+	btn.TextSize = 11
 	btn.Font = Enum.Font.Code
 	btn.Parent = settingPage
 	return btn
 end
 
-local exportBtn = createConfigBtn("Copy Current Config (Export)", 180)
-local loadBtn = createConfigBtn("Load Config From Code (Import)", 214)
+local exportBtn = createConfigBtn("Copy Current Config (Export)", 164)
+local loadBtn = createConfigBtn("Load Config From Code (Import)", 194)
 
 local configStatus = Instance.new("TextLabel")
 configStatus.Size = UDim2.fromOffset(340, 20)
-configStatus.Position = UDim2.fromOffset(16, 250)
+configStatus.Position = UDim2.fromOffset(14, 226)
 configStatus.BackgroundTransparency = 1
 configStatus.Text = "Status: Ready (Clipboard Mode)"
-configStatus.TextColor3 = Color3.fromRGB(130, 135, 145)
+configStatus.TextColor3 = Color3.fromRGB(120, 125, 135)
 configStatus.TextSize = 11
 configStatus.Font = Enum.Font.Code
 configStatus.TextXAlignment = Enum.TextXAlignment.Left
 configStatus.Parent = settingPage
 
--- Fly 로직
+----------------------------------------------------
+-- 기능 구현 로직
+----------------------------------------------------
 local function stopFly()
 	flying = false
 	if flyConnection then flyConnection:Disconnect() end
@@ -923,7 +955,7 @@ noclipConnection = RunService.Stepped:Connect(function()
 	end
 end)
 
--- UI 토글 상태 조절 핸들러
+-- UI 토글 상태 핸들러
 local function toggleWalk(forceState)
 	walkOn = forceState ~= nil and forceState or not walkOn
 	setToggle(walkButton, walkOn, "walk speed")
@@ -984,7 +1016,7 @@ local function toggleNoclip(forceState)
 	setToggle(noclipButton, noclipOn, "noclip")
 end
 
--- 클릭 이벤트 바인딩
+-- 이벤트 바인딩
 flyButton.MouseButton1Click:Connect(function() toggleFly() end)
 walkButton.MouseButton1Click:Connect(function() toggleWalk() end)
 espButton.MouseButton1Click:Connect(function() toggleESP() end)
@@ -1009,7 +1041,6 @@ silentAimPartButton.MouseButton1Click:Connect(function()
 	silentAimPartButton.Text = "silent target: " .. silentAimTargetPart:upper()
 end)
 
--- 텍스트 박스 이벤트
 flyBox.FocusLost:Connect(function() flySpeed = tonumber(flyBox.Text) or flySpeed end)
 walkBox.FocusLost:Connect(function() walkSpeed = tonumber(walkBox.Text) or walkSpeed; applyWalk() end)
 jumpBox.FocusLost:Connect(function() jumpPower = tonumber(jumpBox.Text) or jumpPower; applyJump() end)
@@ -1034,127 +1065,7 @@ redBox.FocusLost:Connect(updateColorFromBoxes)
 greenBox.FocusLost:Connect(updateColorFromBoxes)
 blueBox.FocusLost:Connect(updateColorFromBoxes)
 
--- Config Export / Import
-local function getSavedData()
-	return {
-		flySpeed = tonumber(flyBox.Text) or flySpeed,
-		walkSpeed = tonumber(walkBox.Text) or walkSpeed,
-		jumpPower = tonumber(jumpBox.Text) or jumpPower,
-		gammaValue = tonumber(gammaBox.Text) or gammaValue,
-		fastShotRate = tonumber(fastShotBox.Text) or fastShotRate,
-		rageStuds = tonumber(rageStudsBox.Text) or rageStuds,
-		silentAimFOV = tonumber(silentAimBox.Text) or silentAimFOV,
-		aimbotSmoothness = tonumber(aimbotBox.Text) or aimbotSmoothness,
-		aimbotTargetPart = aimbotTargetPart,
-		silentAimTargetPart = silentAimTargetPart,
-		toggles = {
-			flying = flying,
-			walkOn = walkOn,
-			espOn = espOn,
-			namesOn = namesOn,
-			healthBarOn = healthBarOn,
-			jumpOn = jumpOn,
-			infiniteJumpOn = infiniteJumpOn,
-			fastShotOn = fastShotOn,
-			aimbotOn = aimbotOn,
-			silentAimOn = silentAimOn,
-			rageBotOn = rageBotOn,
-			shaderOn = shaderOn,
-			noclipOn = noclipOn
-		},
-		espColor = {
-			r = tonumber(redBox.Text) or (espColor.R * 255),
-			g = tonumber(greenBox.Text) or (espColor.G * 255),
-			b = tonumber(blueBox.Text) or (espColor.B * 255)
-		}
-	}
-end
-
-exportBtn.MouseButton1Click:Connect(function()
-	local jsonStr = HttpService:JSONEncode(getSavedData())
-	configCodeBox.Text = jsonStr
-
-	if typeof(setclipboard) == "function" then
-		setclipboard(jsonStr)
-		configStatus.Text = "Status: Copied config to clipboard!"
-		configStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
-	else
-		configStatus.Text = "Status: Generated code in box!"
-		configStatus.TextColor3 = Color3.fromRGB(255, 255, 100)
-	end
-end)
-
-loadBtn.MouseButton1Click:Connect(function()
-	local inputStr = configCodeBox.Text
-
-	if inputStr == "" and typeof(getclipboard) == "function" then
-		inputStr = getclipboard()
-		configCodeBox.Text = inputStr
-	end
-
-	if inputStr == "" then
-		configStatus.Text = "Status: Paste code or copy first!"
-		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-		return
-	end
-
-	local success, data = pcall(function()
-		return HttpService:JSONEncode(inputStr)
-	end)
-
-	if success and type(data) == "table" then
-		if data.flySpeed then flySpeed = data.flySpeed; flyBox.Text = tostring(flySpeed) end
-		if data.walkSpeed then walkSpeed = data.walkSpeed; walkBox.Text = tostring(walkSpeed) end
-		if data.jumpPower then jumpPower = data.jumpPower; jumpBox.Text = tostring(jumpPower) end
-		if data.gammaValue then 
-			gammaValue = data.gammaValue
-			gammaBox.Text = tostring(gammaValue)
-			gamma.Brightness = (gammaValue - 1) / 99
-		end
-		if data.fastShotRate then fastShotRate = data.fastShotRate; fastShotBox.Text = tostring(fastShotRate) end
-		if data.rageStuds then rageStuds = data.rageStuds; rageStudsBox.Text = tostring(rageStuds) end
-		if data.silentAimFOV then silentAimFOV = data.silentAimFOV; silentAimBox.Text = tostring(silentAimFOV) end
-		if data.aimbotSmoothness then aimbotSmoothness = data.aimbotSmoothness; aimbotBox.Text = tostring(aimbotSmoothness) end
-		if data.aimbotTargetPart then 
-			aimbotTargetPart = data.aimbotTargetPart
-			aimbotPartButton.Text = "aimbot target: " .. aimbotTargetPart:upper()
-		end
-		if data.silentAimTargetPart then 
-			silentAimTargetPart = data.silentAimTargetPart
-			silentAimPartButton.Text = "silent target: " .. silentAimTargetPart:upper()
-		end
-		if data.espColor then
-			espColor = Color3.fromRGB(data.espColor.r, data.espColor.g, data.espColor.b)
-			redBox.Text = tostring(data.espColor.r)
-			greenBox.Text = tostring(data.espColor.g)
-			blueBox.Text = tostring(data.espColor.b)
-		end
-
-		if data.toggles then
-			if data.toggles.flying ~= nil then toggleFly(data.toggles.flying) end
-			if data.toggles.walkOn ~= nil then toggleWalk(data.toggles.walkOn) end
-			if data.toggles.espOn ~= nil then toggleESP(data.toggles.espOn) end
-			if data.toggles.namesOn ~= nil then toggleNames(data.toggles.namesOn) end
-			if data.toggles.healthBarOn ~= nil then toggleHealthBar(data.toggles.healthBarOn) end
-			if data.toggles.jumpOn ~= nil then toggleJump(data.toggles.jumpOn) end
-			if data.toggles.infiniteJumpOn ~= nil then toggleInfJump(data.toggles.infiniteJumpOn) end
-			if data.toggles.fastShotOn ~= nil then toggleFastShot(data.toggles.fastShotOn) end
-			if data.toggles.aimbotOn ~= nil then toggleAimbot(data.toggles.aimbotOn) end
-			if data.toggles.silentAimOn ~= nil then toggleSilentAim(data.toggles.silentAimOn) end
-			if data.toggles.rageBotOn ~= nil then toggleRage(data.toggles.rageBotOn) end
-			if data.toggles.shaderOn ~= nil then toggleShader(data.toggles.shaderOn) end
-			if data.toggles.noclipOn ~= nil then toggleNoclip(data.toggles.noclipOn) end
-		end
-
-		configStatus.Text = "Status: Config & Toggles Applied!"
-		configStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
-	else
-		configStatus.Text = "Status: Invalid config format!"
-		configStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
-	end
-end)
-
--- UI Toggle Keybind (RightShift)
+-- RightShift 키로 UI 켜고 끄기
 UserInputService.InputBegan:Connect(function(input, gpe)
 	if not gpe and input.KeyCode == Enum.KeyCode.RightShift then
 		window.Visible = not window.Visible
