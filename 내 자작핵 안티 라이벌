@@ -1,4 +1,4 @@
--- [클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 강제 종료 및 디스코드 링크 버튼 관련 예외 처리 보완
+-- [클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 강제 종료
 pcall(function()
 	if getgenv().AntiRivalConnectionList then
 		for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
@@ -152,7 +152,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (타이틀 및 우측 상단 디스코드 링크 버튼 복구 배치)
+-- Header (정중앙 파란색 타이틀 + 맨 위 우측 디스코드 버튼 확실한 추가)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -193,11 +193,11 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 정중앙 타이틀 (Anti-rival-V1.0.7-FREE Build)
+-- 맨 위 정중앙 타이틀 (파란색)
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
-title.Position = UDim2.new(0.5, -40, 0.5, 0)
-title.Size = UDim2.fromOffset(300, 20)
+title.Position = UDim2.new(0.5, -45, 0.5, 0)
+title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
 title.Text = "Anti-rival-V1.0.7-FREE Build"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
@@ -206,16 +206,16 @@ title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Center
 title.Parent = header
 
--- 맨 위 오른쪽 디스코드 링크 버튼 (요청하신 https://discord.gg/WBkDd4AGJ 복구)
+-- 맨 위 우측 디스코드 링크 버튼
 local discordBtn = Instance.new("TextButton")
 discordBtn.AnchorPoint = Vector2.new(1, 0.5)
 discordBtn.Position = UDim2.new(1, -8, 0.5, 0)
-discordBtn.Size = UDim2.fromOffset(125, 20)
-discordBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-discordBtn.BorderColor3 = Color3.fromRGB(60, 60, 80)
+discordBtn.Size = UDim2.fromOffset(130, 20)
+discordBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+discordBtn.BorderColor3 = Color3.fromRGB(50, 50, 70)
 discordBtn.BorderSizePixel = 1
 discordBtn.Text = "Discord: Copy Link"
-discordBtn.TextColor3 = Color3.fromRGB(150, 180, 255)
+discordBtn.TextColor3 = Color3.fromRGB(130, 170, 255)
 discordBtn.TextSize = 10
 discordBtn.Font = Enum.Font.Code
 discordBtn.Parent = header
@@ -224,7 +224,7 @@ discordBtn.MouseButton1Click:Connect(function()
 	pcall(function()
 		if setclipboard then
 			setclipboard("https://discord.gg/WBkDd4AGJ")
-			discordBtn.Text = "Copied!"
+			discordBtn.Text = "Copied Link!"
 			task.delay(1.5, function()
 				if discordBtn and discordBtn.Parent then
 					discordBtn.Text = "Discord: Copy Link"
@@ -738,7 +738,7 @@ end)
 
 flyBox.FocusLost:Connect(function()
 	flySpeed = math.clamp(tonumber(flyBox.Text) or 50, 1, 1000)
-	flyBox.Text = tostring(flySpeed)
+	flySpeed.Text = tostring(flySpeed)
 end)
 
 ragebotButton.MouseButton1Click:Connect(function()
