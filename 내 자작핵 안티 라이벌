@@ -200,7 +200,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -30, 0.5, 0)
 title.Size = UDim2.fromOffset(280, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival-V0.7.7-FREE Build" -- 버전 업그레이드됨 (0.7.6 -> 0.7.7)
+title.Text = "Anti-Rival-V0.7.7-FREE Build" -- UI 타이틀 버전 명시 (V0.7.7)[cite: 1]
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -666,4 +666,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-Rival-V0.7.7-FREE Build Loaded Successfully!") -- 버전 업그레이드됨 (0.7.6 -> 0.7.7)[cite: 1]
+print("Anti-Rival-V0.7.7-FREE Build Loaded Successfully!")[cite: 1]
