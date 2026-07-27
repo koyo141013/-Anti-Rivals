@@ -20,7 +20,7 @@ local player = Players.LocalPlayer
 
 -- [모바일 환경 감지 및 UI 스케일 결정]
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local uiScaleFactor = isMobile and 0.75 or 1.0
+local uiScaleFactor = isMobile and 0.65 or 1.0
 
 -- [확실한 화면 멈춤 연출] RenderStepped 파이프라인을 2초 동안 강제로 틀어막기
 do
@@ -71,7 +71,7 @@ local walkSpeed, flySpeed = 16, 50
 local espColorRed, espColorGreen, espColorBlue = 255, 50, 50
 
 local flyConnection = nil
-local bodyGyro, bodyVelocity, bodyPosition = nil, nil, nil
+local bodyGyro, bodyVelocity = nil, nil
 
 local function trackConn(conn)
 	if conn then
@@ -112,7 +112,7 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player.PlayerGui
 
 ----------------------------------------------------
--- 메인 UI 창
+-- 메인 UI 창 (모바일 크기 완벽 최적화 적용)
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -124,12 +124,10 @@ window.BorderSizePixel = 1
 window.Visible = true
 window.Parent = gui
 
--- 모바일 환경인 경우 UI 스케일 적용 (크기 및 글자 축소)
-if isMobile then
-	local uiScale = Instance.new("UIScale")
-	uiScale.Scale = uiScaleFactor
-	uiScale.Parent = window
-end
+-- 모바일 환경인 경우 화면에 꽉 차지 않도록 UIScale을 확실하게 적용하고 크기 축소
+local actualScale = Instance.new("UIScale")
+actualScale.Scale = uiScaleFactor
+actualScale.Parent = window
 
 local function updateMouseState(isVisible)
 	if isVisible then
@@ -204,13 +202,13 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 맨 위 정중앙 타이틀 (파란색, V1.1.0 최종 고정 및 완벽 업그레이드)
+-- 맨 위 정중앙 타이틀 (파란색, V1.1.1 반응형 모바일 축소 빌드)
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.0-ULTIMATE Build"
+title.Text = "Anti-rival-V1.1.1-RESPONSIVE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -537,7 +535,7 @@ setupKeybindListener(teleportKeyBtn, "Teleport")
 setupKeybindListener(voidSpanKeyBtn, "VoidSpan")
 
 ----------------------------------------------------
--- [모바일 및 PC 완벽 호환 비행(Fly) 시스템 개편]
+-- [모바일 및 PC 완벽 호환 비행(Fly) 시스템]
 ----------------------------------------------------
 toggleFly = function(state)
 	flyOn = state
@@ -575,7 +573,6 @@ toggleFly = function(state)
 			if bodyGyro then bodyGyro.CFrame = currentCam.CFrame end
 			local moveDir = Vector3.zero
 			
-			-- PC 키보드 입력 감지
 			if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + currentCam.CFrame.LookVector end
 			if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - currentCam.CFrame.LookVector end
 			if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - currentCam.CFrame.RightVector end
@@ -585,7 +582,6 @@ toggleFly = function(state)
 				moveDir = moveDir - Vector3.new(0, 1, 0)
 			end
 
-			-- 모바일 이동 조이스틱(MoveDirection) 완벽 연동 지원
 			if currentHum.MoveDirection.Magnitude > 0 then
 				moveDir = moveDir + (currentCam.CFrame:VectorToWorldSpace(Vector3.new(currentHum.MoveDirection.X, 0, currentHum.MoveDirection.Z)).Unit)
 			end
@@ -660,7 +656,7 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 end))
 
 ----------------------------------------------------
--- [ESP 및 플레이어 네임 독립 구동형 완벽 수정 시스템]
+-- [ESP 및 플레이어 네임 독립 구동형 시스템]
 ----------------------------------------------------
 local espCache = {}
 
@@ -679,7 +675,6 @@ end
 local function updateEspForPlayer(p)
 	if p == player then return end
 	local char = p.Character
-	-- ESP 또는 네임 중 하나라도 켜져 있어야 작동하도록 조건 수정
 	if (not espOn and not namesOn) or not char or not char:FindFirstChild("HumanoidRootPart") then
 		removeEsp(p)
 		return
@@ -948,6 +943,9 @@ ragebotButton.MouseButton1Click:Connect(function()
 	setToggle(ragebotButton, ragebotOn, "ragebot (auto lock snap)")
 end)
 
+auraButton.MouseButton1|Click = function()
+end
+
 auraButton.MouseButton1Click:Connect(function()
 	auraOn = not auraOn
 	setToggle(auraButton, auraOn, "aura (auto hit nearby)")
@@ -1011,4 +1009,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.0 Loaded Successfully!")
+print("Anti-rival V1.1.1 Loaded Successfully!")
