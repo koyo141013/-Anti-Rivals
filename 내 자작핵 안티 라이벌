@@ -69,7 +69,7 @@ local function getSafeParts()
 	return humanoid, rootPart
 end
 
--- [사전 정의] 토글 UI 상태 업데이트 함수 (에러 방지를 위해 가장 위에 배치)
+-- [사전 정의] 토글 UI 상태 업데이트 함수
 local function setToggle(button, enabled, text)
 	if not button then return end
 	button.Text = text .. (enabled and ": ON" or ": OFF")
@@ -436,7 +436,7 @@ setupKeybindListener(noclipKeyBtn, "Noclip")
 setupKeybindListener(teleportKeyBtn, "Teleport")
 
 ----------------------------------------------------
--- [핵심 기능 함수 구현] (참조 에러 방지를 위해 중간 배치)
+-- [핵심 기능 함수 구현]
 ----------------------------------------------------
 toggleFly = function(state)
 	flyOn = state
@@ -498,10 +498,6 @@ toggleFly = function(state)
 			hum.PlatformStand = false
 		end
 	end
-end
-
-local function clearESP()
-	-- 추후 캐시 정리용
 end
 
 ----------------------------------------------------
@@ -615,21 +611,6 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end)
 end))
 
--- 갓모드(노콜라이드 기반) 루프
-trackConn(RunService.Stepped:Connect(function()
-	if not godModeOn then return end
-	pcall(function()
-		local char = player.Character
-		if char then
-			for _, part in ipairs(char:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.CanCollide = false
-				end
-			end
-		end
-	end)
-end))
-
 -- 위치 조작 루프
 trackConn(RunService.RenderStepped:Connect(function()
 	if orbitOn then
@@ -723,7 +704,7 @@ trackConn(RunService.Stepped:Connect(function()
 end))
 
 ----------------------------------------------------
--- UI 버튼 이벤트 바인딩 (함수 정의 완료 후 안전하게 연결)
+-- UI 버튼 이벤트 바인딩
 ----------------------------------------------------
 walkButton.MouseButton1Click:Connect(function()
 	walkOn = not walkOn
@@ -795,7 +776,7 @@ orbitButton.MouseButton1Click:Connect(function()
 end)
 
 voidSpanButton.MouseButton1Click:Connect(function()
-    voidSpanOn = not voidSpanOn
+	voidSpanOn = not voidSpanOn
 	if voidSpanOn then orbitOn = false setToggle(orbitButton, false, "orbit position mode") end
 	setToggle(voidSpanButton, voidSpanOn, "void span mode")
 end)
