@@ -1,6 +1,6 @@
--- [안전 장치] 익스큐터 환경 검증 및 구버전 데이터 강제 정리[cite: 1]
-local success, err = pcall(function()
-	if getgenv and getgenv().AntiRivalConnectionList then
+-- [클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 강제 종료
+pcall(function()
+	if getgenv().AntiRivalConnectionList then
 		for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
 			if typeof(conn) == "RBXScriptConnection" then
 				conn:Disconnect()
@@ -9,48 +9,65 @@ local success, err = pcall(function()
 	end
 end)
 
-if getgenv then
-	getgenv().AntiRivalConnectionList = {}
-end
+getgenv().AntiRivalConnectionList = {}
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
--- 기존 구버전 UI 안전하게 제거[cite: 1]
-pcall(function()
-	local playerGui = player:FindFirstChild("PlayerGui")
-	if playerGui then
-		for _, guiObj in ipairs(playerGui:GetChildren()) do
-			if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
-				guiObj:Destroy()
-			end
-		end
+-- 기존 구버전 UI 강제 제거
+for _, guiObj in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
+	if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
+		guiObj:Destroy()
 	end
-end)
+end
 
-local flying, walkOn, espOn, namesOn, noclipOn = false, false, false, false, false
+local walkOn, flyOn, espOn, namesOn, noclipOn = false, false, false, false, false
+local aimbotOn = false
+local ragebotOn = false
+local shaderOn = false
+
+-- Kicia Hook V3 스타일 추가 기능 변수
+local auraOn = false
+local wallbangOn = false
+local godModeOn = false
+local orbitOn = false
+local voidSpanOn = false
+
 local fastShotOn = false
 local fastShotRate = 800
 local lastShotTick = 0
 
-local flySpeed, walkSpeed, gammaValue = 70, 16, 50, 1
-local attachment, velocity, orientation
+local teleporterOn = false
+local lastTeleportTick = 0
+local teleportDistance = 50000
+
+local walkSpeed, flySpeed, gammaValue = 16, 50, 1
+local aimbotSmoothness = 3
+local espColorRed, espColorGreen, espColorBlue = 255, 50, 50
+
+local flyConnection = nil
+local bodyGyro, bodyVelocity = nil, nil
 
 local function trackConn(conn)
-	if conn and getgenv and getgenv().AntiRivalConnectionList then
+	if conn then
 		table.insert(getgenv().AntiRivalConnectionList, conn)
 	end
 	return conn
+end
+
+local function getActiveCamera()
+	return Workspace.CurrentCamera or Workspace:FindFirstChildOfClass("Camera")
 end
 
 local function getSafeParts()
 	local character = player.Character
 	if not character then return nil, nil end
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	local rootPart = character:FindFirstChild("HumanoidRootPart")
+	local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("Head")
 	return humanoid, rootPart
 end
 
@@ -78,54 +95,27 @@ shaderCC.Parent = Lighting
 local gui = Instance.new("ScreenGui")
 gui.Name = "AntiRival"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = player.PlayerGui
 
 ----------------------------------------------------
--- 메인 UI 창[cite: 1]
+-- 메인 UI 창
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
 window.Position = UDim2.new(0.5, 0, 0.5, 0)
-window.Size = UDim2.fromOffset(500, 580)
+window.Size = UDim2.fromOffset(520, 620)
 window.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 window.BorderColor3 = Color3.fromRGB(38, 38, 42)
 window.BorderSizePixel = 1
-window.ZIndex = 5
 window.Visible = true
 window.Parent = gui
 
-local modalButton = nil
-local mouseLoopConnection = nil
-
 local function updateMouseState(isVisible)
-	if mouseLoopConnection then
-		mouseLoopConnection:Disconnect()
-		mouseLoopConnection = nil
-	end
-
 	if isVisible then
-		if not modalButton then
-			modalButton = Instance.new("TextButton")
-			modalButton.Size = UDim2.fromScale(1, 1)
-			modalButton.BackgroundTransparency = 1
-			modalButton.Text = ""
-			modalButton.Modal = true
-			modalButton.Active = false
-			modalButton.ZIndex = 1
-			modalButton.Parent = gui
-		end
-
-		mouseLoopConnection = trackConn(RunService.RenderStepped:Connect(function()
-			if window.Visible then
-				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-				UserInputService.MouseIconEnabled = true
-			end
-		end))
+		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		UserInputService.MouseIconEnabled = true
 	else
-		if modalButton then
-			modalButton:Destroy()
-			modalButton = nil
-		end
 		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
 		UserInputService.MouseIconEnabled = false
 	end
@@ -133,24 +123,33 @@ end
 
 updateMouseState(true)
 
+trackConn(RunService.RenderStepped:Connect(function()
+	if window.Visible then
+		if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
+			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+		end
+		if not UserInputService.MouseIconEnabled then
+			UserInputService.MouseIconEnabled = true
+		end
+	end
+end))
+
 local innerBorder = Instance.new("Frame")
 innerBorder.Size = UDim2.new(1, -2, 1, -2)
 innerBorder.Position = UDim2.fromOffset(1, 1)
 innerBorder.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 innerBorder.BorderColor3 = Color3.fromRGB(22, 22, 26)
 innerBorder.BorderSizePixel = 1
-innerBorder.ZIndex = 6
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (버전 V0.7.8 적용)[cite: 1]
+-- Header
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
 header.Position = UDim2.fromOffset(0, 0)
 header.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 header.BorderSizePixel = 0
-header.ZIndex = 7
 header.Parent = innerBorder
 
 local dragging = false
@@ -187,52 +186,38 @@ end)
 
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
-title.Position = UDim2.new(0.5, -30, 0.5, 0)
-title.Size = UDim2.fromOffset(300, 20)
+title.Position = UDim2.new(0.5, 0, 0.5, 0)
+title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival-V0.7.8-FREE Build" -- 최신 버전 V0.7.8 반영[cite: 1]
+title.Text = "Anti-rival V1.0.2"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Center
-title.ZIndex = 8
 title.Parent = header
 
-local discordBtn = Instance.new("TextButton")
-discordBtn.AnchorPoint = Vector2.new(1, 0.5)
-discordBtn.Position = UDim2.new(1, -10, 0.5, 0)
-discordBtn.Size = UDim2.fromOffset(110, 20)
-discordBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
-discordBtn.BorderColor3 = Color3.fromRGB(50, 50, 70)
-discordBtn.BorderSizePixel = 1
-discordBtn.Text = "Discord Invite"
-discordBtn.TextColor3 = Color3.fromRGB(114, 137, 218)
-discordBtn.TextSize = 11
-discordBtn.Font = Enum.Font.Code
-discordBtn.ZIndex = 8
-discordBtn.Parent = header
-
-discordBtn.MouseButton1Click:Connect(function()
-	pcall(function()
-		if setclipboard then
-			setclipboard("https://discord.gg/aJmSdtrqE")
-			discordBtn.Text = "Copied Link!"
-			task.delay(1.5, function()
-				discordBtn.Text = "Discord Invite"
-			end)
-		end
-	end)
-end)
+local discordLabel = Instance.new("TextLabel")
+discordLabel.Size = UDim2.fromOffset(230, 20)
+discordLabel.AnchorPoint = Vector2.new(1, 0.5)
+discordLabel.Position = UDim2.new(1, -10, 0.5, 0)
+discordLabel.BackgroundTransparency = 1
+discordLabel.Text = "discord: https://discord.gg/WBkDd4AGJ"
+discordLabel.TextColor3 = Color3.fromRGB(140, 140, 150)
+discordLabel.TextSize = 10
+discordLabel.Font = Enum.Font.Code
+discordLabel.TextXAlignment = Enum.TextXAlignment.Right
+discordLabel.Parent = header
 
 ----------------------------------------------------
--- 탭 및 페이지 레이아웃[cite: 1]
+-- 탭 및 페이지 레이아웃
 ----------------------------------------------------
-local tabs = Instance.new("Frame")
+local tabs = Instance.new("ScrollingFrame")
 tabs.Size = UDim2.new(1, -16, 0, 24)
 tabs.Position = UDim2.fromOffset(8, 30)
 tabs.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 tabs.BorderSizePixel = 0
-tabs.ZIndex = 7
+tabs.CanvasSize = UDim2.new(0, 650, 0, 0)
+tabs.ScrollBarThickness = 0
 tabs.Parent = innerBorder
 
 local tabsLayout = Instance.new("UIListLayout")
@@ -247,7 +232,6 @@ content.Position = UDim2.fromOffset(8, 56)
 content.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 content.BorderColor3 = Color3.fromRGB(30, 30, 34)
 content.BorderSizePixel = 1
-content.ZIndex = 7
 content.Parent = innerBorder
 
 local pages, tabButtons = {}, {}
@@ -257,20 +241,19 @@ local function page(name)
 	frame.Name = name
 	frame.Size = UDim2.fromScale(1, 1)
 	frame.BackgroundTransparency = 1
-	frame.CanvasSize = UDim2.new(0, 0, 1.8, 0)
+	frame.CanvasSize = UDim2.new(0, 0, 2.0, 0)
 	frame.ScrollBarThickness = 4
 	frame.Visible = false
-	frame.ZIndex = 8
 	frame.Parent = content
 	pages[name] = frame
 	return frame
 end
 
 local mainPage = page("main")
-local worldPage = page("world")
+local combatPage = page("combat")
 local espPage = page("esp")
-local visualsPage = page("visuals")
 local characterPage = page("character")
+local cheaterPage = page("cheater")
 local miscPage = page("misc")
 local settingPage = page("settings")
 
@@ -293,7 +276,7 @@ end
 
 local function tab(text, name, order)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.fromOffset(66, 22)
+	button.Size = UDim2.fromOffset(72, 22)
 	button.LayoutOrder = order
 	button.BackgroundColor3 = Color3.fromRGB(16, 16, 18)
 	button.BorderColor3 = Color3.fromRGB(28, 28, 32)
@@ -302,22 +285,21 @@ local function tab(text, name, order)
 	button.TextColor3 = Color3.fromRGB(140, 140, 145)
 	button.TextSize = 11
 	button.Font = Enum.Font.Code
-	button.ZIndex = 8
 	button.Parent = tabs
 	button.MouseButton1Click:Connect(function() showPage(name) end)
 	tabButtons[name] = button
 end
 
 tab("main", "main", 1)
-tab("world", "world", 2)
+tab("combat", "combat", 2)
 tab("esp", "esp", 3)
-tab("visuals", "visuals", 4)
-tab("character", "character", 5)
+tab("character", "character", 4)
+tab("cheater", "cheater", 5)
 tab("misc", "misc", 6)
 tab("settings", "settings", 7)
 
 ----------------------------------------------------
--- UI 컨트롤 빌더[cite: 1]
+-- UI 컨트롤 빌더
 ----------------------------------------------------
 local function heading(parent, text)
 	local label = Instance.new("TextLabel")
@@ -329,7 +311,6 @@ local function heading(parent, text)
 	label.TextSize = 13
 	label.Font = Enum.Font.Code
 	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.ZIndex = 9
 	label.Parent = parent
 end
 
@@ -343,7 +324,6 @@ local function textbox(parent, text, value, y)
 	label.TextSize = 11
 	label.Font = Enum.Font.Code
 	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.ZIndex = 9
 	label.Parent = parent
 
 	local box = Instance.new("TextBox")
@@ -357,7 +337,6 @@ local function textbox(parent, text, value, y)
 	box.TextColor3 = Color3.new(1, 1, 1)
 	box.TextSize = 11
 	box.Font = Enum.Font.Code
-	box.ZIndex = 9
 	box.Parent = parent
 	return box
 end
@@ -373,7 +352,6 @@ local function toggle(parent, text, y)
 	button.TextColor3 = Color3.new(0.9, 0.9, 0.9)
 	button.TextSize = 11
 	button.Font = Enum.Font.Code
-	button.ZIndex = 9
 	button.Parent = parent
 	return button
 end
@@ -384,37 +362,42 @@ local function setToggle(button, enabled, text)
 	button.BorderColor3 = enabled and Color3.fromRGB(50, 110, 70) or Color3.fromRGB(100, 45, 45)
 end
 
--- 컴포넌트 배치[cite: 1]
-heading(mainPage, "movement / main controls")
-local flyBox = textbox(mainPage, "fly speed  (1–500)", flySpeed, 40)
-local flyButton = toggle(mainPage, "fly", 68)
-local walkBox = textbox(mainPage, "walk speed  (1–500)", walkSpeed, 110)
-local walkButton = toggle(mainPage, "walk speed", 138)
+-- 탭별 컴포넌트 배치
+heading(mainPage, "movement / core controls")
+local walkBox = textbox(mainPage, "walk speed  (1–1000)", walkSpeed, 40)
+local walkButton = toggle(mainPage, "walk speed", 68)
+local flyBox = textbox(mainPage, "fly speed  (1–1000)", flySpeed, 106)
+local flyButton = toggle(mainPage, "fly", 134)
 
-heading(worldPage, "world environment")
-local gammaBox = textbox(worldPage, "gamma  (1–100)", gammaValue, 40)
-local shaderButton = toggle(worldPage, "custom shader", 72)
+heading(combatPage, "kicia hook v3 - combat perks")
+local ragebotButton = toggle(combatPage, "ragebot (auto lock snap)", 40)
+local auraButton = toggle(combatPage, "aura (auto hit nearby)", 70)
+local wallbangButton = toggle(combatPage, "projectile wallbang", 100)
+local godModeButton = toggle(combatPage, "god mode (forcefield)", 130)
 
 heading(espPage, "player esp & information")
 local espButton = toggle(espPage, "player esp", 40)
 local namesButton = toggle(espPage, "player names", 70)
 
-heading(visualsPage, "combat visuals & aimbot")
-local aimbotButton = toggle(visualsPage, "aimbot (hold rmb)", 40)
-
-heading(characterPage, "character capabilities & combat")
+heading(characterPage, "character capabilities")
 local fastShotBox = textbox(characterPage, "fast shot rate (1–1000)", fastShotRate, 40)
 local fastShotButton = toggle(characterPage, "fast shot (Engine Bypass)", 68)
+
+heading(cheaterPage, "position manipulation & extreme utility")
+local orbitButton = toggle(cheaterPage, "orbit position mode", 40)
+local voidSpanButton = toggle(cheaterPage, "void span mode", 70)
+local teleporterBox = textbox(cheaterPage, "teleport distance", teleportDistance, 106)
+local teleporterButton = toggle(cheaterPage, "auto 50k tp (every 0.1s)", 134)
 
 heading(miscPage, "misc / collision settings")
 local noclipButton = toggle(miscPage, "noclip", 40)
 
 ----------------------------------------------------
--- [Settings 탭] 키바인드 매니저[cite: 1]
+-- [Settings 탭] 키바인드 매니저
 ----------------------------------------------------
 heading(settingPage, "keybind manager")
 
-local keybinds = { Fly = nil, Speed = nil, ESP = nil, Noclip = nil }
+local keybinds = { Speed = nil, Fly = nil, ESP = nil, Noclip = nil }
 
 local function createKeybindRow(name, y, defaultKeyText)
 	local label = Instance.new("TextLabel")
@@ -426,7 +409,6 @@ local function createKeybindRow(name, y, defaultKeyText)
 	label.TextSize = 11
 	label.Font = Enum.Font.Code
 	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.ZIndex = 9
 	label.Parent = settingPage
 
 	local btn = Instance.new("TextButton")
@@ -439,13 +421,12 @@ local function createKeybindRow(name, y, defaultKeyText)
 	btn.TextColor3 = Color3.fromRGB(200, 200, 205)
 	btn.TextSize = 11
 	btn.Font = Enum.Font.Code
-	btn.ZIndex = 9
 	btn.Parent = settingPage
 	return btn
 end
 
-local flyKeyBtn = createKeybindRow("Fly", 40, "None")
-local walkKeyBtn = createKeybindRow("WalkSpeed", 70, "None")
+local walkKeyBtn = createKeybindRow("WalkSpeed", 40, "None")
+local flyKeyBtn = createKeybindRow("Fly", 70, "None")
 local espKeyBtn = createKeybindRow("ESP", 100, "None")
 local noclipKeyBtn = createKeybindRow("Noclip", 130, "None")
 
@@ -461,8 +442,8 @@ local function setupKeybindListener(btn, keyName)
 	end)
 end
 
-setupKeybindListener(flyKeyBtn, "Fly")
 setupKeybindListener(walkKeyBtn, "Speed")
+setupKeybindListener(flyKeyBtn, "Fly")
 setupKeybindListener(espKeyBtn, "ESP")
 setupKeybindListener(noclipKeyBtn, "Noclip")
 
@@ -484,71 +465,326 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 end))
 
 ----------------------------------------------------
--- 기능 구현 로직[cite: 1]
+-- [기능 구현 루프]
 ----------------------------------------------------
-local function stopFly()
-	flying = false
-	if velocity then velocity:Destroy() end
-	if orientation then orientation:Destroy() end
-	if attachment then attachment:Destroy() end
-	velocity, orientation, attachment = nil, nil, nil
 
-	local humanoid, _ = getSafeParts()
-	if humanoid then
-		humanoid.PlatformStand = false
-		humanoid.AutoRotate = true
+-- 1. 플라이 핵심 물리 제어 함수
+local function toggleFly(state)
+	flyOn = state
+	setToggle(flyButton, flyOn, "fly")
+	local hum, root = getSafeParts()
+
+	if flyOn then
+		if not root or not hum then 
+			flyOn = false
+			setToggle(flyButton, false, "fly")
+			return 
+		end
+
+		bodyGyro = Instance.new("BodyGyro")
+		bodyGyro.P = 9e4
+		bodyGyro.MaxTorque = Vector3.new(9e4, 9e4, 9e4)
+		bodyGyro.CFrame = root.CFrame
+		bodyGyro.Parent = root
+
+		bodyVelocity = Instance.new("BodyVelocity")
+		bodyVelocity.Velocity = Vector3.zero
+		bodyVelocity.MaxForce = Vector3.new(9e4, 9e4, 9e4)
+		bodyVelocity.Parent = root
+
+		hum.PlatformStand = true
+
+		flyConnection = RunService.RenderStepped:Connect(function()
+			local currentCam = getActiveCamera()
+			local currentHum, currentRoot = getSafeParts()
+			if not flyOn or not currentRoot or not currentHum or currentHum.Health <= 0 then
+				toggleFly(false)
+				return
+			end
+
+			bodyGyro.CFrame = currentCam.CFrame
+			local moveDir = Vector3.zero
+			
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+				moveDir = moveDir + currentCam.CFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+				moveDir = moveDir - currentCam.CFrame.LookVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+				moveDir = moveDir - currentCam.CFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+				moveDir = moveDir + currentCam.CFrame.RightVector
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+				moveDir = moveDir + Vector3.new(0, 1, 0)
+			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+				moveDir = moveDir - Vector3.new(0, 1, 0)
+			end
+
+			bodyVelocity.Velocity = moveDir * flySpeed
+		end)
+		trackConn(flyConnection)
+	else
+		if flyConnection then
+			flyConnection:Disconnect()
+			flyConnection = nil
+		end
+		if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+		if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+
+		if hum then
+			hum.PlatformStand = false
+		end
 	end
-	setToggle(flyButton, false, "fly")
 end
 
-local function startFly()
-	local humanoid, root = getSafeParts()
-	if not humanoid or not root then return end
-	
-	flying = true
-	humanoid.PlatformStand = true
-	humanoid.AutoRotate = false
+-- 2. 레이지봇 (Ragebot)
+trackConn(RunService.RenderStepped:Connect(function()
+	if not ragebotOn then return end
 
-	attachment = Instance.new("Attachment", root)
-	velocity = Instance.new("LinearVelocity", root)
-	velocity.Attachment0 = attachment
-	velocity.RelativeTo = Enum.ActuatorRelativeTo.World
-	velocity.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	velocity.ForceLimitsEnabled = true
-	velocity.MaxForce = 100000
+	pcall(function()
+		local currentCam = getActiveCamera()
+		local bestTarget = nil
+		local shortestDist = math.huge
 
-	orientation = Instance.new("AlignOrientation", root)
-	orientation.Attachment0 = attachment
-	orientation.Mode = Enum.OrientationAlignmentMode.OneAttachment
-	orientation.RigidityEnabled = true
+		for _, p in ipairs(Players:GetPlayers()) do
+			if p ~= player then
+				local isEnemy = true
+				if player.Team and p.Team and player.Team == p.Team then
+					isEnemy = false
+				end
 
-	trackConn(RunService.RenderStepped:Connect(function()
-		if not flying or not root or not root.Parent then return end
-		local camera = workspace.CurrentCamera
-		if not camera then return end
-
-		local look = Vector3.new(camera.CFrame.LookVector.X, 0, camera.CFrame.LookVector.Z).Unit
-		local right = Vector3.new(camera.CFrame.RightVector.X, 0, camera.CFrame.RightVector.Z).Unit
-		local direction = Vector3.zero
-
-		if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction += look end
-		if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction -= look end
-		if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction -= right end
-		if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction += right end
-		if UserInputService:IsKeyDown(Enum.KeyCode.Space) then direction += Vector3.yAxis end
-		if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then direction -= Vector3.yAxis end
-		
-		if velocity then
-			velocity.VectorVelocity = direction.Magnitude > 0 and direction.Unit * flySpeed or Vector3.zero
+				if isEnemy then
+					local char = p.Character
+					if char then
+						local hum = char:FindFirstChildOfClass("Humanoid")
+						if hum and hum.Health > 0 then
+							local targetPart = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+							if targetPart then
+								local _, onScreen = currentCam:WorldToViewportPoint(targetPart.Position)
+								if onScreen then
+									local dist = (targetPart.Position - currentCam.CFrame.Position).Magnitude
+									if dist < shortestDist then
+										shortestDist = dist
+										bestTarget = targetPart
+									end
+								end
+							end
+						end
+					end
+				end
+			end
 		end
-		if orientation and look.Magnitude > 0 then
-			orientation.CFrame = CFrame.lookAt(Vector3.zero, look)
+
+		if bestTarget then
+			currentCam.CFrame = CFrame.new(currentCam.CFrame.Position, bestTarget.Position)
 		end
-	end))
-	setToggle(flyButton, true, "fly")
+	end)
+end))
+
+-- 3. 오라 및 월뱅
+trackConn(RunService.RenderStepped:Connect(function()
+	if not auraOn and not wallbangOn then return end
+
+	pcall(function()
+		local _, root = getSafeParts()
+		if not root then return end
+
+		for _, p in ipairs(Players:GetPlayers()) do
+			if p ~= player then
+				local char = p.Character
+				if char then
+					local hum = char:FindFirstChildOfClass("Humanoid")
+					local targetRoot = char:FindFirstChild("HumanoidRootPart")
+					if hum and hum.Health > 0 and targetRoot then
+						local dist = (targetRoot.Position - root.Position).Magnitude
+						if dist <= 45 then
+							if auraOn then
+								pcall(function()
+									for _, tool in ipairs(player.Character:GetChildren()) do
+										if tool:IsA("Tool") then
+											tool:Activate()
+										end
+									end
+								end)
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end))
+
+-- 4. 갓모드
+trackConn(RunService.Stepped:Connect(function()
+	if godModeOn then
+		pcall(function()
+			local char = player.Character
+			if char then
+				for _, part in ipairs(char:GetDescendants()) do
+					if part:IsA("BasePart") then
+						part.CanCollide = false
+					end
+				end
+			end
+		end)
+	end
+end))
+
+-- 5. 위치 조작 (Orbit / Void Span)
+trackConn(RunService.RenderStepped:Connect(function()
+	if orbitOn then
+		pcall(function()
+			local _, root = getSafeParts()
+			if root then
+				local t = os.clock() * 5
+				local radius = 25
+				local offset = Vector3.new(math.cos(t) * radius, 10, math.sin(t) * radius)
+				root.CFrame = CFrame.new(root.Position + offset)
+			end
+		end)
+	elseif voidSpanOn then
+		pcall(function()
+			local _, root = getSafeParts()
+			if root then
+				root.CFrame = CFrame.new(root.Position + Vector3.new(0, 500, 0))
+			end
+		end)
+	end
+end))
+
+-- 6. 텔레포트 시스템 (주기를 0.1초로 단축)
+trackConn(RunService.RenderStepped:Connect(function()
+	if not teleporterOn then return end
+
+	local now = os.clock()
+	if now - lastTeleportTick >= 0.1 then
+		lastTeleportTick = now
+		pcall(function()
+			local _, root = getSafeParts()
+			if root then
+				local randomAngle = math.random() * math.pi * 2
+				local offsetX = math.cos(randomAngle) * teleportDistance
+				local offsetZ = math.sin(randomAngle) * teleportDistance
+				
+				local currentPos = root.Position
+				local targetPos = Vector3.new(currentPos.X + offsetX, currentPos.Y + 50, currentPos.Z + offsetZ)
+				
+				root.CFrame = CFrame.new(targetPos)
+			end
+		end)
+	end
+end))
+
+-- 7. 3D 박스 ESP
+local espCache = {}
+
+local function clearESP()
+	for _, data in pairs(espCache) do
+		if data.Box then data.Box:Remove() end
+		if data.NameTag then data.NameTag:Remove() end
+	end
+	espCache = {}
 end
 
--- Fast Shot 엔진 루프[cite: 1]
+trackConn(RunService.RenderStepped:Connect(function()
+	local currentCam = getActiveCamera()
+	local currentESPColor = Color3.fromRGB(espColorRed, espColorGreen, espColorBlue)
+
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= player then
+			local char = p.Character
+			local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("Head"))
+			local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+			if char and root and hum and hum.Health > 0 then
+				if not espCache[p] then
+					local box = Drawing.new("Square")
+					box.Visible = false
+					box.Filled = false
+					box.Thickness = 1
+					
+					local nameTag = Drawing.new("Text")
+					nameTag.Visible = false
+					nameTag.Size = 13
+					nameTag.Center = true
+					nameTag.Outline = true
+					nameTag.Color = Color3.new(1, 1, 1)
+
+					espCache[p] = { Box = box, NameTag = nameTag }
+				end
+
+				local cache = espCache[p]
+				local cf = root.CFrame
+				local size = Vector3.new(3, 5.2, 3)
+				
+				local corners = {
+					cf * CFrame.new(size.X, size.Y, size.Z),
+					cf * CFrame.new(-size.X, size.Y, size.Z),
+					cf * CFrame.new(size.X, -size.Y, size.Z),
+					cf * CFrame.new(-size.X, -size.Y, size.Z),
+					cf * CFrame.new(size.X, size.Y, -size.Z),
+					cf * CFrame.new(-size.X, size.Y, -size.Z),
+					cf * CFrame.new(size.X, -size.Y, -size.Z),
+					cf * CFrame.new(-size.X, -size.Y, -size.Z)
+				}
+
+				local minX, minY = math.huge, math.huge
+				local maxX, maxY = -math.huge, -math.huge
+				local onScreenAll = true
+
+				for _, corner in ipairs(corners) do
+					local screenPoint, onScreen = currentCam:WorldToViewportPoint(corner.Position)
+					if not onScreen then
+						onScreenAll = false
+					end
+					minX = math.min(minX, screenPoint.X)
+					minY = math.min(minY, screenPoint.Y)
+					maxX = math.max(maxX, screenPoint.X)
+					maxY = math.max(maxY, screenPoint.Y)
+				end
+
+				local rootScreenPos, rootOnScreen = currentCam:WorldToViewportPoint(root.Position)
+
+				if rootOnScreen and (espOn or namesOn) then
+					local boxW = maxX - minX
+					local boxH = maxY - minY
+
+					if espOn then
+						cache.Box.Visible = true
+						cache.Box.Size = Vector2.new(boxW, boxH)
+						cache.Box.Position = Vector2.new(minX, minY)
+						cache.Box.Color = currentESPColor
+					else
+						cache.Box.Visible = false
+					end
+
+					if namesOn then
+						cache.NameTag.Visible = true
+						cache.NameTag.Text = p.Name
+						cache.NameTag.Position = Vector2.new(rootScreenPos.X, minY - 18)
+					else
+						cache.NameTag.Visible = false
+					end
+				else
+					cache.Box.Visible = false
+					cache.NameTag.Visible = false
+				end
+			else
+				if espCache[p] then
+					espCache[p].Box.Visible = false
+					espCache[p].NameTag.Visible = false
+				end
+			end
+		end
+	end
+end))
+
+-- 8. Fast Shot 엔진 루프
 trackConn(RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
 
@@ -562,17 +798,22 @@ trackConn(RunService.RenderStepped:Connect(function()
 				local char = player.Character
 				if not char then return end
 
-				for _, tool in ipairs(char:GetChildren()) do
-					if tool:IsA("Tool") then
-						pcall(function() tool:Activate() end)
-						for _, desc in ipairs(tool:GetDescendants()) do
-							if desc:IsA("RemoteEvent") then
-								pcall(function()
-									local name = desc.Name:lower()
-									if name:find("fire") or name:find("shoot") or name:find("gun") or name:find("attack") then
-										desc:FireServer()
+				local backpack = player:FindFirstChildOfClass("Backpack")
+				for _, container in ipairs({char, backpack}) do
+					if container then
+						for _, tool in ipairs(container:GetChildren()) do
+							if tool:IsA("Tool") then
+								pcall(function() tool:Activate() end)
+								for _, desc in ipairs(tool:GetDescendants()) do
+									if desc:IsA("RemoteEvent") then
+										pcall(function()
+											local name = desc.Name:lower()
+											if name:find("fire") or name:find("shoot") or name:find("gun") or name:find("attack") or name:find("hit") then
+												desc:FireServer()
+											end
+										end)
 									end
-								end)
+								end
 							end
 						end
 					end
@@ -582,7 +823,7 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
--- Noclip 루프[cite: 1]
+-- 9. Noclip 루프
 trackConn(RunService.Stepped:Connect(function()
 	if noclipOn then
 		pcall(function()
@@ -598,16 +839,9 @@ trackConn(RunService.Stepped:Connect(function()
 	end
 end))
 
--- UI 이벤트 바인딩[cite: 1]
-flyButton.MouseButton1Click:Connect(function()
-	if flying then stopFly() else startFly() end
-end)
-
-flyBox.FocusLost:Connect(function()
-	flySpeed = math.clamp(tonumber(flyBox.Text) or 70, 1, 500)
-	flyBox.Text = tostring(flySpeed)
-end)
-
+----------------------------------------------------
+-- UI 버튼 이벤트 바인딩 연결
+----------------------------------------------------
 walkButton.MouseButton1Click:Connect(function()
 	walkOn = not walkOn
 	setToggle(walkButton, walkOn, "walk speed")
@@ -616,23 +850,50 @@ walkButton.MouseButton1Click:Connect(function()
 end)
 
 walkBox.FocusLost:Connect(function()
-	walkSpeed = math.clamp(tonumber(walkBox.Text) or 16, 1, 500)
+	walkSpeed = math.clamp(tonumber(walkBox.Text) or 16, 1, 1000)
 	walkBox.Text = tostring(walkSpeed)
 	local h, _ = getSafeParts()
 	if h and walkOn then h.WalkSpeed = walkSpeed end
 end)
 
-gammaBox.FocusLost:Connect(function()
-	gammaValue = math.clamp(tonumber(gammaBox.Text) or 1, 1, 100)
-	gammaBox.Text = tostring(gammaValue)
-	gamma.Brightness = (gammaValue - 1) * 0.05
+flyButton.MouseButton1Click:Connect(function()
+	toggleFly(not flyOn)
 end)
 
-shaderButton.MouseButton1Click:Connect(function()
-	shaderOn = not shaderOn
-	shaderBloom.Enabled = shaderOn
-	shaderCC.Enabled = shaderOn
-	setToggle(shaderButton, shaderOn, "custom shader")
+flyBox.FocusLost:Connect(function()
+	flySpeed = math.clamp(tonumber(flyBox.Text) or 50, 1, 1000)
+	flySpeed.Text = tostring(flySpeed)
+end)
+
+ragebotButton.MouseButton1Click:Connect(function()
+	ragebotOn = not ragebotOn
+	setToggle(ragebotButton, ragebotOn, "ragebot (auto lock snap)")
+end)
+
+auraButton.MouseButton1Click:Connect(function()
+	auraOn = not auraOn
+	setToggle(auraButton, auraOn, "aura (auto hit nearby)")
+end)
+
+wallbangButton.MouseButton1Click:Connect(function()
+	wallbangOn = not wallbangOn
+	setToggle(wallbangButton, wallbangOn, "projectile wallbang")
+end)
+
+godModeButton.MouseButton1Click:Connect(function()
+	godModeOn = not godModeOn
+	setToggle(godModeButton, godModeOn, "god mode (forcefield)")
+end)
+
+espButton.MouseButton1Click:Connect(function()
+	espOn = not espOn
+	setToggle(espButton, espOn, "player esp")
+	if not espOn then clearESP() end
+end)
+
+namesButton.MouseButton1Click:Connect(function()
+	namesOn = not namesOn
+	setToggle(namesButton, namesOn, "player names")
 end)
 
 fastShotButton.MouseButton1Click:Connect(function()
@@ -641,8 +902,30 @@ fastShotButton.MouseButton1Click:Connect(function()
 end)
 
 fastShotBox.FocusLost:Connect(function()
-	fastShotRate = math.clamp(tonumber(fastShotBox.Text) or 800, 1, 1000)
-	fastShotBox.Text = tostring(fastShotRate)
+	fastShotRate = math.clamp(tonumber(fastShotRate.Text) or 800, 1, 1000)
+	fastShotRate.Text = tostring(fastShotRate)
+end)
+
+orbitButton.MouseButton1Click:Connect(function()
+	orbitOn = not orbitOn
+	if orbitOn then voidSpanOn = false setToggle(voidSpanButton, false, "void span mode") end
+	setToggle(orbitButton, orbitOn, "orbit position mode")
+end)
+
+voidSpanButton.MouseButton1Click:Connect(function()
+	voidSpanOn = not voidSpanOn
+	if voidSpanOn then orbitOn = false setToggle(orbitButton, false, "orbit position mode") end
+	setToggle(voidSpanButton, voidSpanOn, "void span mode")
+end)
+
+teleporterButton.MouseButton1Click:Connect(function()
+	teleporterOn = not teleporterOn
+	setToggle(teleporterButton, teleporterOn, "auto 50k tp (every 0.1s)")
+end)
+
+teleporterBox.FocusLost:Connect(function()
+	teleportDistance = math.clamp(tonumber(teleporterBox.Text) or 50000, 1, 1000000)
+	teleporterBox.Text = tostring(teleportDistance)
 end)
 
 noclipButton.MouseButton1Click:Connect(function()
@@ -651,4 +934,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-Rival-V0.7.8-FREE Build Loaded Successfully without errors!")[cite: 1]
+print("Anti-rival V1.0.2 Loaded Successfully!")
