@@ -152,7 +152,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (정중앙 파란색 타이틀 + 맨 위 우측 디스코드 버튼 확실한 추가)
+-- Header (정중앙 파란색 타이틀 + 맨 위 우측 디스코드 버튼)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -410,7 +410,14 @@ local noclipButton = toggle(miscPage, "noclip", 40)
 
 heading(settingPage, "keybind manager")
 
-local keybinds = { Speed = nil, Fly = nil, ESP = nil, Noclip = nil, Teleport = nil }
+local keybinds = { 
+	Speed = nil, 
+	Fly = nil, 
+	ESP = nil, 
+	Noclip = nil, 
+	Teleport = nil,
+	VoidSpan = nil -- 사진 속 기능 (void span mode) 단축키 추가
+}
 
 local function createKeybindRow(name, y, defaultKeyText)
 	local label = Instance.new("TextLabel")
@@ -443,6 +450,7 @@ local flyKeyBtn = createKeybindRow("Fly", 70, "None")
 local espKeyBtn = createKeybindRow("ESP", 100, "None")
 local noclipKeyBtn = createKeybindRow("Noclip", 130, "None")
 local teleportKeyBtn = createKeybindRow("Auto TP", 160, "None")
+local voidSpanKeyBtn = createKeybindRow("Void Span", 190, "None") -- 설정 탭에 Void Span 항목 배치
 
 local bindingTarget = nil
 local bindingButton = nil
@@ -461,6 +469,7 @@ setupKeybindListener(flyKeyBtn, "Fly")
 setupKeybindListener(espKeyBtn, "ESP")
 setupKeybindListener(noclipKeyBtn, "Noclip")
 setupKeybindListener(teleportKeyBtn, "Teleport")
+setupKeybindListener(voidSpanKeyBtn, "VoidSpan")
 
 toggleFly = function(state)
 	flyOn = state
@@ -557,6 +566,11 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 			teleporterOn = not teleporterOn
 			setToggle(teleporterButton, teleporterOn, "auto 50k tp (every 0.1s)")
 		end
+		if keybinds.VoidSpan and input.KeyCode == keybinds.VoidSpan then
+			voidSpanOn = not voidSpanOn
+			if voidSpanOn then orbitOn = false setToggle(orbitButton, false, "orbit position mode") end
+			setToggle(voidSpanButton, voidSpanOn, "void span mode")
+		end
 	end
 
 	if input.KeyCode == Enum.KeyCode.RightShift then
@@ -565,6 +579,105 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 	end
 end))
 
+----------------------------------------------------
+-- [강력 수정된 안정적인 ESP 시스템 (Highlight 기반)]
+----------------------------------------------------
+local espCache = {}
+
+local function removeEsp(p)
+	if espCache[p] then
+		if espCache[p].Highlight then
+			espCache[p].Highlight:Destroy()
+		end
+		if espCache[p].Billboard then
+			espCache[p].Billboard:Destroy()
+		end
+		espCache[p] = nil
+	end
+end
+
+local function updateEspForPlayer(p)
+	if p == player then return end
+	local char = p.Character
+	if not espOn or not char or not char:FindFirstChild("HumanoidRootPart") then
+		removeEsp(p)
+		return
+	end
+
+	local highlight = espCache[p] and espCache[p].Highlight
+	if not highlight or not highlight.Parent then
+		highlight = Instance.new("Highlight")
+		highlight.Name = "AntiRivalESP"
+		highlight.Adornee = char
+		highlight.FillColor = Color3.fromRGB(255, 50, 50)
+		highlight.FillTransparency = 0.5
+		highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+		highlight.OutlineTransparency = 0
+		highlight.Parent = char
+	else
+		highlight.Adornee = char
+	end
+
+	local head = char:FindFirstChild("Head")
+	local billboard = espCache[p] and espCache[p].Billboard
+	if namesOn and head then
+		if not billboard or not billboard.Parent then
+			billboard = Instance.new("BillboardGui")
+			billboard.Name = "AntiRivalName"
+			billboard.Size = UDim2.new(0, 100, 0, 40)
+			billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+			billboard.AlwaysOnTop = true
+			billboard.Adornee = head
+
+			local textLabel = Instance.new("TextLabel")
+			textLabel.Name = "NameText"
+			textLabel.Size = UDim2.fromScale(1, 1)
+			textLabel.BackgroundTransparency = 1
+			textLabel.Text = p.Name
+			textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+			textLabel.TextSize = 12
+			textLabel.Font = Enum.Font.Code
+			textLabel.TextStrokeTransparency = 0
+			textLabel.Parent = billboard
+
+			billboard.Parent = head
+		else
+			billboard.Adornee = head
+			local textLabel = billboard:FindFirstChild("NameText")
+			if textLabel then
+				textLabel.Text = p.Name
+			end
+		end
+	else
+		if billboard then
+			billboard:Destroy()
+			billboard = nil
+		end
+	end
+
+	espCache[p] = { Highlight = highlight, Billboard = billboard }
+end
+
+trackConn(RunService.RenderStepped:Connect(function()
+	if not espOn then
+		for p, _ in pairs(espCache) do
+			removeEsp(p)
+		end
+		return
+	end
+
+	for _, p in ipairs(Players:GetPlayers()) do
+		updateEspForPlayer(p)
+	end
+end))
+
+trackConn(Players.PlayerRemoving:Connect(function(p)
+	removeEsp(p)
+end))
+
+----------------------------------------------------
+-- 기타 루프 기능들
+----------------------------------------------------
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
 	pcall(function()
