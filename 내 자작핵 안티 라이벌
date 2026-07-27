@@ -1,4 +1,4 @@
--- [V1.2.13 Update] Fixed mobile fly issue and completed syntax review (2026-07-27 17:20)
+-- [V1.2.15 Update] Fixed Mobile Jump/Fly responsiveness & syntax review (2026-07-27 17:33)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -61,6 +61,7 @@ local wallbangOn = false
 local godModeOn = false
 local orbitOn = false
 local voidSpanOn = false
+local infiniteJumpOn = false
 
 local fastShotOn = false
 local fastShotRate = 800
@@ -237,7 +238,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.13-STABLE"
+title.Text = "Anti-rival-V1.2.15-STABLE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -450,6 +451,7 @@ randomTpButton.Parent = visualsPage
 heading(characterPage, "character capabilities")
 local fastShotBox = textbox(characterPage, "fast shot rate (1–1000)", fastShotRate, 40)
 local fastShotButton = toggle(characterPage, "fast shot (Engine Bypass)", 68)
+local infiniteJumpButton = toggle(characterPage, "infinite jump", 106)
 
 heading(miscPage, "misc / collision settings")
 local noclipButton = toggle(miscPage, "noclip", 40)
@@ -565,6 +567,32 @@ end
 
 trackConn(UserInputService.InputBegan:Connect(handleInputBegan))
 
+-- Improved Infinite Jump Core Handler (Supports Mobile & PC)
+trackConn(UserInputService.JumpRequest:Connect(function()
+	if infiniteJumpOn then
+		pcall(function()
+			local hum, _ = getSafeParts()
+			if hum then
+				hum:ChangeState(Enum.HumanoidStateType.Jumping)
+			end
+		end)
+	end
+end))
+
+-- Fallback for Mobile Touch Jump Button if JumpRequest fails
+trackConn(RunService.RenderStepped:Connect(function()
+	if infiniteJumpOn then
+		pcall(function()
+			local hum, _ = getSafeParts()
+			if hum and hum:GetState() == Enum.HumanoidStateType.Freefall then
+				if UserInputService:IsKeyDown(Enum.KeyCode.Space) or (isMobile and hum.Jump) then
+					hum:ChangeState(Enum.HumanoidStateType.Jumping)
+				end
+			end
+		end)
+	end
+end))
+
 local unloadBtn = Instance.new("TextButton")
 unloadBtn.Size = UDim2.fromOffset(286, 28)
 unloadBtn.Position = UDim2.fromOffset(14, 215)
@@ -630,6 +658,10 @@ local function executeFly(state)
 			if isMobile then
 				if currentHum.MoveDirection.Magnitude > 0 then
 					moveDir = currentHum.MoveDirection.Unit * flySpeed
+				end
+				-- Mobile vertical elevation control via Jump / Status
+				if currentHum.Jump then
+					moveDir = moveDir + Vector3.new(0, flySpeed, 0)
 				end
 			else
 				if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + currentCam.CFrame.LookVector end
@@ -1024,6 +1056,11 @@ fastShotBox.FocusLost:Connect(function()
 	fastShotBox.Text = tostring(fastShotRate)
 end)
 
+infiniteJumpButton.MouseButton1Click:Connect(function()
+	infiniteJumpOn = not infiniteJumpOn
+	setToggle(infiniteJumpButton, infiniteJumpOn, "infinite jump")
+end)
+
 orbitButton.MouseButton1Click:Connect(function()
 	orbitOn = not orbitOn
 	if orbitOn then voidSpanOn = false setToggle(voidSpanButton, false, "void span mode") end
@@ -1042,7 +1079,7 @@ teleporterButton.MouseButton1Click:Connect(function()
 end)
 
 teleporterBox.FocusLost:Connect(function()
-	teleportDistance = math.clamp(tonumber(teleporterBox.Text) or 50000, 1, 1000000)
+	teleportDistance = math.clamp(tonumber(teleporterButton.Text) or 50000, 1, 1000000)
 	teleporterBox.Text = tostring(teleportDistance)
 end)
 
@@ -1052,4 +1089,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.13 STABLE Loaded Successfully!")
+print("Anti-rival V1.2.15 STABLE Loaded Successfully!")
