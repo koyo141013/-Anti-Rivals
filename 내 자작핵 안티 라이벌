@@ -189,7 +189,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival V1.0.4"
+title.Text = "Anti-rival V1.0.5"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -907,7 +907,7 @@ wallbangButton.MouseButton1Click:Connect(function()
 	setToggle(wallbangButton, wallbangOn, "projectile wallbang")
 end)
 
-godModeButton.MouseButton1Click:Connect(function`()
+godModeButton.MouseButton1Click:Connect(function()
 	godModeOn = not godModeOn
 	setToggle(godModeButton, godModeOn, "god mode (forcefield)")
 end)
@@ -961,4 +961,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.0.4 Loaded Successfully!")
+print("Anti-rival V1.0.5 Loaded Successfully!")
