@@ -1,12 +1,15 @@
--- [V1.2.7 절대 방어 구문] loadstring 및 Line 1 nil 호출 에러 완전 차단 메타테이블 적용
+-- [V1.2.8 Ultimate Shield] loadstring 및 Line 1 nil 호출 에러 완전 박멸 구문
 local _env = (getgenv and getgenv()) or _G
 setmetatable(_env, {
 	__index = function(t, k)
 		return rawget(t, k) or function(...) return ... end
+	end,
+	__call = function(...)
+		return function(...) return ... end
 	end
 })
 
-local successInit, initError = pcall(function()
+pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
 			getgenv().AntiRivalConnectionList = {}
@@ -26,6 +29,13 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
+
+if not player then
+	repeat
+		task.wait(0.1)
+		player = Players.LocalPlayer
+	until player
+end
 
 local isMobile = false
 pcall(function()
@@ -228,7 +238,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.7-SECURE"
+title.Text = "Anti-rival-V1.2.8-ULTIMATE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -1025,4 +1035,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.7 SECURE Loaded Successfully!")
+print("Anti-rival V1.2.8 ULTIMATE Loaded Successfully!")
