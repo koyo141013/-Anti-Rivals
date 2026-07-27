@@ -1,4 +1,4 @@
-[클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 강제 종료
+-- [클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 강제 종료
 pcall(function()
 	if getgenv().AntiRivalConnectionList then
 		for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
