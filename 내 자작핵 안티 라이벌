@@ -248,7 +248,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.2-STABLE"
+title.Text = "Anti-rival-V1.2.3-STABLE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -643,11 +643,6 @@ toggleFly = function(state)
 			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
 			if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
 				moveDir = moveDir - Vector3.new(0, 1, 0)
-			end
-
-			if currentHum.MoveDirection.Magnitude > 0 then
-				local camVector = currentCam.CFrame:VectorToWorldSpace(Vector3.new(currentHum.MoveDirection.X, 0, currentHum.MoveDirection.Z))
-				moveDir = moveDir + Vector3.new(-camVector.X, camVector.Y, -camVector.Z)
 			end
 
 			if bodyVelocity then 
@@ -1049,4 +1044,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.2 STABLE Loaded Successfully!")
+print("Anti-rival V1.2.3 STABLE Loaded Successfully!")
