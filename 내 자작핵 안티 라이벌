@@ -1,4 +1,4 @@
--- [V1.3.1 Update] Enhanced Forced 3rd Person Camera & Modern Kiciahook/Unname Integration (2026-07-27 18:02)
+-- [V1.4.5 Update] Force 3rd Person Zoom Bug Fix & Core Optimization (2026-07-27 18:49)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -285,7 +285,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.3.1-MODERN"
+title.Text = "Anti-rival-V1.4.5-MODERN"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -501,7 +501,7 @@ local fastShotBox = textbox(characterPage, "fast shot rate (1–1000)", fastShot
 local fastShotButton = toggle(characterPage, "fast shot (Engine Bypass)", 68)
 local infiniteJumpButton = toggle(characterPage, "infinite jump", 106)
 
-heading(miscPage, "misc / collision settings")
+heading(miscPage, "misc / cosmetic settings")
 local noclipButton = toggle(miscPage, "noclip", 40)
 
 heading(settingPage, "settings & keybinds manager")
@@ -985,7 +985,7 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end)
 end))
 
--- [V1.3.1 Enhanced Modern Kiciahook/Unname Style Engine-Level Camera Override for 3rd Person Lock]
+-- [V1.4.5 FIX] 무기 줌(ADS) 시 강제 3인칭이 카메라를 억지로 뒤로 밀어내던 충돌 버그 수정
 trackConn(RunService.RenderStepped:Connect(function()
 	if forceThirdPersonOn then
 		pcall(function()
@@ -1001,9 +1001,26 @@ trackConn(RunService.RenderStepped:Connect(function()
 				if currentCam.CameraType == Enum.CameraType.Scriptable then
 					currentCam.CameraType = Enum.CameraType.Custom
 				end
+				-- 줌(Aiming/ADS) 상태일 때는 강제 줌백 로직을 우회하여 게임 본연의 조준 기능을 정상 작동하게 함
+				local isAiming = false
 				local char = player.Character
 				if char then
-					local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+					for _, tool in ipairs(char:GetChildren()) do
+						if tool:IsA("Tool") then
+							local aimingValue = tool:FindFirstChild("Aiming") or tool:FindFirstChild("IsAiming") or tool:FindFirstChild("Zoom")
+							if aimingValue then
+								if typeof(aimingValue) == "BoolValue" and aimingValue.Value == true then
+									isAiming = true
+								elseif typeof(aimingValue) == "NumberValue" and aimingValue.Value > 0 then
+									isAiming = true
+								end
+							end
+						end
+					end
+				end
+
+				if not isAiming then
+					local head = char and (char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart"))
 					if head and (currentCam.Focus.Position - head.Position).Magnitude > 50 then
 						currentCam.CFrame = CFrame.new(head.Position + Vector3.new(0, 5, -12), head.Position)
 					end
@@ -1089,7 +1106,7 @@ end)
 
 flyBox.FocusLost:Connect(function()
 	flySpeed = math.clamp(tonumber(flyBox.Text) or 50, 1, 1000)
-	flySpeedBoxText = tostring(flySpeed)
+	flyBox.Text = tostring(flySpeed)
 end)
 
 ragebotButton.MouseButton1Click:Connect(function()
@@ -1175,4 +1192,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.3.1 MODERN Loaded Successfully!")
+print("Anti-rival V1.4.5 Loaded Successfully!")
