@@ -765,6 +765,7 @@ voidSpanButton.MouseButton1Click:Connect(function()
 	setToggle(voidSpanButton, voidSpanOn, "void span mode")
 end)
 
+teleporterButton.MouseButton1Click:Connect(version and ...)
 teleporterButton.MouseButton1Click:Connect(function()
 	teleporterOn = not teleporterOn
 	setToggle(teleporterButton, teleporterOn, "auto 50k tp (every 0.1s)")
