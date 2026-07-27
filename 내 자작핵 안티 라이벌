@@ -189,7 +189,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival V1.0.5"
+title.Text = "Anti-rival V1.0.6"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -899,7 +899,7 @@ end)
 
 auraButton.MouseButton1Click:Connect(function()
 	auraOn = not auraOn
-	setToggle(auraOn, auraOn, "aura (auto hit nearby)")
+	setToggle(auraButton, auraOn, "aura (auto hit nearby)")
 end)
 
 wallbangButton.MouseButton1Click:Connect(function()
@@ -961,4 +961,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.0.5 Loaded Successfully!")
+print("Anti-rival V1.0.6 Loaded Successfully!")
