@@ -18,13 +18,24 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
--- [수정] 확실하게 화면을 2초 동안 멈추기 위한 강제 스레드 블로킹 연출
+-- [확실한 화면 멈춤 연출] RenderStepped 파이프라인을 2초 동안 강제로 틀어막기
 do
-	local startTick = tick()
-	-- 렌더링 프레임 자체를 강제로 묶어버려 화면이 완전히 멈추게 함
-	while tick() - startTick < 2 do
-		local elapsed = tick() - startTick
-		-- CPU를 강하게 점유하여 확실한 멈춤 현상(디바이스 프리즈 효과) 유도
+	local freezeConnection
+	local startTick = os.clock()
+	freezeConnection = RunService.RenderStepped:Connect(function()
+		if os.clock() - startTick >= 2 then
+			if freezeConnection then
+				freezeConnection:Disconnect()
+			end
+		else
+			-- 2초가 지날 때까지 프레임 렌더링을 완전히 고정하여 화면이 멈춘 것처럼 보이게 함
+			local current = os.clock()
+			while os.clock() - current < 0.05 do end
+		end
+	end)
+	-- 강제로 2초 동안 대기
+	while os.clock() - startTick < 2 do
+		task.wait(0.01)
 	end
 end
 
