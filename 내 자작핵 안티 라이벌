@@ -1,4 +1,4 @@
--- [V1.3.0 Update] Added Forced 3rd Person Camera Mode & Mobile Fly UP/DOWN Controls (2026-07-27 17:55)
+-- [V1.3.1 Update] Enhanced Forced 3rd Person Camera & Modern Kiciahook/Unname Integration (2026-07-27 18:02)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -285,7 +285,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.3.0-STABLE"
+title.Text = "Anti-rival-V1.3.1-MODERN"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -985,14 +985,29 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end)
 end))
 
+-- [V1.3.1 Enhanced Modern Kiciahook/Unname Style Engine-Level Camera Override for 3rd Person Lock]
 trackConn(RunService.RenderStepped:Connect(function()
 	if forceThirdPersonOn then
 		pcall(function()
-			if player.CameraMode ~= Enum.CameraMode.Classic then
-				player.CameraMode = Enum.CameraMode.Classic
-			end
+			player.CameraMode = Enum.CameraMode.Classic
 			if player.CameraMinZoomDistance < 10 then
 				player.CameraMinZoomDistance = 10
+			end
+			if player.CameraMaxZoomDistance < 10 then
+				player.CameraMaxZoomDistance = 100
+			end
+			local currentCam = getActiveCamera()
+			if currentCam then
+				if currentCam.CameraType == Enum.CameraType.Scriptable then
+					currentCam.CameraType = Enum.CameraType.Custom
+				end
+				local char = player.Character
+				if char then
+					local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+					if head and (currentCam.Focus.Position - head.Position).Magnitude > 50 then
+						currentCam.CFrame = CFrame.new(head.Position + Vector3.new(0, 5, -12), head.Position)
+					end
+				end
 			end
 		end)
 	end
@@ -1074,7 +1089,7 @@ end)
 
 flyBox.FocusLost:Connect(function()
 	flySpeed = math.clamp(tonumber(flyBox.Text) or 50, 1, 1000)
-	flyBox.Text = tostring(flySpeed)
+	flySpeedBoxText = tostring(flySpeed)
 end)
 
 ragebotButton.MouseButton1Click:Connect(function()
@@ -1160,4 +1175,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.3.0 STABLE Loaded Successfully!")
+print("Anti-rival V1.3.1 MODERN Loaded Successfully!")
