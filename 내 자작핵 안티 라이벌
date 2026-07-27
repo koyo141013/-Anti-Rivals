@@ -18,10 +18,14 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
--- [추가] 스크립트 실행 직후 화면을 의도적으로 2초 동안 멈춤 (락 걸기)
-local freezeStart = os.clock()
-while os.clock() - freezeStart < 2 do
-	-- 2초 동안 스레드를 블록하여 로딩 멈춤 효과 구현
+-- [수정] 확실하게 화면을 2초 동안 멈추기 위한 강제 스레드 블로킹 연출
+do
+	local startTick = tick()
+	-- 렌더링 프레임 자체를 강제로 묶어버려 화면이 완전히 멈추게 함
+	while tick() - startTick < 2 do
+		local elapsed = tick() - startTick
+		-- CPU를 강하게 점유하여 확실한 멈춤 현상(디바이스 프리즈 효과) 유도
+	end
 end
 
 -- 기존 구버전 UI 강제 제거
@@ -192,7 +196,7 @@ title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Center
 title.Parent = header
 
--- [수정] 디스코드 링크 위치를 오른쪽 끝(-10)에서 왼쪽으로 넉넉하게 이동 (-145 위치 지정)
+-- 디스코드 링크 위치 왼쪽으로 이동(-145 위치)
 local discordLabel = Instance.new("TextLabel")
 discordLabel.Size = UDim2.fromOffset(230, 20)
 discordLabel.AnchorPoint = Vector2.new(1, 0.5)
