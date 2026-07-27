@@ -1,4 +1,4 @@
--- [V1.2.11 Fix] 815줄 괄호 에러 수정 및 1인칭 마우스 강제 표시 기능 추가
+ [V1.2.11 Fix] 815줄 괄호 에러 수정 및 1인칭 마우스 강제 표시 기능 추가
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
