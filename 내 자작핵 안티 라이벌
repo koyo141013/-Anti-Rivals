@@ -1,4 +1,4 @@
--- [V1.2.15 Update] Fixed Mobile Jump/Fly responsiveness & syntax review (2026-07-27 17:33)
+-- [V1.2.16 Update] Added Draggable Mobile Fly UP/DOWN UI Controls & Fixed All Syntax Errors (2026-07-27 17:40)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -120,6 +120,49 @@ gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
+-- 모바일 전용 플라이 UP / DOWN 컨트롤 UI 생성
+local flyControlGui = Instance.new("ScreenGui")
+flyControlGui.Name = "AntiRivalFlyControls"
+flyControlGui.ResetOnSpawn = false
+flyControlGui.Enabled = false
+flyControlGui.Parent = player:WaitForChild("PlayerGui")
+
+local upButton = Instance.new("TextButton")
+upButton.Name = "UpButton"
+upButton.Size = UDim2.fromOffset(60, 60)
+upButton.Position = UDim2.new(0.8, 0, 0.5, 0)
+upButton.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+upButton.BackgroundTransparency = 0.3
+upButton.BorderColor3 = Color3.fromRGB(80, 150, 255)
+upButton.BorderSizePixel = 2
+upButton.Text = "UP"
+upButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+upButton.TextSize = 16
+upButton.Font = Enum.Font.Code
+upButton.Active = true
+upButton.Draggable = true
+upButton.Parent = flyControlGui
+
+local downButton = Instance.new("TextButton")
+downButton.Name = "DownButton"
+downButton.Size = UDim2.fromOffset(60, 60)
+downButton.Position = UDim2.new(0.8, 0, 0.65, 0)
+downButton.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+downButton.BackgroundTransparency = 0.3
+downButton.BorderColor3 = Color3.fromRGB(80, 150, 255)
+downButton.BorderSizePixel = 2
+downButton.Text = "DOWN"
+downButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+downButton.TextSize = 14
+downButton.Font = Enum.Font.Code
+downButton.Active = true
+downButton.Draggable = true
+trackConn(upButton.MouseButton1Down:Connect(function() flyUpActive = true end))
+trackConn(upButton.MouseButton1Up:Connect(function() flyUpActive = false end))
+
+trackConn(downButton.MouseButton1Down:Connect(function() flyDownActive = true end))
+trackConn(downButton.MouseButton1Up:Connect(function() flyDownActive = false end))
+
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
 window.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -238,7 +281,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.15-STABLE"
+title.Text = "Anti-rival-V1.2.16-STABLE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -567,7 +610,6 @@ end
 
 trackConn(UserInputService.InputBegan:Connect(handleInputBegan))
 
--- Improved Infinite Jump Core Handler (Supports Mobile & PC)
 trackConn(UserInputService.JumpRequest:Connect(function()
 	if infiniteJumpOn then
 		pcall(function()
@@ -579,7 +621,6 @@ trackConn(UserInputService.JumpRequest:Connect(function()
 	end
 end))
 
--- Fallback for Mobile Touch Jump Button if JumpRequest fails
 trackConn(RunService.RenderStepped:Connect(function()
 	if infiniteJumpOn then
 		pcall(function()
@@ -617,17 +658,23 @@ unloadBtn.MouseButton1Click:Connect(function()
 	end)
 	pcall(function() if gamma then gamma:Destroy() end end)
 	pcall(function() if gui then gui:Destroy() end end)
+	pcall(function() if flyControlGui then flyControlGui:Destroy() end end)
 end)
 
 local function executeFly(state)
 	flyOn = state
 	setToggle(flyButton, flyOn, "fly")
+	if isMobile then
+		flyControlGui.Enabled = flyOn
+	end
+	
 	local hum, root = getSafeParts()
 
 	if flyOn then
 		if not root or not hum then 
 			flyOn = false
 			setToggle(flyButton, false, "fly")
+			if isMobile then flyControlGui.Enabled = false end
 			return 
 		end
 
@@ -659,9 +706,10 @@ local function executeFly(state)
 				if currentHum.MoveDirection.Magnitude > 0 then
 					moveDir = currentHum.MoveDirection.Unit * flySpeed
 				end
-				-- Mobile vertical elevation control via Jump / Status
-				if currentHum.Jump then
+				if flyUpActive then
 					moveDir = moveDir + Vector3.new(0, flySpeed, 0)
+				elseif flyDownActive then
+					moveDir = moveDir - Vector3.new(0, flySpeed, 0)
 				end
 			else
 				if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + currentCam.CFrame.LookVector end
@@ -1079,7 +1127,7 @@ teleporterButton.MouseButton1Click:Connect(function()
 end)
 
 teleporterBox.FocusLost:Connect(function()
-	teleportDistance = math.clamp(tonumber(teleporterButton.Text) or 50000, 1, 1000000)
+	teleportDistance = math.clamp(tonumber(teleporterBox.Text) or 50000, 1, 1000000)
 	teleporterBox.Text = tostring(teleportDistance)
 end)
 
@@ -1089,4 +1137,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.15 STABLE Loaded Successfully!")
+print("Anti-rival V1.2.16 STABLE Loaded Successfully!")
