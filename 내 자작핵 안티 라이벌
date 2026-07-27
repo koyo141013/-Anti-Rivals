@@ -138,7 +138,8 @@ local actualScale = Instance.new("UIScale")
 actualScale.Scale = uiScaleFactor
 actualScale.Parent = window
 
--- [1인칭 고정 문제 해결] 1인칭 상태에서도 마우스 커서가 완벽히 나타나도록 락 해제 제어 강화
+-- [실시간 마우스 커서 강제 감시 및 복구 시스템]
+-- 1인칭 상태에서 게임이 마우스를 다시 잠그려고 할 때 UI가 켜져 있으면 실시간으로 강제 해제합니다.
 local function updateMouseState(isVisible)
 	pcall(function()
 		if not isMobile then
@@ -152,6 +153,17 @@ local function updateMouseState(isVisible)
 		end
 	end)
 end
+
+trackConn(RunService.RenderStepped:Connect(function()
+	if window.Visible and not isMobile then
+		pcall(function()
+			if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default or not UserInputService.MouseIconEnabled then
+				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+				UserInputService.MouseIconEnabled = true
+			end
+		end)
+	end
+end))
 
 updateMouseState(true)
 
@@ -178,7 +190,7 @@ openGuiBtn.MouseButton1Click:Connect(function()
 	updateMouseState(window.Visible)
 end)
 
--- [오른쪽 쉬프트 단축키 지원 추가]
+-- [오른쪽 쉬프트 단축키 지원]
 trackConn(UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.KeyCode == Enum.KeyCode.RightShift then
 		window.Visible = not window.Visible
@@ -195,7 +207,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (드래그 및 타이틀 - 버전 업그레이드 V1.1.6 반영)
+-- Header (드래그 및 타이틀 - 버전 업그레이드 V1.1.7 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -241,7 +253,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.6-FREE BUILD" -- [버전업 적용 완료] V1.1.5 -> V1.1.6
+title.Text = "Anti-rival-V1.1.7-FREE BUILD" -- [버전업 적용 완료] V1.1.6 -> V1.1.7
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -850,4 +862,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.6 FREE BUILD Loaded Successfully!")
+print("Anti-rival V1.1.7 FREE BUILD Loaded Successfully!")
