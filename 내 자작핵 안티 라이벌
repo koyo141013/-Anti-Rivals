@@ -1,4 +1,4 @@
--- [V1.4.8 Update] Added Game Validation Check for Rivals (Place ID: 17625359962) & Update Details Refreshed (2026-07-27)
+-- [V1.4.9 Update] Changed 'fly' to 'fly: fight', Added 'Trigger Bot' Feature & Update Details Refreshed (2026-07-27)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -64,6 +64,7 @@ end)
 local walkOn, flyOn, espOn, namesOn, healthOn, noclipOn = false, false, false, false, false, false
 local ragebotOn = false
 local auraOn = false
+local triggerBotOn = false
 local wallbangOn = false
 local godModeOn = false
 local orbitOn = false
@@ -207,7 +208,7 @@ end
 local kbRowRandomTp = createKbRow("RowRandomTp", "Q", "Random TP", "TOGGLE", 1)
 local kbRowAutoTp   = createKbRow("RowAutoTp", "E", "Auto 50k TP", "TOGGLE", 2)
 local kbRowOrbit    = createKbRow("RowOrbit", "R", "Orbit Mode", "TOGGLE", 3)
-local kbRowFly      = createKbRow("RowFly", "F", "Fly Mode", "TOGGLE", 4)
+local kbRowFly      = createKbRow("RowFly", "F", "Fly: Fight", "TOGGLE", 4)
 local kbRowMenu     = createKbRow("RowMenu", "RSHIFT", "UI Toggle", "TOGGLE", 5)
 
 local function updateKeybindUI(keyName, newKeyName)
@@ -382,7 +383,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.4.8-FREE BUILD"
+title.Text = "Anti-rival-V1.4.9-FREE BUILD"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -561,14 +562,15 @@ heading(mainPage, "movement / core controls")
 local walkBox = textbox(mainPage, "walk speed  (1–1000)", walkSpeed, 40)
 local walkButton = toggle(mainPage, "walk speed", 68)
 local flyBox = textbox(mainPage, "fly speed  (1–1000)", flySpeed, 106)
-local flyButton = toggle(mainPage, "fly", 134)
+local flyButton = toggle(mainPage, "fly: fight", 134)
 
 heading(worldPage, "world & combat perks")
 local ragebotButton = toggle(worldPage, "ragebot (auto lock snap)", 40)
 local auraButton = toggle(worldPage, "aura (auto hit nearby)", 70)
-local wallbangButton = toggle(worldPage, "projectile wallbang", 100)
-local godModeButton = toggle(worldPage, "god mode (forcefield)", 130)
-local forceThirdPersonButton = toggle(worldPage, "force 3rd person (rivals)", 160)
+local triggerBotButton = toggle(worldPage, "trigger bot (auto shoot target)", 100)
+local wallbangButton = toggle(worldPage, "projectile wallbang", 130)
+local godModeButton = toggle(worldPage, "god mode (forcefield)", 160)
+local forceThirdPersonButton = toggle(worldPage, "force 3rd person (rivals)", 190)
 
 heading(espPage, "player esp & information")
 local espButton = toggle(espPage, "player esp", 40)
@@ -639,7 +641,7 @@ end
 local bindRandomTpBtn = createKeybindRow(settingPage, "Key: Random Head TP", "randomTp", 80)
 local bindAutoTpBtn   = createKeybindRow(settingPage, "Key: Auto 50k TP", "autoTp", 112)
 local bindOrbitBtn    = createKeybindRow(settingPage, "Key: Orbit Mode", "orbit", 144)
-local bindFlyBtn      = createKeybindRow(settingPage, "Key: Fly Toggle", "fly", 176)
+local bindFlyBtn      = createKeybindRow(settingPage, "Key: Fly: Fight Toggle", "fly", 176)
 
 local function handleInputBegan(input, gameProcessed)
 	if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -768,7 +770,7 @@ end)
 
 local function executeFly(state)
 	flyOn = state
-	setToggle(flyButton, flyOn, "fly")
+	setToggle(flyButton, flyOn, "fly: fight")
 	if isMobile then
 		flyControlGui.Enabled = flyOn
 	end
@@ -778,7 +780,7 @@ local function executeFly(state)
 	if flyOn then
 		if not root or not hum then 
 			flyOn = false
-			setToggle(flyButton, false, "fly")
+			setToggle(flyButton, false, "fly: fight")
 			if isMobile then flyControlGui.Enabled = false end
 			return 
 		end
@@ -1086,6 +1088,26 @@ trackConn(RunService.RenderStepped:Connect(function()
 end))
 
 trackConn(RunService.RenderStepped:Connect(function()
+	if not triggerBotOn then return end
+	pcall(function()
+		local mouse = player:GetMouse()
+		local target = mouse.Target
+		if target and target.Parent then
+			local character = target.Parent
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+			local p = Players:GetPlayerFromCharacter(character)
+			if humanoid and humanoid.Health > 0 and p and p ~= player then
+				pcall(function()
+					for _, tool in ipairs(player.Character:GetChildren()) do
+						if tool:IsA("Tool") then tool:Activate() end
+					end
+				end)
+			end
+		end
+	end)
+end))
+
+trackConn(RunService.RenderStepped:Connect(function()
 	if forceThirdPersonOn then
 		pcall(function()
 			player.CameraMode = Enum.CameraMode.Classic
@@ -1217,6 +1239,11 @@ auraButton.MouseButton1Click:Connect(function()
 	setToggle(auraButton, auraOn, "aura (auto hit nearby)")
 end)
 
+triggerBotButton.MouseButton1Click:Connect(function()
+	triggerBotOn = not triggerBotOn
+	setToggle(triggerBotButton, triggerBotOn, "trigger bot (auto shoot target)")
+end)
+
 wallbangButton.MouseButton1Click:Connect(function()
 	wallbangOn = not wallbangOn
 	setToggle(wallbangButton, wallbangOn, "projectile wallbang")
@@ -1290,4 +1317,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.4.8 Loaded Successfully with Rivals Game Validation Check!")
+print("Anti-rival V1.4.9 Loaded Successfully with Fly: Fight and Trigger Bot!")
