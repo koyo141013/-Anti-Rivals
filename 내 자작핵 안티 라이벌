@@ -71,7 +71,7 @@ local walkSpeed, flySpeed = 16, 50
 local espColorRed, espColorGreen, espColorBlue = 255, 50, 50
 
 local flyConnection = nil
-local bodyGyro, bodyVelocity = nil, nil
+local bodyGyro, bodyVelocity, bodyPosition = nil, nil, nil
 
 local function trackConn(conn)
 	if conn then
@@ -204,13 +204,13 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 맨 위 정중앙 타이틀 (파란색, V1.0.9 업그레이드)
+-- 맨 위 정중앙 타이틀 (파란색, V1.1.0 최종 고정 및 완벽 업그레이드)
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.0.9-FREE Build"
+title.Text = "Anti-rival-V1.1.0-ULTIMATE Build"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -536,6 +536,9 @@ setupKeybindListener(noclipKeyBtn, "Noclip")
 setupKeybindListener(teleportKeyBtn, "Teleport")
 setupKeybindListener(voidSpanKeyBtn, "VoidSpan")
 
+----------------------------------------------------
+-- [모바일 및 PC 완벽 호환 비행(Fly) 시스템 개편]
+----------------------------------------------------
 toggleFly = function(state)
 	flyOn = state
 	setToggle(flyButton, flyOn, "fly")
@@ -572,6 +575,7 @@ toggleFly = function(state)
 			if bodyGyro then bodyGyro.CFrame = currentCam.CFrame end
 			local moveDir = Vector3.zero
 			
+			-- PC 키보드 입력 감지
 			if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + currentCam.CFrame.LookVector end
 			if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - currentCam.CFrame.LookVector end
 			if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - currentCam.CFrame.RightVector end
@@ -581,7 +585,18 @@ toggleFly = function(state)
 				moveDir = moveDir - Vector3.new(0, 1, 0)
 			end
 
-			if bodyVelocity then bodyVelocity.Velocity = moveDir * flySpeed end
+			-- 모바일 이동 조이스틱(MoveDirection) 완벽 연동 지원
+			if currentHum.MoveDirection.Magnitude > 0 then
+				moveDir = moveDir + (currentCam.CFrame:VectorToWorldSpace(Vector3.new(currentHum.MoveDirection.X, 0, currentHum.MoveDirection.Z)).Unit)
+			end
+
+			if bodyVelocity then 
+				if moveDir.Magnitude > 0 then
+					bodyVelocity.Velocity = moveDir.Unit * flySpeed
+				else
+					bodyVelocity.Velocity = Vector3.zero
+				end
+			end
 		end)
 		trackConn(flyConnection)
 	else
@@ -645,7 +660,7 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 end))
 
 ----------------------------------------------------
--- [안정적인 Highlight 기반 ESP 시스템 (이름 연동 오류 수정)]
+-- [ESP 및 플레이어 네임 독립 구동형 완벽 수정 시스템]
 ----------------------------------------------------
 local espCache = {}
 
@@ -664,35 +679,42 @@ end
 local function updateEspForPlayer(p)
 	if p == player then return end
 	local char = p.Character
-	if not espOn or not char or not char:FindFirstChild("HumanoidRootPart") then
+	-- ESP 또는 네임 중 하나라도 켜져 있어야 작동하도록 조건 수정
+	if (not espOn and not namesOn) or not char or not char:FindFirstChild("HumanoidRootPart") then
 		removeEsp(p)
 		return
 	end
 
 	local highlight = espCache[p] and espCache[p].Highlight
-	if not highlight or not highlight.Parent then
-		highlight = Instance.new("Highlight")
-		highlight.Name = "AntiRivalESP"
-		highlight.Adornee = char
-		highlight.FillColor = Color3.fromRGB(255, 50, 50)
-		highlight.FillTransparency = 0.5
-		highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-		highlight.OutlineTransparency = 0
-		highlight.Parent = char
+	if espOn then
+		if not highlight or not highlight.Parent then
+			highlight = Instance.new("Highlight")
+			highlight.Name = "AntiRivalESP"
+			highlight.Adornee = char
+			highlight.FillColor = Color3.fromRGB(255, 50, 50)
+			highlight.FillTransparency = 0.5
+			highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+			highlight.OutlineTransparency = 0
+			highlight.Parent = char
+		else
+			highlight.Adornee = char
+		end
 	else
-		highlight.Adornee = char
+		if highlight then
+			highlight:Destroy()
+			highlight = nil
+		end
 	end
 
 	local head = char:FindFirstChild("Head")
 	local billboard = espCache[p] and espCache[p].Billboard
 	
-	-- 이름 표시 기능(namesOn)이 켜져 있거나 ESP가 켜져 있을 때 이름 빌보드 렌더링 보장 (오류 수정)
-	if (espOn and namesOn) and head then
+	if namesOn and head then
 		if not billboard or not billboard.Parent then
 			billboard = Instance.new("BillboardGui")
 			billboard.Name = "AntiRivalName"
-			billboard.Size = UDim2.new(0, 100, 0, 40)
-			billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+			billboard.Size = UDim2.new(0, 120, 0, 50)
+			billboard.StudsOffset = Vector3.new(0, 2.8, 0)
 			billboard.AlwaysOnTop = true
 			billboard.Adornee = head
 
@@ -702,7 +724,7 @@ local function updateEspForPlayer(p)
 			textLabel.BackgroundTransparency = 1
 			textLabel.Text = p.Name
 			textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-			textLabel.TextSize = 12
+			textLabel.TextSize = 13
 			textLabel.Font = Enum.Font.Code
 			textLabel.TextStrokeTransparency = 0
 			textLabel.Parent = billboard
@@ -726,7 +748,7 @@ local function updateEspForPlayer(p)
 end
 
 trackConn(RunService.RenderStepped:Connect(function()
-	if not espOn then
+	if not espOn and not namesOn then
 		for p, _ in pairs(espCache) do
 			removeEsp(p)
 		end
@@ -947,8 +969,8 @@ espButton.MouseButton1Click:Connect(function()
 end)
 
 namesButton.MouseButton1Click:Connect(function()
-	namesButton = not namesButton
-	setToggle(namesButton, namesButton, "player names")
+	namesOn = not namesOn
+	setToggle(namesButton, namesOn, "player names")
 end)
 
 fastShotButton.MouseButton1Click:Connect(function()
@@ -967,7 +989,6 @@ orbitButton.MouseButton1Click:Connect(function()
 	setToggle(orbitButton, orbitOn, "orbit position mode")
 end)
 
--- [오타 수정 완료: voidSYSpanOn -> voidSpanOn]
 voidSpanButton.MouseButton1Click:Connect(function()
 	voidSpanOn = not voidSpanOn
 	if voidSpanOn then orbitOn = false setToggle(orbitButton, false, "orbit position mode") end
@@ -990,4 +1011,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.0.9 Loaded Successfully!")
+print("Anti-rival V1.1.0 Loaded Successfully!")
