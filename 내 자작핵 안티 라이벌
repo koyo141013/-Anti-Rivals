@@ -18,8 +18,8 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
--- [모바일 환경 완벽 대응 및 스케일 강제 적용]
-local isMobile = UserInputService.TouchEnabled or (UserInputService.MaxTouchPoints > 0)
+-- [모바일 환경 감지 에러 수정 (TouchEnabled만 안전하게 사용)]
+local isMobile = UserInputService.TouchEnabled
 local uiScaleFactor = isMobile and 0.55 or 1.0
 
 -- [확실한 화면 멈춤 연출] RenderStepped 파이프라인을 2초 동안 강제로 틀어막기
@@ -221,7 +221,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.2-FIXED"
+title.Text = "Anti-rival-V1.1.3-FIXED"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -802,7 +802,7 @@ fastShotBox.FocusLost:Connect(function()
 	fastShotBox.Text = tostring(fastShotRate)
 end)
 
-orbitButton.MouseButton1Click:Connect(function()
+orbitButton.MouseButton1Click:Connect(function`()
 	orbitOn = not orbitOn
 	if orbitOn then voidSpanOn = false setToggle(voidSpanButton, false, "void span mode") end
 	setToggle(orbitButton, orbitOn, "orbit position mode")
@@ -830,4 +830,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.2 Loaded Successfully!")
+print("Anti-rival V1.1.3 Loaded Successfully!")
