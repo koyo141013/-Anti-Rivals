@@ -248,7 +248,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.3-STABLE"
+title.Text = "Anti-rival-V1.2.4-STABLE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -673,8 +673,7 @@ local espCache = {}
 local function removeEsp(p)
 	if espCache[p] then
 		if espCache[p].Highlight then espCache[p].Highlight:Destroy() end
-		if espCache[p].Billboard then espCache[p].Billboard:Destroy() end
-		if espCache[p].HealthBillboard then espCache[p].HealthBillboard:Destroy() end
+		if espCache[p].InfoBillboard then espCache[p].InfoBillboard:Destroy() end
 		espCache[p] = nil
 	end
 end
@@ -708,69 +707,71 @@ local function updateEspForPlayer(p)
 	end
 
 	local head = char:FindFirstChild("Head")
-	
-	local billboard = espCache[p] and espCache[p].Billboard
-	if namesOn and head then
-		if not billboard or not billboard.Parent then
-			billboard = Instance.new("BillboardGui")
-			billboard.Name = "AntiRivalName"
-			billboard.Size = UDim2.new(0, 120, 0, 30)
-			billboard.StudsOffset = Vector3.new(0, 2.8, 0)
-			billboard.AlwaysOnTop = true
-			billboard.Adornee = head
+	local infoBillboard = espCache[p] and espCache[p].InfoBillboard
 
-			local textLabel = Instance.new("TextLabel")
-			textLabel.Name = "NameText"
-			textLabel.Size = UDim2.fromScale(1, 1)
-			textLabel.BackgroundTransparency = 1
-			textLabel.Text = p.Name
-			textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-			textLabel.TextSize = 13
-			textLabel.Font = Enum.Font.Code
-			textLabel.TextStrokeTransparency = 0
-			textLabel.Parent = billboard
+	if (namesOn or healthOn) and head then
+		if not infoBillboard or not infoBillboard.Parent then
+			infoBillboard = Instance.new("BillboardGui")
+			infoBillboard.Name = "AntiRivalInfo"
+			infoBillboard.Size = UDim2.new(0, 160, 0, 50)
+			infoBillboard.StudsOffset = Vector3.new(0, 2.5, 0)
+			infoBillboard.AlwaysOnTop = true
+			infoBillboard.Adornee = head
 
-			billboard.Parent = head
+			local uiList = Instance.new("UIListLayout")
+			uiList.Name = "ListLayout"
+			uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			uiList.VerticalAlignment = Enum.VerticalAlignment.Center
+			uiList.SortOrder = Enum.SortOrder.LayoutOrder
+			uiList.Padding = UDim.new(0, 2)
+			uiList.Parent = infoBillboard
+
+			local nameText = Instance.new("TextLabel")
+			nameText.Name = "NameText"
+			nameText.LayoutOrder = 1
+			nameText.Size = UDim2.new(1, 0, 0, 20)
+			nameText.BackgroundTransparency = 1
+			nameText.TextColor3 = Color3.fromRGB(255, 255, 255)
+			nameText.TextSize = 13
+			nameText.Font = Enum.Font.Code
+			nameText.TextStrokeTransparency = 0
+			nameText.Parent = infoBillboard
+
+			local healthText = Instance.new("TextLabel")
+			healthText.Name = "HealthText"
+			healthText.LayoutOrder = 2
+			healthText.Size = UDim2.new(1, 0, 0, 20)
+			healthText.BackgroundTransparency = 1
+			healthText.TextColor3 = Color3.fromRGB(80, 255, 120)
+			healthText.TextSize = 12
+			healthText.Font = Enum.Font.Code
+			healthText.TextStrokeTransparency = 0
+			healthText.Parent = infoBillboard
+
+			infoBillboard.Parent = head
 		else
-			billboard.Adornee = head
+			infoBillboard.Adornee = head
 		end
-	else
-		if billboard then billboard:Destroy() billboard = nil end
-	end
 
-	local healthBillboard = espCache[p] and espCache[p].HealthBillboard
-	if healthOn and head and hum then
-		if not healthBillboard or not healthBillboard.Parent then
-			healthBillboard = Instance.new("BillboardGui")
-			healthBillboard.Name = "AntiRivalHealth"
-			healthBillboard.Size = UDim2.new(0, 120, 0, 30)
-			healthBillboard.StudsOffset = Vector3.new(0, 1.8, 0)
-			healthBillboard.AlwaysOnTop = true
-			healthBillboard.Adornee = head
+		local nameLabel = infoBillboard:FindFirstChild("NameText")
+		local healthLabel = infoBillboard:FindFirstChild("HealthText")
 
-			local healthLabel = Instance.new("TextLabel")
-			healthLabel.Name = "HealthText"
-			healthLabel.Size = UDim2.fromScale(1, 1)
-			healthLabel.BackgroundTransparency = 1
-			healthLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
-			healthLabel.TextSize = 12
-			healthLabel.Font = Enum.Font.Code
-			healthLabel.TextStrokeTransparency = 0
-			healthLabel.Parent = healthBillboard
+		if nameLabel then
+			nameLabel.Visible = namesOn
+			nameLabel.Text = p.Name
+		end
 
-			healthBillboard.Parent = head
-		else
-			healthBillboard.Adornee = head
-			local textLabel = healthBillboard:FindFirstChild("HealthText")
-			if textLabel then
-				textLabel.Text = "HP: " .. math.floor(hum.Health) .. " / " .. math.floor(hum.MaxHealth)
+		if healthLabel then
+			healthLabel.Visible = (healthOn and hum ~= nil)
+			if hum then
+				healthLabel.Text = "HP: " .. math.floor(hum.Health) .. " / " .. math.floor(hum.MaxHealth)
 			end
 		end
 	else
-		if healthBillboard then healthBillboard:Destroy() healthBillboard = nil end
+		if infoBillboard then infoBillboard:Destroy() infoBillboard = nil end
 	end
 
-	espCache[p] = { Highlight = highlight, Billboard = billboard, HealthBillboard = healthBillboard }
+	espCache[p] = { Highlight = highlight, InfoBillboard = infoBillboard }
 end
 
 trackConn(RunService.RenderStepped:Connect(function()
@@ -827,7 +828,7 @@ randomTpButton.MouseButton1Click:Connect(function()
 			end)
 		end
 	end)
-end)
+end))
 
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
@@ -1044,4 +1045,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.3 STABLE Loaded Successfully!")
+print("Anti-rival V1.2.4 STABLE Loaded Successfully!")
