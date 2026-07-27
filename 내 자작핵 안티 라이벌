@@ -18,6 +18,12 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
+-- [추가] 스크립트 실행 직후 화면을 의도적으로 2초 동안 멈춤 (락 걸기)
+local freezeStart = os.clock()
+while os.clock() - freezeStart < 2 do
+	-- 2초 동안 스레드를 블록하여 로딩 멈춤 효과 구현
+end
+
 -- 기존 구버전 UI 강제 제거
 for _, guiObj in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
 	if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
@@ -69,7 +75,6 @@ local function getSafeParts()
 	return humanoid, rootPart
 end
 
--- [사전 정의] 토글 UI 상태 업데이트 함수
 local function setToggle(button, enabled, text)
 	if not button then return end
 	button.Text = text .. (enabled and ": ON" or ": OFF")
@@ -77,7 +82,6 @@ local function setToggle(button, enabled, text)
 	button.BorderColor3 = enabled and Color3.fromRGB(50, 110, 70) or Color3.fromRGB(100, 45, 45)
 end
 
--- [사전 정의] 플라이 핵심 물리 제어 함수
 local toggleFly = nil
 
 local gamma = Lighting:FindFirstChild("AntiRivalGamma") or Instance.new("ColorCorrectionEffect")
@@ -188,10 +192,11 @@ title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Center
 title.Parent = header
 
+-- [수정] 디스코드 링크 위치를 오른쪽 끝(-10)에서 왼쪽으로 넉넉하게 이동 (-145 위치 지정)
 local discordLabel = Instance.new("TextLabel")
 discordLabel.Size = UDim2.fromOffset(230, 20)
 discordLabel.AnchorPoint = Vector2.new(1, 0.5)
-discordLabel.Position = UDim2.new(1, -10, 0.5, 0)
+discordLabel.Position = UDim2.new(1, -145, 0.5, 0)
 discordLabel.BackgroundTransparency = 1
 discordLabel.Text = "discord: https://discord.gg/WBkDd4AGJ"
 discordLabel.TextColor3 = Color3.fromRGB(140, 140, 150)
@@ -290,9 +295,6 @@ tab("cheater", "cheater", 5)
 tab("misc", "misc", 6)
 tab("settings", "settings", 7)
 
-----------------------------------------------------
--- UI 컨트롤 빌더
-----------------------------------------------------
 local function heading(parent, text)
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.new(1, -20, 0, 24)
@@ -348,7 +350,6 @@ local function toggle(parent, text, y)
 	return button
 end
 
--- 컴포넌트 배치
 heading(mainPage, "movement / core controls")
 local walkBox = textbox(mainPage, "walk speed  (1–1000)", walkSpeed, 40)
 local walkButton = toggle(mainPage, "walk speed", 68)
@@ -378,9 +379,6 @@ local teleporterButton = toggle(cheaterPage, "auto 50k tp (every 0.1s)", 134)
 heading(miscPage, "misc / collision settings")
 local noclipButton = toggle(miscPage, "noclip", 40)
 
-----------------------------------------------------
--- [Settings 탭] 키바인드 매니저
-----------------------------------------------------
 heading(settingPage, "keybind manager")
 
 local keybinds = { Speed = nil, Fly = nil, ESP = nil, Noclip = nil, Teleport = nil }
@@ -435,9 +433,6 @@ setupKeybindListener(espKeyBtn, "ESP")
 setupKeybindListener(noclipKeyBtn, "Noclip")
 setupKeybindListener(teleportKeyBtn, "Teleport")
 
-----------------------------------------------------
--- [핵심 기능 함수 구현]
-----------------------------------------------------
 toggleFly = function(state)
 	flyOn = state
 	setToggle(flyButton, flyOn, "fly")
@@ -500,9 +495,6 @@ toggleFly = function(state)
 	end
 end
 
-----------------------------------------------------
--- [기능 실행 루프들]
-----------------------------------------------------
 trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 	if bindingTarget and bindingButton then
 		if input.KeyCode ~= Enum.KeyCode.Unknown then
@@ -544,7 +536,6 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 	end
 end))
 
--- 레이지봇 루프
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
 	pcall(function()
@@ -580,7 +571,6 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end)
 end))
 
--- 오라 루프
 trackConn(RunService.RenderStepped:Connect(function()
 	if not auraOn then return end
 	pcall(function()
@@ -611,7 +601,6 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end)
 end))
 
--- 위치 조작 루프
 trackConn(RunService.RenderStepped:Connect(function()
 	if orbitOn then
 		pcall(function()
@@ -633,7 +622,6 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
--- 텔레포트 루프
 trackConn(RunService.RenderStepped:Connect(function()
 	if not teleporterOn then return end
 	local now = os.clock()
@@ -652,7 +640,6 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
--- Fast Shot 루프
 trackConn(RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
 	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
@@ -688,7 +675,6 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
--- Noclip 루프
 trackConn(RunService.Stepped:Connect(function()
 	if not noclipOn then return end
 	pcall(function()
@@ -703,9 +689,6 @@ trackConn(RunService.Stepped:Connect(function()
 	end)
 end))
 
-----------------------------------------------------
--- UI 버튼 이벤트 바인딩
-----------------------------------------------------
 walkButton.MouseButton1Click:Connect(function()
 	walkOn = not walkOn
 	setToggle(walkButton, walkOn, "walk speed")
