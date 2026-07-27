@@ -189,7 +189,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival V1.0.3"
+title.Text = "Anti-rival V1.0.4"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -707,7 +707,7 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
--- 7. 3D 박스 ESP
+-- 7. 3D 박스 ESP (시점 회전 시 밀림/잔상 버그 수정 버전)
 local espCache = {}
 
 local function clearESP()
@@ -747,7 +747,7 @@ trackConn(RunService.RenderStepped:Connect(function()
 
 				local cache = espCache[p]
 				local cf = root.CFrame
-				local size = Vector3.new(3, 5.2, 3)
+				local size = Vector3.new(2.5, 5, 2.5)
 				
 				local corners = {
 					cf * CFrame.new(size.X, size.Y, size.Z),
@@ -762,12 +762,12 @@ trackConn(RunService.RenderStepped:Connect(function()
 
 				local minX, minY = math.huge, math.huge
 				local maxX, maxY = -math.huge, -math.huge
-				local onScreenAll = true
+				local onscreenCount = 0
 
 				for _, corner in ipairs(corners) do
 					local screenPoint, onScreen = currentCam:WorldToViewportPoint(corner.Position)
-					if not onScreen then
-						onScreenAll = false
+					if onScreen then
+						onscreenCount = onscreenCount + 1
 					end
 					minX = math.min(minX, screenPoint.X)
 					minY = math.min(minY, screenPoint.Y)
@@ -777,7 +777,7 @@ trackConn(RunService.RenderStepped:Connect(function()
 
 				local rootScreenPos, rootOnScreen = currentCam:WorldToViewportPoint(root.Position)
 
-				if rootOnScreen and (espOn or namesOn) then
+				if onscreenCount > 0 and (espOn or namesOn) then
 					local boxW = maxX - minX
 					local boxH = maxY - minY
 
@@ -907,7 +907,7 @@ wallbangButton.MouseButton1Click:Connect(function()
 	setToggle(wallbangButton, wallbangOn, "projectile wallbang")
 end)
 
-godModeButton.MouseButton1Click:Connect(function()
+godModeButton.MouseButton1Click:Connect(function`()
 	godModeOn = not godModeOn
 	setToggle(godModeButton, godModeOn, "god mode (forcefield)")
 end)
@@ -961,4 +961,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.0.3 Loaded Successfully!")
+print("Anti-rival V1.0.4 Loaded Successfully!")
