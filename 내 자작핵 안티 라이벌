@@ -16,6 +16,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
 -- [완전한 에러 방어: UserInputService 속성 접근 제거 및 런타임 환경 감지 적용]
@@ -70,6 +71,11 @@ local wallbangOn = false
 local godModeOn = false
 local orbitOn = false
 local voidSpanOn = false
+
+-- Rivals 자동 매치 관련 변수
+local autoMatchOn = false
+local currentMatchMode = "1VS1" -- 기본 선택 모드
+local lastMatchQueueTick = 0
 
 local fastShotOn = false
 local fastShotRate = 800
@@ -215,7 +221,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (드래그 및 타이틀 - 버전 V1.1.16 반영)
+-- Header (드래그 및 타이틀 - 버전 V1.2.0 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -261,7 +267,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.16-FREE BUILD" -- [버전업 V1.1.16 적용 완료]
+title.Text = "Anti-rival-V1.2.0-FREE BUILD" -- [버전업 V1.2.0 적용 완료]
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -328,7 +334,7 @@ local function page(name)
 	frame.Name = name
 	frame.Size = UDim2.fromScale(1, 1)
 	frame.BackgroundTransparency = 1
-	frame.CanvasSize = UDim2.new(0, 0, 2.2, 0)
+	frame.CanvasSize = UDim2.new(0, 0, 2.5, 0) -- 탭 공간 확장 반영
 	frame.ScrollBarThickness = 4
 	frame.Visible = false
 	frame.Parent = content
@@ -452,10 +458,61 @@ local auraButton = toggle(worldPage, "aura (auto hit nearby)", 70)
 local wallbangButton = toggle(worldPage, "projectile wallbang", 100)
 local godModeButton = toggle(worldPage, "god mode (forcefield)", 130)
 
+----------------------------------------------------
+-- [Rivals 전용 자동 매치 시스템 UI 컴포넌트 추가]
+----------------------------------------------------
+local matchHeading = Instance.new("TextLabel")
+matchHeading.Size = UDim2.new(1, -20, 0, 24)
+matchHeading.Position = UDim2.fromOffset(10, 165)
+matchHeading.BackgroundTransparency = 1
+matchHeading.Text = "rivals auto match queue system"
+matchHeading.TextColor3 = Color3.fromRGB(200, 200, 205)
+matchHeading.TextSize = 12
+matchHeading.Font = Enum.Font.Code
+matchHeading.TextXAlignment = Enum.TextXAlignment.Left
+matchHeading.Parent = worldPage
+
+local matchModeLabel = Instance.new("TextLabel")
+matchModeLabel.Size = UDim2.fromOffset(140, 24)
+matchModeLabel.Position = UDim2.fromOffset(14, 195)
+matchModeLabel.BackgroundTransparency = 1
+matchModeLabel.Text = "Select Mode: 1VS1"
+matchModeLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+matchModeLabel.TextSize = 11
+matchModeLabel.Font = Enum.Font.Code
+matchModeLabel.TextXAlignment = Enum.TextXAlignment.Left
+matchModeLabel.Parent = worldPage
+
+local modesList = {"1VS1", "2VS2", "3VS3", "4VS4", "5VS5"}
+local currentModeIndex = 1
+
+local cycleModeBtn = Instance.new("TextButton")
+cycleModeBtn.Size = UDim2.fromOffset(138, 24)
+cycleModeBtn.Position = UDim2.fromOffset(162, 195)
+cycleModeBtn.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
+cycleModeBtn.BorderColor3 = Color3.fromRGB(60, 80, 120)
+cycleModeBtn.BorderSizePixel = 1
+cycleModeBtn.Text = "CHANGE MODE"
+cycleModeBtn.TextColor3 = Color3.fromRGB(220, 230, 255)
+cycleModeBtn.TextSize = 10
+cycleModeBtn.Font = Enum.Font.Code
+cycleModeBtn.Parent = worldPage
+
+cycleModeBtn.MouseButton1Click:Connect(function()
+	currentModeIndex = currentModeIndex + 1
+	if currentModeIndex > #modesList then
+		currentModeIndex = 1
+	end
+	currentMatchMode = modesList[currentModeIndex]
+	matchModeLabel.Text = "Select Mode: " .. currentMatchMode
+end)
+
+local autoMatchButton = toggle(worldPage, "auto match queue", 228)
+
 heading(espPage, "player esp & information")
 local espButton = toggle(espPage, "player esp", 40)
 local namesButton = toggle(espPage, "player names", 70)
-local healthButton = toggle(espPage, "player health text", 100) -- [신규 추가: 플레이어 체력 수치 표시 기능]
+local healthButton = toggle(espPage, "player health text", 100)
 
 heading(visualsPage, "position manipulation & extreme utility")
 local orbitButton = toggle(visualsPage, "orbit position mode", 40)
@@ -694,7 +751,7 @@ toggleFly = function(state)
 end
 
 ----------------------------------------------------
--- ESP & Health Text 시스템 (체력 숫자 표시 연동)
+-- ESP & Health Text 시스템
 ----------------------------------------------------
 local espCache = {}
 
@@ -717,7 +774,6 @@ local function updateEspForPlayer(p)
 		return
 	end
 
-	-- 1. 고정 하이라이트 (ESP)
 	local highlight = espCache[p] and espCache[p].Highlight
 	if espOn then
 		if not highlight or not highlight.Parent then
@@ -738,7 +794,6 @@ local function updateEspForPlayer(p)
 
 	local head = char:FindFirstChild("Head")
 	
-	-- 2. 플레이어 이름 표시
 	local billboard = espCache[p] and espCache[p].Billboard
 	if namesOn and head then
 		if not billboard or not billboard.Parent then
@@ -768,14 +823,13 @@ local function updateEspForPlayer(p)
 		if billboard then billboard:Destroy() billboard = nil end
 	end
 
-	-- 3. 플레이어 체력 수치 표시 (Health Text)
 	local healthBillboard = espCache[p] and espCache[p].HealthBillboard
 	if healthOn and head and hum then
 		if not healthBillboard or not healthBillboard.Parent then
 			healthBillboard = Instance.new("BillboardGui")
 			healthBillboard.Name = "AntiRivalHealth"
 			healthBillboard.Size = UDim2.new(0, 120, 0, 30)
-			healthBillboard.StudsOffset = Vector3.new(0, 1.8, 0) -- 이름표 아래쪽에 위치하도록 오프셋 조정
+			healthBillboard.StudsOffset = Vector3.new(0, 1.8, 0)
 			healthBillboard.AlwaysOnTop = true
 			healthBillboard.Adornee = head
 
@@ -864,7 +918,7 @@ randomTpButton.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- 기타 루프 기능들
+-- 기타 루프 기능들 (Ragebot, Aura, Orbit, Teleporter, Auto Match Queue)
 ----------------------------------------------------
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
@@ -968,6 +1022,32 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
+-- [Rivals 전용 자동 매치 메이킹 루프 구현]
+trackConn(RunService.RenderStepped:Connect(function()
+	if not autoMatchOn then return end
+	local now = os.clock()
+	if now - lastMatchQueueTick >= 1.0 then -- 1초 주기로 매치 큐 패킷/리모트 호출 시뮬레이션
+		lastMatchQueueTick = now
+		pcall(function()
+			-- Rivals 게임 내 리모트 이벤트/펑션을 안전하게 탐색하여 자동 매치 큐 진입 시도
+			for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
+				if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
+					local rName = remote.Name:lower()
+					if rName:find("match") or rName:find("queue") or rName:find("duel") or rName:find("party") then
+						pcall(function()
+							if remote:IsA("RemoteEvent") then
+								remote:FireServer(currentMatchMode)
+							elseif remote:IsA("RemoteFunction") then
+								remote:InvokeServer(currentMatchMode)
+							end
+						end)
+					end
+				end
+			end
+		end)
+	end
+end))
+
 trackConn(RunService.Stepped:Connect(function()
 	if not noclipOn then return end
 	pcall(function()
@@ -1028,6 +1108,11 @@ godModeButton.MouseButton1Click:Connect(function()
 	setToggle(godModeButton, godModeOn, "god mode (forcefield)")
 end)
 
+autoMatchButton.MouseButton1Click:Connect(function()
+	autoMatchOn = not autoMatchOn
+	setToggle(autoMatchButton, autoMatchOn, "auto match queue")
+end)
+
 espButton.MouseButton1Click:Connect(function()
 	espOn = not espOn
 	setToggle(espButton, espOn, "player esp")
@@ -1081,4 +1166,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.16 FREE BUILD Loaded Successfully!")
+print("Anti-rival V1.2.0 FREE BUILD Loaded Successfully!")
