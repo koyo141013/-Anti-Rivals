@@ -18,9 +18,9 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
--- [모바일 환경 감지 및 UI 스케일 결정]
-local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-local uiScaleFactor = isMobile and 0.65 or 1.0
+-- [모바일 환경 완벽 대응 및 스케일 강제 적용]
+local isMobile = UserInputService.TouchEnabled or (UserInputService.MaxTouchPoints > 0)
+local uiScaleFactor = isMobile and 0.55 or 1.0
 
 -- [확실한 화면 멈춤 연출] RenderStepped 파이프라인을 2초 동안 강제로 틀어막기
 do
@@ -42,17 +42,16 @@ do
 end
 
 -- 기존 구버전 UI 강제 제거
-for _, guiObj in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
-	if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
-		guiObj:Destroy()
+pcall(function()
+	for _, guiObj in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
+		if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
+			guiObj:Destroy()
+		end
 	end
-end
+end)
 
 local walkOn, flyOn, espOn, namesOn, noclipOn = false, false, false, false, false
-local aimbotOn = false
 local ragebotOn = false
-local shaderOn = false
-
 local auraOn = false
 local wallbangOn = false
 local godModeOn = false
@@ -68,7 +67,6 @@ local lastTeleportTick = 0
 local teleportDistance = 50000
 
 local walkSpeed, flySpeed = 16, 50
-local espColorRed, espColorGreen, espColorBlue = 255, 50, 50
 
 local flyConnection = nil
 local bodyGyro, bodyVelocity = nil, nil
@@ -109,48 +107,64 @@ local gui = Instance.new("ScreenGui")
 gui.Name = "AntiRival"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-gui.Parent = player.PlayerGui
+gui.Parent = player:WaitForChild("PlayerGui")
 
 ----------------------------------------------------
--- 메인 UI 창 (모바일 크기 완벽 최적화 적용)
+-- 메인 UI 창 (모바일 강제 소형화 및 백업 컨테이너)
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
 window.Position = UDim2.new(0.5, 0, 0.5, 0)
-window.Size = UDim2.fromOffset(520, 620)
+window.Size = UDim2.fromOffset(480, 560)
 window.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 window.BorderColor3 = Color3.fromRGB(38, 38, 42)
 window.BorderSizePixel = 1
 window.Visible = true
 window.Parent = gui
 
--- 모바일 환경인 경우 화면에 꽉 차지 않도록 UIScale을 확실하게 적용하고 크기 축소
+-- UIScale을 통해 모바일에서 확실하게 작아지도록 보장
 local actualScale = Instance.new("UIScale")
 actualScale.Scale = uiScaleFactor
 actualScale.Parent = window
 
 local function updateMouseState(isVisible)
-	if isVisible then
-		UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-		UserInputService.MouseIconEnabled = true
-	else
-		UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-		UserInputService.MouseIconEnabled = false
-	end
+	pcall(function()
+		if not isMobile then
+			if isVisible then
+				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+				UserInputService.MouseIconEnabled = true
+			else
+				UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+				UserInputService.MouseIconEnabled = false
+			end
+		end
+	end)
 end
 
 updateMouseState(true)
 
-trackConn(RunService.RenderStepped:Connect(function()
-	if window.Visible then
-		if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default then
-			UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-		end
-		if not UserInputService.MouseIconEnabled then
-			UserInputService.MouseIconEnabled = true
-		end
-	end
-end))
+----------------------------------------------------
+-- 모바일 전용 토글(열기/닫기) 플로팅 버튼 (모바일 화면 좌측 중앙에 확실히 노출)
+----------------------------------------------------
+local openGuiBtn = Instance.new("TextButton")
+openGuiBtn.Name = "AntiRivalOpenButton"
+openGuiBtn.Size = UDim2.fromOffset(130, 45)
+openGuiBtn.Position = UDim2.new(0, 10, 0.35, 0)
+openGuiBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+openGuiBtn.BorderColor3 = Color3.fromRGB(80, 150, 255)
+openGuiBtn.BorderSizePixel = 2
+openGuiBtn.Text = "UI TOGGLE"
+openGuiBtn.TextColor3 = Color3.fromRGB(80, 150, 255)
+openGuiBtn.TextSize = 14
+openGuiBtn.Font = Enum.Font.Code
+openGuiBtn.Active = true
+openGuiBtn.Draggable = true
+openGuiBtn.Parent = gui
+
+openGuiBtn.MouseButton1Click:Connect(function()
+	window.Visible = not window.Visible
+	updateMouseState(window.Visible)
+end)
 
 local innerBorder = Instance.new("Frame")
 innerBorder.Size = UDim2.new(1, -2, 1, -2)
@@ -161,7 +175,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (정중앙 파란색 타이틀 + 맨 위 우측 디스코드 버튼)
+-- Header (드래그 및 타이틀)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -202,28 +216,26 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 맨 위 정중앙 타이틀 (파란색, V1.1.1 반응형 모바일 축소 빌드)
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.1-RESPONSIVE"
+title.Text = "Anti-rival-V1.1.2-FIXED"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Center
 title.Parent = header
 
--- 맨 위 우측 디스코드 링크 버튼
 local discordBtn = Instance.new("TextButton")
 discordBtn.AnchorPoint = Vector2.new(1, 0.5)
 discordBtn.Position = UDim2.new(1, -8, 0.5, 0)
-discordBtn.Size = UDim2.fromOffset(130, 20)
+discordBtn.Size = UDim2.fromOffset(120, 20)
 discordBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 discordBtn.BorderColor3 = Color3.fromRGB(50, 50, 70)
 discordBtn.BorderSizePixel = 1
-discordBtn.Text = "Discord: Copy Link"
+discordBtn.Text = "Discord: Copy"
 discordBtn.TextColor3 = Color3.fromRGB(130, 170, 255)
 discordBtn.TextSize = 10
 discordBtn.Font = Enum.Font.Code
@@ -233,37 +245,14 @@ discordBtn.MouseButton1Click:Connect(function()
 	pcall(function()
 		if setclipboard then
 			setclipboard("https://discord.gg/WBkDd4AGJ")
-			discordBtn.Text = "Copied Link!"
+			discordBtn.Text = "Copied!"
 			task.delay(1.5, function()
 				if discordBtn and discordBtn.Parent then
-					discordBtn.Text = "Discord: Copy Link"
+					discordBtn.Text = "Discord: Copy"
 				end
 			end)
 		end
 	end)
-end)
-
-----------------------------------------------------
--- 모바일 전용 토글(열기/닫기) 플로팅 버튼 생성
-----------------------------------------------------
-local openGuiBtn = Instance.new("TextButton")
-openGuiBtn.Name = "AntiRivalOpenButton"
-openGuiBtn.Size = UDim2.fromOffset(110, 38)
-openGuiBtn.Position = UDim2.new(0, 15, 0.4, 0)
-openGuiBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-openGuiBtn.BorderColor3 = Color3.fromRGB(80, 150, 255)
-openGuiBtn.BorderSizePixel = 2
-openGuiBtn.Text = "UI TOGGLE"
-openGuiBtn.TextColor3 = Color3.fromRGB(80, 150, 255)
-openGuiBtn.TextSize = 12
-openGuiBtn.Font = Enum.Font.Code
-openGuiBtn.Active = true
-openGuiBtn.Draggable = true
-openGuiBtn.Parent = gui
-
-openGuiBtn.MouseButton1Click:Connect(function()
-	window.Visible = not window.Visible
-	updateMouseState(window.Visible)
 end)
 
 ----------------------------------------------------
@@ -274,7 +263,7 @@ tabs.Size = UDim2.new(1, -16, 0, 24)
 tabs.Position = UDim2.fromOffset(8, 30)
 tabs.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 tabs.BorderSizePixel = 0
-tabs.CanvasSize = UDim2.new(0, 650, 0, 0)
+tabs.CanvasSize = UDim2.new(0, 600, 0, 0)
 tabs.ScrollBarThickness = 0
 tabs.Parent = innerBorder
 
@@ -299,7 +288,7 @@ local function page(name)
 	frame.Name = name
 	frame.Size = UDim2.fromScale(1, 1)
 	frame.BackgroundTransparency = 1
-	frame.CanvasSize = UDim2.new(0, 0, 2.0, 0)
+	frame.CanvasSize = UDim2.new(0, 0, 2.2, 0)
 	frame.ScrollBarThickness = 4
 	frame.Visible = false
 	frame.Parent = content
@@ -334,14 +323,14 @@ end
 
 local function tab(text, name, order)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.fromOffset(72, 22)
+	button.Size = UDim2.fromOffset(64, 22)
 	button.LayoutOrder = order
 	button.BackgroundColor3 = Color3.fromRGB(16, 16, 18)
 	button.BorderColor3 = Color3.fromRGB(28, 28, 32)
 	button.BorderSizePixel = 1
 	button.Text = text
 	button.TextColor3 = Color3.fromRGB(140, 140, 145)
-	button.TextSize = 11
+	button.TextSize = 10
 	button.Font = Enum.Font.Code
 	button.Parent = tabs
 	button.MouseButton1Click:Connect(function() showPage(name) end)
@@ -351,8 +340,8 @@ end
 tab("main", "main", 1)
 tab("combat", "combat", 2)
 tab("esp", "esp", 3)
-tab("character", "character", 4)
-tab("cheater", "cheater", 5)
+tab("char", "character", 4)
+tab("cheat", "cheater", 5)
 tab("misc", "misc", 6)
 tab("settings", "settings", 7)
 
@@ -363,7 +352,7 @@ local function heading(parent, text)
 	label.BackgroundTransparency = 1
 	label.Text = text
 	label.TextColor3 = Color3.fromRGB(200, 200, 205)
-	label.TextSize = 13
+	label.TextSize = 12
 	label.Font = Enum.Font.Code
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.Parent = parent
@@ -371,7 +360,7 @@ end
 
 local function textbox(parent, text, value, y)
 	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromOffset(220, 24)
+	label.Size = UDim2.fromOffset(200, 24)
 	label.Position = UDim2.fromOffset(14, y)
 	label.BackgroundTransparency = 1
 	label.Text = text
@@ -382,8 +371,8 @@ local function textbox(parent, text, value, y)
 	label.Parent = parent
 
 	local box = Instance.new("TextBox")
-	box.Size = UDim2.fromOffset(90, 22)
-	box.Position = UDim2.fromOffset(240, y)
+	box.Size = UDim2.fromOffset(80, 22)
+	box.Position = UDim2.fromOffset(220, y)
 	box.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
 	box.BorderColor3 = Color3.fromRGB(40, 40, 46)
 	box.BorderSizePixel = 1
@@ -398,7 +387,7 @@ end
 
 local function toggle(parent, text, y)
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.fromOffset(316, 24)
+	button.Size = UDim2.fromOffset(286, 24)
 	button.Position = UDim2.fromOffset(14, y)
 	button.BackgroundColor3 = Color3.fromRGB(70, 30, 30)
 	button.BorderColor3 = Color3.fromRGB(100, 45, 45)
@@ -442,14 +431,13 @@ local noclipButton = toggle(miscPage, "noclip", 40)
 
 heading(settingPage, "settings & unload manager")
 
--- 언로드(Unload) 버튼 생성 (설정 탭)
 local unloadBtn = Instance.new("TextButton")
-unloadBtn.Size = UDim2.fromOffset(316, 28)
+unloadBtn.Size = UDim2.fromOffset(286, 28)
 unloadBtn.Position = UDim2.fromOffset(14, 40)
 unloadBtn.BackgroundColor3 = Color3.fromRGB(110, 30, 30)
 unloadBtn.BorderColor3 = Color3.fromRGB(150, 50, 50)
 unloadBtn.BorderSizePixel = 1
-unloadBtn.Text = "UNLOAD SCRIPT (CLOSE ALL)"
+unloadBtn.Text = "UNLOAD SCRIPT"
 unloadBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 unloadBtn.TextSize = 11
 unloadBtn.Font = Enum.Font.Code
@@ -465,77 +453,12 @@ unloadBtn.MouseButton1Click:Connect(function()
 			end
 		end
 	end)
-	pcall(function()
-		if gamma then gamma:Destroy() end
-	end)
-	pcall(function()
-		if gui then gui:Destroy() end
-	end)
+	pcall(function() if gamma then gamma:Destroy() end end)
+	pcall(function() if gui then gui:Destroy() end end)
 end)
 
-local keybinds = { 
-	Speed = nil, 
-	Fly = nil, 
-	ESP = nil, 
-	Noclip = nil, 
-	Teleport = nil,
-	VoidSpan = nil 
-}
-
-local function createKeybindRow(name, y, defaultKeyText)
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromOffset(180, 24)
-	label.Position = UDim2.fromOffset(14, y)
-	label.BackgroundTransparency = 1
-	label.Text = name .. " Key:"
-	label.TextColor3 = Color3.fromRGB(170, 170, 175)
-	label.TextSize = 11
-	label.Font = Enum.Font.Code
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Parent = settingPage
-
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.fromOffset(130, 22)
-	btn.Position = UDim2.fromOffset(200, y)
-	btn.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
-	btn.BorderColor3 = Color3.fromRGB(40, 40, 46)
-	btn.BorderSizePixel = 1
-	btn.Text = defaultKeyText
-	btn.TextColor3 = Color3.fromRGB(200, 200, 205)
-	btn.TextSize = 11
-	btn.Font = Enum.Font.Code
-	btn.Parent = settingPage
-	return btn
-end
-
-local walkKeyBtn = createKeybindRow("WalkSpeed", 80, "None")
-local flyKeyBtn = createKeybindRow("Fly", 110, "None")
-local espKeyBtn = createKeybindRow("ESP", 140, "None")
-local noclipKeyBtn = createKeybindRow("Noclip", 170, "None")
-local teleportKeyBtn = createKeybindRow("Auto TP", 200, "None")
-local voidSpanKeyBtn = createKeybindRow("Void Span", 230, "None")
-
-local bindingTarget = nil
-local bindingButton = nil
-
-local function setupKeybindListener(btn, keyName)
-	btn.MouseButton1Click:Connect(function()
-		bindingTarget = keyName
-		bindingButton = btn
-		btn.Text = "[ Press a Key ]"
-		btn.TextColor3 = Color3.fromRGB(255, 220, 100)
-	end)
-end
-
-setupKeybindListener(walkKeyBtn, "Speed")
-setupKeybindListener(flyKeyBtn, "Fly")
-setupKeybindListener(espKeyBtn, "ESP")
-setupKeybindListener(noclipKeyBtn, "Noclip")
-setupKeybindListener(teleportKeyBtn, "Teleport")
-setupKeybindListener(voidSpanKeyBtn, "VoidSpan")
-
 ----------------------------------------------------
--- [모바일 및 PC 완벽 호환 비행(Fly) 시스템]
+-- [강력한 모바일/PC 통합 비행(Fly) 루프 엔진]
 ----------------------------------------------------
 toggleFly = function(state)
 	flyOn = state
@@ -609,65 +532,15 @@ toggleFly = function(state)
 	end
 end
 
-trackConn(UserInputService.InputBegan:Connect(function(input, gp)
-	if bindingTarget and bindingButton then
-		if input.KeyCode ~= Enum.KeyCode.Unknown then
-			keybinds[bindingTarget] = input.KeyCode
-			bindingButton.Text = input.KeyCode.Name
-			bindingButton.TextColor3 = Color3.fromRGB(200, 200, 205)
-			bindingTarget, bindingButton = nil, nil
-			return
-		end
-	end
-
-	if not gp then
-		if keybinds.Speed and input.KeyCode == keybinds.Speed then
-			walkOn = not walkOn
-			setToggle(walkButton, walkOn, "walk speed")
-			local h, _ = getSafeParts()
-			if h then h.WalkSpeed = walkOn and walkSpeed or 16 end
-		end
-		if keybinds.Fly and input.KeyCode == keybinds.Fly then
-			if toggleFly then toggleFly(not flyOn) end
-		end
-		if keybinds.ESP and input.KeyCode == keybinds.ESP then
-			espOn = not espOn
-			setToggle(espButton, espOn, "player esp")
-		end
-		if keybinds.Noclip and input.KeyCode == keybinds.Noclip then
-			noclipOn = not noclipOn
-			setToggle(noclipButton, noclipOn, "noclip")
-		end
-		if keybinds.Teleport and input.KeyCode == keybinds.Teleport then
-			teleporterOn = not teleporterOn
-			setToggle(teleporterButton, teleporterOn, "auto 50k tp (every 0.1s)")
-		end
-		if keybinds.VoidSpan and input.KeyCode == keybinds.VoidSpan then
-			voidSpanOn = not voidSpanOn
-			if voidSpanOn then orbitOn = false setToggle(orbitButton, false, "orbit position mode") end
-			setToggle(voidSpanButton, voidSpanOn, "void span mode")
-		end
-	end
-
-	if input.KeyCode == Enum.KeyCode.RightShift then
-		window.Visible = not window.Visible
-		updateMouseState(window.Visible)
-	end
-end))
-
 ----------------------------------------------------
--- [ESP 및 플레이어 네임 독립 구동형 시스템]
+-- [ESP 및 플레이어 네임 독립 구동 시스템]
 ----------------------------------------------------
 local espCache = {}
 
 local function removeEsp(p)
 	if espCache[p] then
-		if espCache[p].Highlight then
-			espCache[p].Highlight:Destroy()
-		end
-		if espCache[p].Billboard then
-			espCache[p].Billboard:Destroy()
-		end
+		if espCache[p].Highlight then espCache[p].Highlight:Destroy() end
+		if espCache[p].Billboard then espCache[p].Billboard:Destroy() end
 		espCache[p] = nil
 	end
 end
@@ -695,10 +568,7 @@ local function updateEspForPlayer(p)
 			highlight.Adornee = char
 		end
 	else
-		if highlight then
-			highlight:Destroy()
-			highlight = nil
-		end
+		if highlight then highlight:Destroy() highlight = nil end
 	end
 
 	local head = char:FindFirstChild("Head")
@@ -727,16 +597,9 @@ local function updateEspForPlayer(p)
 			billboard.Parent = head
 		else
 			billboard.Adornee = head
-			local textLabel = billboard:FindFirstChild("NameText")
-			if textLabel then
-				textLabel.Text = p.Name
-			end
 		end
 	else
-		if billboard then
-			billboard:Destroy()
-			billboard = nil
-		end
+		if billboard then billboard:Destroy() billboard = nil end
 	end
 
 	espCache[p] = { Highlight = highlight, Billboard = billboard }
@@ -744,23 +607,18 @@ end
 
 trackConn(RunService.RenderStepped:Connect(function()
 	if not espOn and not namesOn then
-		for p, _ in pairs(espCache) do
-			removeEsp(p)
-		end
+		for p, _ in pairs(espCache) do removeEsp(p) end
 		return
 	end
-
 	for _, p in ipairs(Players:GetPlayers()) do
 		updateEspForPlayer(p)
 	end
 end))
 
-trackConn(Players.PlayerRemoving:Connect(function(p)
-	removeEsp(p)
-end))
+trackConn(Players.PlayerRemoving:Connect(function(p) removeEsp(p) end))
 
 ----------------------------------------------------
--- 기타 루프 기능들
+-- 기타 게임 루프 기능들
 ----------------------------------------------------
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
@@ -814,9 +672,7 @@ trackConn(RunService.RenderStepped:Connect(function()
 						if dist <= 45 then
 							pcall(function()
 								for _, tool in ipairs(player.Character:GetChildren()) do
-									if tool:IsA("Tool") then
-										tool:Activate()
-									end
+									if tool:IsA("Tool") then tool:Activate() end
 								end
 							end)
 						end
@@ -866,41 +722,6 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
-trackConn(RunService.RenderStepped:Connect(function()
-	if not fastShotOn then return end
-	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or UserInputService:IsMouseButtonPressed(Enum.UserInputType.Touch) then
-		local now = os.clock()
-		local interval = 1 / math.clamp(fastShotRate, 1, 1000)
-		if now - lastShotTick >= interval then
-			lastShotTick = now
-			pcall(function()
-				local char = player.Character
-				if not char then return end
-				local backpack = player:FindFirstChildOfClass("Backpack")
-				for _, container in ipairs({char, backpack}) do
-					if container then
-						for _, tool in ipairs(container:GetChildren()) do
-							if tool:IsA("Tool") then
-								pcall(function() tool:Activate() end)
-								for _, desc in ipairs(tool:GetDescendants()) do
-									if desc:IsA("RemoteEvent") then
-										pcall(function()
-											local name = desc.Name:lower()
-											if name:find("fire") or name:find("shoot") or name:find("gun") or name:find("attack") or name:find("hit") then
-												desc:FireServer()
-											end
-										end)
-									end
-								end
-							end
-						end
-					end
-				end
-			end)
-		end
-	end
-end))
-
 trackConn(RunService.Stepped:Connect(function()
 	if not noclipOn then return end
 	pcall(function()
@@ -915,6 +736,9 @@ trackConn(RunService.Stepped:Connect(function()
 	end)
 end))
 
+----------------------------------------------------
+-- 버튼 이벤트 바인딩
+----------------------------------------------------
 walkButton.MouseButton1Click:Connect(function()
 	walkOn = not walkOn
 	setToggle(walkButton, walkOn, "walk speed")
@@ -942,9 +766,6 @@ ragebotButton.MouseButton1Click:Connect(function()
 	ragebotOn = not ragebotOn
 	setToggle(ragebotButton, ragebotOn, "ragebot (auto lock snap)")
 end)
-
-auraButton.MouseButton1|Click = function()
-end
 
 auraButton.MouseButton1Click:Connect(function()
 	auraOn = not auraOn
@@ -1009,4 +830,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.1 Loaded Successfully!")
+print("Anti-rival V1.1.2 Loaded Successfully!")
