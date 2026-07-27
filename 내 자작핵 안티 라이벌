@@ -1,4 +1,4 @@
--- [V1.5.1 Update] Fixed Place ID validation bypass & Added universal support, Refreshed (2026-07-28)
+-- [V1.5.5 Update] Removed "(Drag to Move)", Added Noclip & Player ESP keybinds, Refreshed (2026-07-28)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -27,7 +27,6 @@ if not player then
 	until player
 end
 
--- Rivals Place ID Validation 검사 제거 (어떤 서브 매치나 장소에서도 팅기지 않도록 수정)
 local isMobile = false
 pcall(function()
 	isMobile = UserInputService.TouchEnabled
@@ -81,7 +80,9 @@ local keybinds = {
 	randomTp = Enum.KeyCode.Q,
 	autoTp = Enum.KeyCode.E,
 	orbit = Enum.KeyCode.R,
-	fight = Enum.KeyCode.F
+	fight = Enum.KeyCode.F,
+	noclip = Enum.KeyCode.T,
+	esp = Enum.KeyCode.Y
 }
 local listeningKey = nil
 
@@ -112,6 +113,8 @@ local function setToggle(button, enabled, text)
 end
 
 local toggleFight = nil
+local toggleNoclip = nil
+local toggleEsp = nil
 
 local gamma = Lighting:FindFirstChild("AntiRivalGamma") or Instance.new("ColorCorrectionEffect")
 gamma.Name = "AntiRivalGamma"
@@ -129,14 +132,17 @@ keybindGui.ResetOnSpawn = false
 keybindGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 keybindGui.Parent = player:WaitForChild("PlayerGui")
 
+-- 키바인드 창 제목에서 "(Drag to Move)" 글자 제거 완료
 local kbFrame = Instance.new("Frame")
 kbFrame.Name = "KeybindsMainFrame"
-kbFrame.Size = UDim2.fromOffset(220, 165)
+kbFrame.Size = UDim2.fromOffset(270, 245)
 kbFrame.Position = UDim2.new(0, 15, 0, 160)
 kbFrame.BackgroundColor3 = Color3.fromRGB(14, 14, 18)
 kbFrame.BackgroundTransparency = 0.2
 kbFrame.BorderColor3 = Color3.fromRGB(45, 45, 60)
 kbFrame.BorderSizePixel = 1
+kbFrame.Active = true
+kbFrame.Draggable = true
 kbFrame.Parent = keybindGui
 
 local kbCorner = Instance.new("UICorner")
@@ -175,7 +181,7 @@ local function createKbRow(name, keyText, featureText, modeText, order)
 
 	local kLbl = Instance.new("TextLabel")
 	kLbl.Name = "Key"
-	kLbl.Size = UDim2.new(0, 75, 1, 0)
+	kLbl.Size = UDim2.new(0, 100, 1, 0)
 	kLbl.BackgroundTransparency = 1
 	kLbl.Text = "[" .. keyText .. "]"
 	kLbl.TextColor3 = Color3.fromRGB(100, 180, 255)
@@ -186,8 +192,8 @@ local function createKbRow(name, keyText, featureText, modeText, order)
 
 	local fLbl = Instance.new("TextLabel")
 	fLbl.Name = "Feature"
-	fLbl.Size = UDim2.new(1, -75, 1, 0)
-	fLbl.Position = UDim2.new(0, 75, 0, 0)
+	fLbl.Size = UDim2.new(1, -100, 1, 0)
+	fLbl.Position = UDim2.new(0, 100, 0, 0)
 	fLbl.BackgroundTransparency = 1
 	fLbl.Text = featureText
 	fLbl.TextColor3 = Color3.fromRGB(180, 180, 190)
@@ -203,13 +209,17 @@ local kbRowRandomTp = createKbRow("RowRandomTp", "Q", "Random TP", "TOGGLE", 1)
 local kbRowAutoTp   = createKbRow("RowAutoTp", "E", "Auto 50k TP", "TOGGLE", 2)
 local kbRowOrbit    = createKbRow("RowOrbit", "R", "Orbit Mode", "TOGGLE", 3)
 local kbRowFight    = createKbRow("RowFight", "F", "Fight Mode", "TOGGLE", 4)
-local kbRowMenu     = createKbRow("RowMenu", "RSHIFT", "UI Toggle", "TOGGLE", 5)
+local kbRowNoclip   = createKbRow("RowNoclip", "T", "Noclip", "TOGGLE", 5)
+local kbRowEsp      = createKbRow("RowEsp", "Y", "Player ESP", "TOGGLE", 6)
+local kbRowMenu     = createKbRow("RowMenu", "RSHIFT", "UI Toggle", "TOGGLE", 7)
 
 local function updateKeybindUI(keyName, newKeyName)
 	if keyName == "randomTp" then kbRowRandomTp.Text = "[" .. newKeyName .. "]"
 	elseif keyName == "autoTp" then kbRowAutoTp.Text = "[" .. newKeyName .. "]"
 	elseif keyName == "orbit" then kbRowOrbit.Text = "[" .. newKeyName .. "]"
 	elseif keyName == "fight" then kbRowFight.Text = "[" .. newKeyName .. "]"
+	elseif keyName == "noclip" then kbRowNoclip.Text = "[" .. newKeyName .. "]"
+	elseif keyName == "esp" then kbRowEsp.Text = "[" .. newKeyName .. "]"
 	end
 end
 
@@ -377,7 +387,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.5.1-FREE BUILD"
+title.Text = "Anti-rival-V1.5.5-FREE BUILD"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -632,10 +642,12 @@ local function createKeybindRow(parent, labelText, keyName, yPos)
 	return bindBtn
 end
 
-local bindRandomTpBtn = createKeybindRow(settingPage, "Key: Random Head TP", "randomTp", 80)
-local bindAutoTpBtn   = createKeybindRow(settingPage, "Key: Auto 50k TP", "autoTp", 112)
-local bindOrbitBtn    = createKeybindRow(settingPage, "Key: Orbit Mode", "orbit", 144)
-local bindFightBtn    = createKeybindRow(settingPage, "Key: Fight Mode Toggle", "fight", 176)
+local bindRandomTpBtn = createKeybindRow(settingPage, "Key: Random Head TP", "randomTp", 50)
+local bindAutoTpBtn   = createKeybindRow(settingPage, "Key: Auto 50k TP", "autoTp", 80)
+local bindOrbitBtn    = createKeybindRow(settingPage, "Key: Orbit Mode", "orbit", 110)
+local bindFightBtn    = createKeybindRow(settingPage, "Key: Fight Mode Toggle", "fight", 140)
+local bindNoclipBtn   = createKeybindRow(settingPage, "Key: Noclip", "noclip", 170)
+local bindEspBtn      = createKeybindRow(settingPage, "Key: Player ESP", "esp", 200)
 
 local function handleInputBegan(input, gameProcessed)
 	if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -657,6 +669,12 @@ local function handleInputBegan(input, gameProcessed)
 				elseif listeningKey == "fight" then
 					bindFightBtn.Text = keyNameStr
 					bindFightBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+				elseif listeningKey == "noclip" then
+					bindNoclipBtn.Text = keyNameStr
+					bindNoclipBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+				elseif listeningKey == "esp" then
+					bindEspBtn.Text = keyNameStr
+					bindEspBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
 				end
 			end
 			listeningKey = nil
@@ -703,6 +721,14 @@ local function handleInputBegan(input, gameProcessed)
 				if toggleFight then 
 					toggleFight(not fightOn) 
 				end
+			elseif input.KeyCode == keybinds.noclip then
+				if toggleNoclip then
+					toggleNoclip(not noclipOn)
+				end
+			elseif input.KeyCode == keybinds.esp then
+				if toggleEsp then
+					toggleEsp(not espOn)
+				end
 			end
 		end
 	end
@@ -736,7 +762,7 @@ end))
 
 local unloadBtn = Instance.new("TextButton")
 unloadBtn.Size = UDim2.fromOffset(286, 28)
-unloadBtn.Position = UDim2.fromOffset(14, 215)
+unloadBtn.Position = UDim2.fromOffset(14, 235)
 unloadBtn.BackgroundColor3 = Color3.fromRGB(110, 30, 30)
 unloadBtn.BorderColor3 = Color3.fromRGB(150, 50, 50)
 unloadBtn.BorderSizePixel = 1
@@ -855,6 +881,18 @@ local function executeFight(state)
 end
 
 toggleFight = executeFight
+
+local function executeNoclip(state)
+	noclipOn = state
+	setToggle(noclipButton, noclipOn, "noclip")
+end
+toggleNoclip = executeNoclip
+
+local function executeEsp(state)
+	espOn = state
+	setToggle(espButton, espOn, "player esp")
+end
+toggleEsp = executeEsp
 
 local espCache = {}
 
@@ -1081,7 +1119,6 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end)
 end))
 
--- 트리거 봇 로직 (화면 중앙 레이캐스트 및 툴 자동 발사)
 trackConn(RunService.RenderStepped:Connect(function()
 	if not triggerBotOn then return end
 	pcall(function()
@@ -1191,8 +1228,8 @@ trackConn(RunService.RenderStepped:Connect(function()
 			local _, root = getSafeParts()
 			if root then
 				local randomAngle = math.random() * math.pi * 2
-				local offsetX = math.cos(randomAngle) * teleporterBox
-				local offsetZ = math.sin(randomAngle) * teleporterBox
+				local offsetX = math.cos(randomAngle) * teleporterBox.Text
+				local offsetZ = math.sin(randomAngle) * teleporterBox.Text
 				local currentPos = root.Position
 				root.CFrame = CFrame.new(currentPos.X + offsetX, currentPos.Y + 50, currentPos.Z + offsetZ)
 			end
@@ -1271,8 +1308,7 @@ forceThirdPersonButton.MouseButton1Click:Connect(function()
 end)
 
 espButton.MouseButton1Click:Connect(function()
-	espOn = not espOn
-	setToggle(espButton, espOn, "player esp")
+	if toggleEsp then toggleEsp(not espOn) end
 end)
 
 namesButton.MouseButton1Click:Connect(function()
@@ -1323,9 +1359,8 @@ teleporterBox.FocusLost:Connect(function()
 end)
 
 noclipButton.MouseButton1Click:Connect(function()
-	noclipOn = not noclipOn
-	setToggle(noclipButton, noclipOn, "noclip")
+	if toggleNoclip then toggleNoclip(not noclipOn) end
 end)
 
 showPage("main")
-print("Anti-rival V1.5.1 Loaded Successfully! (Place ID Kick Removed & Universal Compatibility)")
+print("Anti-rival V1.5.5 Loaded Successfully!")
