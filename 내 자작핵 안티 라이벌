@@ -131,12 +131,12 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
 ----------------------------------------------------
--- 메인 UI 창
+-- 메인 UI 창 (높이 확장: 560 -> 600)
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
 window.Position = UDim2.new(0.5, 0, 0.5, 0)
-window.Size = UDim2.fromOffset(480, 560)
+window.Size = UDim2.fromOffset(480, 600)
 window.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 window.BorderColor3 = Color3.fromRGB(38, 38, 42)
 window.BorderSizePixel = 1
@@ -215,7 +215,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (드래그 및 타이틀 - 버전 V1.1.14 반영)
+-- Header (드래그 및 타이틀 - 버전 V1.1.15 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -261,7 +261,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.14-FREE BUILD" -- [버전업 V1.1.14 적용 완료]
+title.Text = "Anti-rival-V1.1.15-FREE BUILD" -- [버전업 V1.1.15 적용 완료]
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -296,26 +296,26 @@ discordBtn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- 탭 및 페이지 레이아웃 (캐릭터 탭 이름 수정 반영)
+-- 탭 및 페이지 레이아웃 (2단 그리드 형태로 탭 배치 영역 확장)
 ----------------------------------------------------
 local tabs = Instance.new("ScrollingFrame")
-tabs.Size = UDim2.new(1, -16, 0, 24)
+tabs.Size = UDim2.new(1, -16, 0, 52) -- 탭 영역 높이를 두 줄(약 52px)로 확장하여 잘림 방지
 tabs.Position = UDim2.fromOffset(8, 30)
 tabs.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 tabs.BorderSizePixel = 0
-tabs.CanvasSize = UDim2.new(0, 650, 0, 0)
+tabs.CanvasSize = UDim2.new(0, 0, 0, 0)
 tabs.ScrollBarThickness = 0
 tabs.Parent = innerBorder
 
-local tabsLayout = Instance.new("UIListLayout")
-tabsLayout.FillDirection = Enum.FillDirection.Horizontal
+local tabsLayout = Instance.new("UIGridLayout")
+tabsLayout.CellSize = UDim2.fromOffset(108, 22) -- 탭 버튼 크기 최적화
+tabsLayout.CellPadding = UDim2.fromOffset(4, 4)
 tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-tabsLayout.Padding = UDim.new(0, 3)
 tabsLayout.Parent = tabs
 
 local content = Instance.new("Frame")
-content.Size = UDim2.new(1, -16, 1, -64)
-content.Position = UDim2.fromOffset(8, 56)
+content.Size = UDim2.new(1, -16, 1, -92) -- 컨텐츠 영역 위치와 크기 재조정
+content.Position = UDim2.fromOffset(8, 86)
 content.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 content.BorderColor3 = Color3.fromRGB(30, 30, 34)
 content.BorderSizePixel = 1
@@ -364,8 +364,6 @@ end
 
 local function tab(text, name, order)
 	local button = Instance.new("TextButton")
-	-- 'character' 탭 글자가 잘리지 않도록 버튼 너비를 85px로 넉넉하게 확장
-	button.Size = UDim2.fromOffset(85, 22)
 	button.LayoutOrder = order
 	button.BackgroundColor3 = Color3.fromRGB(16, 16, 18)
 	button.BorderColor3 = Color3.fromRGB(28, 28, 32)
@@ -379,7 +377,7 @@ local function tab(text, name, order)
 	tabButtons[name] = button
 end
 
--- 탭 이름 전체 표시 반영 (char -> character)
+-- 순서 배치 (misc와 settings를 아래쪽으로 자연스럽게 배치)
 tab("main", "main", 1)
 tab("world", "world", 2)
 tab("esp", "esp", 3)
@@ -1043,4 +1041,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.14 FREE BUILD Loaded Successfully!")
+print("Anti-rival V1.1.15 FREE BUILD Loaded Successfully!")
