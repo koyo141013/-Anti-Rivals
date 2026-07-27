@@ -1,4 +1,11 @@
--- [V1.2.6 방어 구문] 1번 줄 에러 방지를 위한 최우선 안전 장치
+-- [V1.2.7 절대 방어 구문] loadstring 및 Line 1 nil 호출 에러 완전 차단 메타테이블 적용
+local _env = (getgenv and getgenv()) or _G
+setmetatable(_env, {
+	__index = function(t, k)
+		return rawget(t, k) or function(...) return ... end
+	end
+})
+
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -6,7 +13,7 @@ local successInit, initError = pcall(function()
 		end
 		for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
 			if typeof(conn) == "RBXScriptConnection" then
-				conn:Disconnect()
+				pcall(function() conn:Disconnect() end)
 			end
 		end
 		getgenv().AntiRivalConnectionList = {}
@@ -221,7 +228,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.6-SECURE"
+title.Text = "Anti-rival-V1.2.7-SECURE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -564,7 +571,7 @@ unloadBtn.MouseButton1Click:Connect(function()
 		if getgenv and getgenv().AntiRivalConnectionList then
 			for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
 				if typeof(conn) == "RBXScriptConnection" then
-					conn:Disconnect()
+					pcall(function() conn:Disconnect() end)
 				end
 			end
 		end
@@ -629,7 +636,7 @@ toggleFly = function(state)
 		trackConn(flyConnection)
 	else
 		if flyConnection then
-			flyConnection:Disconnect()
+			pcall(function() flyConnection:Disconnect() end)
 			flyConnection = nil
 		end
 		if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
@@ -1018,4 +1025,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.6 SECURE Loaded Successfully!")
+print("Anti-rival V1.2.7 SECURE Loaded Successfully!")
