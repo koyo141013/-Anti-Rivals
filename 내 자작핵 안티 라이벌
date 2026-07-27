@@ -1,4 +1,4 @@
--- [V1.2.12 Update] 824줄 파싱 괄호 에러 완전 해결 및 타임스탬프 적용 완료 (2026-07-27 17:10)
+-- [V1.2.13 Update] Fixed mobile fly issue and completed syntax review (2026-07-27 17:20)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -237,7 +237,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.12-STABLE"
+title.Text = "Anti-rival-V1.2.13-STABLE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -627,20 +627,34 @@ local function executeFly(state)
 			if bodyGyro then bodyGyro.CFrame = currentCam.CFrame end
 			local moveDir = Vector3.zero
 			
-			if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + currentCam.CFrame.LookVector end
-			if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - currentCam.CFrame.LookVector end
-			if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - currentCam.CFrame.RightVector end
-			if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + currentCam.CFrame.RightVector end
-			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
-			if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-				moveDir = moveDir - Vector3.new(0, 1, 0)
+			if isMobile then
+				if currentHum.MoveDirection.Magnitude > 0 then
+					moveDir = currentHum.MoveDirection.Unit * flySpeed
+				end
+			else
+				if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + currentCam.CFrame.LookVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - currentCam.CFrame.LookVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - currentCam.CFrame.RightVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + currentCam.CFrame.RightVector end
+				if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+				if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+					moveDir = moveDir - Vector3.new(0, 1, 0)
+				end
 			end
 
 			if bodyVelocity then 
-				if moveDir.Magnitude > 0 then
-					bodyVelocity.Velocity = moveDir.Unit * flySpeed
+				if isMobile then
+					if moveDir.Magnitude > 0 then
+						bodyVelocity.Velocity = moveDir
+					else
+						bodyVelocity.Velocity = Vector3.zero
+					end
 				else
-					bodyVelocity.Velocity = Vector3.zero
+					if moveDir.Magnitude > 0 then
+						bodyVelocity.Velocity = moveDir.Unit * flySpeed
+					else
+						bodyVelocity.Velocity = Vector3.zero
+					end
 				end
 			end
 		end)
@@ -821,7 +835,7 @@ randomTpButton.MouseButton1Click:Connect(function()
 			end)
 		end
 	end)
-end)
+end))
 
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
@@ -1038,4 +1052,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.12 STABLE Loaded Successfully!")
+print("Anti-rival V1.2.13 STABLE Loaded Successfully!")
