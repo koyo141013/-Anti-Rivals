@@ -1,4 +1,4 @@
--- [V1.4.9 Update] Changed 'fly' to 'fly: fight', Added 'Trigger Bot' Feature & Update Details Refreshed (2026-07-27)
+-- [V1.5.0 Update] Completely removed 'fly', replaced with 'fight' mode, fixed Trigger Bot targeting logic & Update Details Refreshed (2026-07-27)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -61,7 +61,7 @@ pcall(function()
 	end
 end)
 
-local walkOn, flyOn, espOn, namesOn, healthOn, noclipOn = false, false, false, false, false, false
+local walkOn, fightOn, espOn, namesOn, healthOn, noclipOn = false, false, false, false, false, false
 local ragebotOn = false
 local auraOn = false
 local triggerBotOn = false
@@ -79,15 +79,15 @@ local teleporterOn = false
 local lastTeleportTick = 0
 local teleportDistance = 50000
 
-local walkSpeed, flySpeed = 16, 50
-local flyConnection = nil
+local walkSpeed, fightSpeed = 16, 50
+local fightConnection = nil
 local bodyGyro, bodyVelocity = nil, nil
 
 local keybinds = {
 	randomTp = Enum.KeyCode.Q,
 	autoTp = Enum.KeyCode.E,
 	orbit = Enum.KeyCode.R,
-	fly = Enum.KeyCode.F
+	fight = Enum.KeyCode.F
 }
 local listeningKey = nil
 
@@ -117,7 +117,7 @@ local function setToggle(button, enabled, text)
 	button.BorderColor3 = enabled and Color3.fromRGB(50, 110, 70) or Color3.fromRGB(100, 45, 45)
 end
 
-local toggleFly = nil
+local toggleFight = nil
 
 local gamma = Lighting:FindFirstChild("AntiRivalGamma") or Instance.new("ColorCorrectionEffect")
 gamma.Name = "AntiRivalGamma"
@@ -208,22 +208,22 @@ end
 local kbRowRandomTp = createKbRow("RowRandomTp", "Q", "Random TP", "TOGGLE", 1)
 local kbRowAutoTp   = createKbRow("RowAutoTp", "E", "Auto 50k TP", "TOGGLE", 2)
 local kbRowOrbit    = createKbRow("RowOrbit", "R", "Orbit Mode", "TOGGLE", 3)
-local kbRowFly      = createKbRow("RowFly", "F", "Fly: Fight", "TOGGLE", 4)
+local kbRowFight    = createKbRow("RowFight", "F", "Fight Mode", "TOGGLE", 4)
 local kbRowMenu     = createKbRow("RowMenu", "RSHIFT", "UI Toggle", "TOGGLE", 5)
 
 local function updateKeybindUI(keyName, newKeyName)
 	if keyName == "randomTp" then kbRowRandomTp.Text = "[" .. newKeyName .. "]"
 	elseif keyName == "autoTp" then kbRowAutoTp.Text = "[" .. newKeyName .. "]"
 	elseif keyName == "orbit" then kbRowOrbit.Text = "[" .. newKeyName .. "]"
-	elseif keyName == "fly" then kbRowFly.Text = "[" .. newKeyName .. "]"
+	elseif keyName == "fight" then kbRowFight.Text = "[" .. newKeyName .. "]"
 	end
 end
 
-local flyControlGui = Instance.new("ScreenGui")
-flyControlGui.Name = "AntiRivalFlyControls"
-flyControlGui.ResetOnSpawn = false
-flyControlGui.Enabled = false
-flyControlGui.Parent = player:WaitForChild("PlayerGui")
+local fightControlGui = Instance.new("ScreenGui")
+fightControlGui.Name = "AntiRivalFightControls"
+fightControlGui.ResetOnSpawn = false
+fightControlGui.Enabled = false
+fightControlGui.Parent = player:WaitForChild("PlayerGui")
 
 local upButton = Instance.new("TextButton")
 upButton.Name = "UpButton"
@@ -239,7 +239,7 @@ upButton.TextSize = 16
 upButton.Font = Enum.Font.Code
 upButton.Active = true
 upButton.Draggable = true
-upButton.Parent = flyControlGui
+upButton.Parent = fightControlGui
 
 local downButton = Instance.new("TextButton")
 downButton.Name = "DownButton"
@@ -255,15 +255,15 @@ downButton.TextSize = 14
 downButton.Font = Enum.Font.Code
 downButton.Active = true
 downButton.Draggable = true
-downButton.Parent = flyControlGui
+downButton.Parent = fightControlGui
 
-local flyUpActive, flyDownActive = false, false
+local fightUpActive, fightDownActive = false, false
 
-trackConn(upButton.MouseButton1Down:Connect(function() flyUpActive = true end))
-trackConn(upButton.MouseButton1Up:Connect(function() flyUpActive = false end))
+trackConn(upButton.MouseButton1Down:Connect(function() fightUpActive = true end))
+trackConn(upButton.MouseButton1Up:Connect(function() fightUpActive = false end))
 
-trackConn(downButton.MouseButton1Down:Connect(function() flyDownActive = true end))
-trackConn(downButton.MouseButton1Up:Connect(function() flyDownActive = false end))
+trackConn(downButton.MouseButton1Down:Connect(function() fightDownActive = true end))
+trackConn(downButton.MouseButton1Up:Connect(function() fightDownActive = false end))
 
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -383,7 +383,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.4.9-FREE BUILD"
+title.Text = "Anti-rival-V1.5.0-FREE BUILD"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -561,8 +561,8 @@ end
 heading(mainPage, "movement / core controls")
 local walkBox = textbox(mainPage, "walk speed  (1–1000)", walkSpeed, 40)
 local walkButton = toggle(mainPage, "walk speed", 68)
-local flyBox = textbox(mainPage, "fly speed  (1–1000)", flySpeed, 106)
-local flyButton = toggle(mainPage, "fly: fight", 134)
+local fightBox = textbox(mainPage, "fight speed  (1–1000)", fightSpeed, 106)
+local fightButton = toggle(mainPage, "fight mode", 134)
 
 heading(worldPage, "world & combat perks")
 local ragebotButton = toggle(worldPage, "ragebot (auto lock snap)", 40)
@@ -641,7 +641,7 @@ end
 local bindRandomTpBtn = createKeybindRow(settingPage, "Key: Random Head TP", "randomTp", 80)
 local bindAutoTpBtn   = createKeybindRow(settingPage, "Key: Auto 50k TP", "autoTp", 112)
 local bindOrbitBtn    = createKeybindRow(settingPage, "Key: Orbit Mode", "orbit", 144)
-local bindFlyBtn      = createKeybindRow(settingPage, "Key: Fly: Fight Toggle", "fly", 176)
+local bindFightBtn    = createKeybindRow(settingPage, "Key: Fight Mode Toggle", "fight", 176)
 
 local function handleInputBegan(input, gameProcessed)
 	if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -660,9 +660,9 @@ local function handleInputBegan(input, gameProcessed)
 				elseif listeningKey == "orbit" then
 					bindOrbitBtn.Text = keyNameStr
 					bindOrbitBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
-				elseif listeningKey == "fly" then
-					bindFlyBtn.Text = keyNameStr
-					bindFlyBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+				elseif listeningKey == "fight" then
+					bindFightBtn.Text = keyNameStr
+					bindFightBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
 				end
 			end
 			listeningKey = nil
@@ -705,9 +705,9 @@ local function handleInputBegan(input, gameProcessed)
 					setToggle(voidSpanButton, false, "void span mode") 
 				end
 				setToggle(orbitButton, orbitOn, "orbit position mode")
-			elseif input.KeyCode == keybinds.fly then
-				if toggleFly then 
-					toggleFly(not flyOn) 
+			elseif input.KeyCode == keybinds.fight then
+				if toggleFight then 
+					toggleFight(not fightOn) 
 				end
 			end
 		end
@@ -765,23 +765,23 @@ unloadBtn.MouseButton1Click:Connect(function()
 	pcall(function() if gamma then gamma:Destroy() end end)
 	pcall(function() if gui then gui:Destroy() end end)
 	pcall(function() if keybindGui then keybindGui:Destroy() end end)
-	pcall(function() if flyControlGui then flyControlGui:Destroy() end end)
+	pcall(function() if fightControlGui then fightControlGui:Destroy() end end)
 end)
 
-local function executeFly(state)
-	flyOn = state
-	setToggle(flyButton, flyOn, "fly: fight")
+local function executeFight(state)
+	fightOn = state
+	setToggle(fightButton, fightOn, "fight mode")
 	if isMobile then
-		flyControlGui.Enabled = flyOn
+		fightControlGui.Enabled = fightOn
 	end
 	
 	local hum, root = getSafeParts()
 
-	if flyOn then
+	if fightOn then
 		if not root or not hum then 
-			flyOn = false
-			setToggle(flyButton, false, "fly: fight")
-			if isMobile then flyControlGui.Enabled = false end
+			fightOn = false
+			setToggle(fightButton, false, "fight mode")
+			if isMobile then fightControlGui.Enabled = false end
 			return 
 		end
 
@@ -798,11 +798,11 @@ local function executeFly(state)
 
 		hum.PlatformStand = true
 
-		flyConnection = RunService.RenderStepped:Connect(function()
+		fightConnection = RunService.RenderStepped:Connect(function()
 			local currentCam = getActiveCamera()
 			local currentHum, currentRoot = getSafeParts()
-			if not flyOn or not currentRoot or not currentHum or currentHum.Health <= 0 then
-				if toggleFly then toggleFly(false) end
+			if not fightOn or not currentRoot or not currentHum or currentHum.Health <= 0 then
+				if toggleFight then toggleFight(false) end
 				return
 			end
 
@@ -811,12 +811,12 @@ local function executeFly(state)
 			
 			if isMobile then
 				if currentHum.MoveDirection.Magnitude > 0 then
-					moveDir = currentHum.MoveDirection.Unit * flySpeed
+					moveDir = currentHum.MoveDirection.Unit * fightSpeed
 				end
-				if flyUpActive then
-					moveDir = moveDir + Vector3.new(0, flySpeed, 0)
-				elseif flyDownActive then
-					moveDir = moveDir - Vector3.new(0, flySpeed, 0)
+				if fightUpActive then
+					moveDir = moveDir + Vector3.new(0, fightSpeed, 0)
+				elseif fightDownActive then
+					moveDir = moveDir - Vector3.new(0, fightSpeed, 0)
 				end
 			else
 				if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + currentCam.CFrame.LookVector end
@@ -838,18 +838,18 @@ local function executeFly(state)
 					end
 				else
 					if moveDir.Magnitude > 0 then
-						bodyVelocity.Velocity = moveDir.Unit * flySpeed
+						bodyVelocity.Velocity = moveDir.Unit * fightSpeed
 					else
 						bodyVelocity.Velocity = Vector3.zero
 					end
 				end
 			end
 		end)
-		trackConn(flyConnection)
+		trackConn(fightConnection)
 	else
-		if flyConnection then
-			pcall(function() flyConnection:Disconnect() end)
-			flyConnection = nil
+		if fightConnection then
+			pcall(function() fightConnection:Disconnect() end)
+			fightConnection = nil
 		end
 		if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
 		if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
@@ -860,7 +860,7 @@ local function executeFly(state)
 	end
 end
 
-toggleFly = executeFly
+toggleFight = executeFight
 
 local espCache = {}
 
@@ -1087,19 +1087,37 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end)
 end))
 
+-- Trigger Bot 개선된 구현 (마우스 화면 중앙 레이캐스트 또는 적 파츠 직접 인식 강화)
+local UserInputService = game:GetService("UserInputService")
 trackConn(RunService.RenderStepped:Connect(function()
 	if not triggerBotOn then return end
 	pcall(function()
-		local mouse = player:GetMouse()
-		local target = mouse.Target
-		if target and target.Parent then
-			local character = target.Parent
-			local humanoid = character:FindFirstChildOfClass("Humanoid")
-			local p = Players:GetPlayerFromCharacter(character)
-			if humanoid and humanoid.Health > 0 and p and p ~= player then
+		local currentCam = getActiveCamera()
+		local mouseLocation = UserInputService:GetMouseLocation()
+		local unitRay = currentCam:ScreenPointToRay(mouseLocation.X, mouseLocation.Y)
+		
+		local raycastParams = RaycastParams.new()
+		raycastParams.FilterType = RaycastType.Include
+		local includeList = {}
+		for _, p in ipairs(Players:GetPlayers()) do
+			if p ~= player and p.Character then
+				table.insert(includeList, p.Character)
+			end
+		end
+		raycastParams.FilterDescendantsInstances = includeList
+		raycastParams.IgnoreWater = true
+		
+		local raycastResult = Workspace:Raycast(unitRay.Origin, unitRay.Direction * 10000, raycastParams)
+		if raycastResult and raycastResult.Instance then
+			local hitChar = raycastResult.Instance.Parent
+			local hum = hitChar:FindFirstChildOfClass("Humanoid")
+			local p = Players:GetPlayerFromCharacter(hitChar)
+			if hum and hum.Health > 0 and p and p ~= player then
 				pcall(function()
 					for _, tool in ipairs(player.Character:GetChildren()) do
-						if tool:IsA("Tool") then tool:Activate() end
+						if tool:IsA("Tool") then 
+							tool:Activate() 
+						end
 					end
 				end)
 			end
@@ -1220,13 +1238,13 @@ walkBox.FocusLost:Connect(function()
 	if h and walkOn then h.WalkSpeed = walkSpeed end
 end)
 
-flyButton.MouseButton1Click:Connect(function()
-	if toggleFly then toggleFly(not flyOn) end
+fightButton.MouseButton1Click:Connect(function()
+	if toggleFight then toggleFight(not fightOn) end
 end)
 
-flyBox.FocusLost:Connect(function()
-	flySpeed = math.clamp(tonumber(flyBox.Text) or 50, 1, 1000)
-	flyBox.Text = tostring(flySpeed)
+fightBox.FocusLost:Connect(function()
+	fightSpeed = math.clamp(tonumber(fightBox.Text) or 50, 1, 1000)
+	fightBox.Text = tostring(fightSpeed)
 end)
 
 ragebotButton.MouseButton1Click:Connect(function()
@@ -1317,4 +1335,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.4.9 Loaded Successfully with Fly: Fight and Trigger Bot!")
+print("Anti-rival V1.5.0 Loaded Successfully with Fight Mode and Fixed Trigger Bot!")
