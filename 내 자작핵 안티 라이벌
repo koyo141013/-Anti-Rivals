@@ -16,10 +16,8 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
--- [완전한 에러 방어: UserInputService 속성 접근 제거 및 런타임 환경 감지 적용]
 local isMobile = false
 pcall(function()
 	isMobile = UserInputService.TouchEnabled
@@ -36,7 +34,7 @@ end
 
 local uiScaleFactor = isMobile and 0.55 or 1.0
 
--- [확실한 화면 멈춤 연출] RenderStepped 파이프라인을 2초 동안 강제로 틀어막기
+-- 화면 멈춤 연출
 do
 	local freezeConnection
 	local startTick = os.clock()
@@ -72,11 +70,6 @@ local godModeOn = false
 local orbitOn = false
 local voidSpanOn = false
 
--- Rivals 자동 매치 관련 변수 (Unname 스크립트 스타일의 정확한 경로/함수 연동)
-local autoMatchOn = false
-local currentMatchMode = "1VS1" -- 기본 선택 모드 ("1VS1", "2VS2", "3VS3", "4VS4", "5VS5")
-local lastMatchQueueTick = 0
-
 local fastShotOn = false
 local fastShotRate = 800
 
@@ -89,14 +82,13 @@ local walkSpeed, flySpeed = 16, 50
 local flyConnection = nil
 local bodyGyro, bodyVelocity = nil, nil
 
--- 단축키 저장 변수 (Fly 기능 단축키 포함)
 local keybinds = {
-	randomTp = Enum.KeyCode.Q,       -- 랜덤 플레이어 머리 TP 단축키 (기본: Q)
-	autoTp = Enum.KeyCode.E,         -- 오토 50k TP 단축키 (기본: E)
-	orbit = Enum.KeyCode.R,          -- 오르빗 모드 단축키 (기본: R)
-	fly = Enum.KeyCode.F             -- 비행(Fly) 기능 단축키 (기본: F)
+	randomTp = Enum.KeyCode.Q,
+	autoTp = Enum.KeyCode.E,
+	orbit = Enum.KeyCode.R,
+	fly = Enum.KeyCode.F
 }
-local listeningKey = nil -- 현재 키바인딩을 변경하기 위해 대기 중인 항목
+local listeningKey = nil
 
 local function trackConn(conn)
 	if conn then
@@ -136,13 +128,10 @@ gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
-----------------------------------------------------
--- 메인 UI 창 (높이 확장: 600)
-----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
 window.Position = UDim2.new(0.5, 0, 0.5, 0)
-window.Size = UDim2.fromOffset(480, 600)
+window.Size = UDim2.fromOffset(480, 560)
 window.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 window.BorderColor3 = Color3.fromRGB(38, 38, 42)
 window.BorderSizePixel = 1
@@ -153,7 +142,6 @@ local actualScale = Instance.new("UIScale")
 actualScale.Scale = uiScaleFactor
 actualScale.Parent = window
 
--- [실시간 마우스 커서 강제 감시 및 복구 시스템]
 local function updateMouseState(isVisible)
 	pcall(function()
 		if not isMobile then
@@ -181,9 +169,6 @@ end))
 
 updateMouseState(true)
 
-----------------------------------------------------
--- 모바일 전용 토글(열기/닫기) 플로팅 버튼
-----------------------------------------------------
 local openGuiBtn = Instance.new("TextButton")
 openGuiBtn.Name = "AntiRivalOpenButton"
 openGuiBtn.Size = UDim2.fromOffset(130, 45)
@@ -204,7 +189,6 @@ openGuiBtn.MouseButton1Click:Connect(function()
 	updateMouseState(window.Visible)
 end)
 
--- [오른쪽 쉬프트 단축키 지원]
 trackConn(UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.KeyCode == Enum.KeyCode.RightShift then
 		window.Visible = not window.Visible
@@ -220,9 +204,6 @@ innerBorder.BorderColor3 = Color3.fromRGB(22, 22, 26)
 innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
-----------------------------------------------------
--- Header (드래그 및 타이틀 - 버전 V1.2.1 반영)
-----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
 header.Position = UDim2.fromOffset(0, 0)
@@ -267,7 +248,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.1-FREE BUILD" -- [버전업 V1.2.1 적용 완료]
+title.Text = "Anti-rival-V1.2.2-STABLE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -301,9 +282,6 @@ discordBtn.MouseButton1Click:Connect(function()
 	end)
 end)
 
-----------------------------------------------------
--- 탭 및 페이지 레이아웃
-----------------------------------------------------
 local tabs = Instance.new("ScrollingFrame")
 tabs.Size = UDim2.new(1, -16, 0, 52)
 tabs.Position = UDim2.fromOffset(8, 30)
@@ -445,7 +423,6 @@ local function toggle(parent, text, y)
 	return button
 end
 
--- 각 탭별 UI 요소 배치
 heading(mainPage, "movement / core controls")
 local walkBox = textbox(mainPage, "walk speed  (1–1000)", walkSpeed, 40)
 local walkButton = toggle(mainPage, "walk speed", 68)
@@ -457,57 +434,6 @@ local ragebotButton = toggle(worldPage, "ragebot (auto lock snap)", 40)
 local auraButton = toggle(worldPage, "aura (auto hit nearby)", 70)
 local wallbangButton = toggle(worldPage, "projectile wallbang", 100)
 local godModeButton = toggle(worldPage, "god mode (forcefield)", 130)
-
-----------------------------------------------------
--- [Rivals 전용 자동 매치 시스템 UI 컴포넌트]
-----------------------------------------------------
-local matchHeading = Instance.new("TextLabel")
-matchHeading.Size = UDim2.new(1, -20, 0, 24)
-matchHeading.Position = UDim2.fromOffset(10, 165)
-matchHeading.BackgroundTransparency = 1
-matchHeading.Text = "rivals auto match queue system"
-matchHeading.TextColor3 = Color3.fromRGB(200, 200, 205)
-matchHeading.TextSize = 12
-matchHeading.Font = Enum.Font.Code
-matchHeading.TextXAlignment = Enum.TextXAlignment.Left
-matchHeading.Parent = worldPage
-
-local matchModeLabel = Instance.new("TextLabel")
-matchModeLabel.Size = UDim2.fromOffset(140, 24)
-matchModeLabel.Position = UDim2.fromOffset(14, 195)
-matchModeLabel.BackgroundTransparency = 1
-matchModeLabel.Text = "Select Mode: 1VS1"
-matchModeLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-matchModeLabel.TextSize = 11
-matchModeLabel.Font = Enum.Font.Code
-matchModeLabel.TextXAlignment = Enum.TextXAlignment.Left
-matchModeLabel.Parent = worldPage
-
-local modesList = {"1VS1", "2VS2", "3VS3", "4VS4", "5VS5"}
-local currentModeIndex = 1
-
-local cycleModeBtn = Instance.new("TextButton")
-cycleModeBtn.Size = UDim2.fromOffset(138, 24)
-cycleModeBtn.Position = UDim2.fromOffset(162, 195)
-cycleModeBtn.BackgroundColor3 = Color3.fromRGB(30, 40, 60)
-cycleModeBtn.BorderColor3 = Color3.fromRGB(60, 80, 120)
-cycleModeBtn.BorderSizePixel = 1
-cycleModeBtn.Text = "CHANGE MODE"
-cycleModeBtn.TextColor3 = Color3.fromRGB(220, 230, 255)
-cycleModeBtn.TextSize = 10
-cycleModeBtn.Font = Enum.Font.Code
-cycleModeBtn.Parent = worldPage
-
-cycleModeBtn.MouseButton1Click:Connect(function()
-	currentModeIndex = currentModeIndex + 1
-	if currentModeIndex > #modesList then
-		currentModeIndex = 1
-	end
-	currentMatchMode = modesList[currentModeIndex]
-	matchModeLabel.Text = "Select Mode: " .. currentMatchMode
-end)
-
-local autoMatchButton = toggle(worldPage, "auto match queue", 228)
 
 heading(espPage, "player esp & information")
 local espButton = toggle(espPage, "player esp", 40)
@@ -674,9 +600,6 @@ unloadBtn.MouseButton1Click:Connect(function()
 	pcall(function() if gui then gui:Destroy() end end)
 end)
 
-----------------------------------------------------
--- 비행(Fly) 루프 엔진
-----------------------------------------------------
 toggleFly = function(state)
 	flyOn = state
 	setToggle(flyButton, flyOn, "fly")
@@ -750,9 +673,6 @@ toggleFly = function(state)
 	end
 end
 
-----------------------------------------------------
--- ESP & Health Text 시스템
-----------------------------------------------------
 local espCache = {}
 
 local function removeEsp(p)
@@ -870,9 +790,6 @@ end))
 
 trackConn(Players.PlayerRemoving:Connect(function(p) removeEsp(p) end))
 
-----------------------------------------------------
--- 무작위 플레이어 머리 기준 5스터드 이격 순간이동 로직
-----------------------------------------------------
 randomTpButton.MouseButton1Click:Connect(function()
 	pcall(function()
 		local _, myRoot = getSafeParts()
@@ -917,9 +834,6 @@ randomTpButton.MouseButton1Click:Connect(function()
 	end)
 end)
 
-----------------------------------------------------
--- 기타 루프 기능들 (Ragebot, Aura, Orbit, Teleporter)
-----------------------------------------------------
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
 	pcall(function()
@@ -1022,57 +936,23 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
-----------------------------------------------------
--- [Unname / Kiciahook 스타일의 정밀 Rivals 자동 매치 메이킹 리모트 호출 로직]
-----------------------------------------------------
-trackConn(RunService.RenderStepped:Connect(function()
-	if not autoMatchOn then return end
-	local now = os.clock()
-	if now - lastMatchQueueTick >= 0.8 then
-		lastMatchQueueTick = now
-		pcall(function()
-			-- Rivals의 내부 네트워크 구조 및 Remotes 폴더를 정밀 탐색하여 정확한 매치 큐 호출
-			local networkFolder = ReplicatedStorage:FindFirstChild("Packages") or ReplicatedStorage:FindFirstChild("Net") or ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage
-			
-			-- 명시적 경로 또는 하위 전체 탐색을 통해 매치 관련 RemoteEvent 강제 작동
-			for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-				if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-					local lowerName = obj.Name:lower()
-					-- Rivals 전용 매치 생성 및 큐 참가 패킷 이름 패턴 대응
-					if lowerName:find("match") or lowerName:find("queue") or lowerName:find("play") or lowerName:find("mode") or lowerName:find("duel") then
-						pcall(function()
-							if obj:IsA("RemoteEvent") then
-								obj:FireServer(currentMatchMode)
-								obj:FireServer("Queue", currentMatchMode)
-							elseif obj:IsA("RemoteFunction") then
-								obj:InvokeServer(currentMatchMode)
-								obj:InvokeServer("Queue", currentMatchMode)
-							end
-						end)
-					end
-				end
-			end
-		end)
-	end
-end))
-
 trackConn(RunService.Stepped:Connect(function()
 	if not noclipOn then return end
 	pcall(function()
 		local char = player.Character
 		if char then
-			for _, part in ipairs(char:GetDescendants()) do
-				if part:IsA("BasePart") and part.CanCollide then
-					part.CanCollide = false
+			local root = char:FindFirstChild("HumanoidRootPart")
+			if root then
+				for _, part in ipairs(char:GetDescendants()) do
+					if part:IsA("BasePart") and part.CanCollide then
+						part.CanCollide = false
+					end
 				end
 			end
 		end
 	end)
 end))
 
-----------------------------------------------------
--- 버튼 이벤트 바인딩
-----------------------------------------------------
 walkButton.MouseButton1Click:Connect(function()
 	walkOn = not walkOn
 	setToggle(walkButton, walkOn, "walk speed")
@@ -1114,11 +994,6 @@ end)
 godModeButton.MouseButton1Click:Connect(function()
 	godModeOn = not godModeOn
 	setToggle(godModeButton, godModeOn, "god mode (forcefield)")
-end)
-
-autoMatchButton.MouseButton1Click:Connect(function()
-	autoMatchOn = not autoMatchOn
-	setToggle(autoMatchButton, autoMatchOn, "auto match queue")
 end)
 
 espButton.MouseButton1Click:Connect(function()
@@ -1174,4 +1049,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.1 FREE BUILD Loaded Successfully!")
+print("Anti-rival V1.2.2 STABLE Loaded Successfully!")
