@@ -1,4 +1,4 @@
--- [클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 강제 종료
+-- [클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 강제 종료[cite: 1]
 pcall(function()
 	if getgenv().AntiRivalConnectionList then
 		for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
@@ -17,7 +17,7 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local player = Players.LocalPlayer
 
--- 기존 구버전 UI 제거
+-- 기존 구버전 UI 제거[cite: 1]
 for _, guiObj in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
 	if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
 		guiObj:Destroy()
@@ -91,7 +91,7 @@ gui.ResetOnSpawn = false
 gui.Parent = player.PlayerGui
 
 ----------------------------------------------------
--- 메인 UI 창
+-- 메인 UI 창[cite: 1]
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -153,7 +153,7 @@ innerBorder.ZIndex = 6
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header
+-- Header[cite: 1]
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -200,7 +200,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -30, 0.5, 0)
 title.Size = UDim2.fromOffset(280, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival-V0.7.6-FREE Build"
+title.Text = "Anti-Rival-V0.7.7-FREE Build" -- 버전 업그레이드됨 (0.7.6 -> 0.7.7)
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -235,7 +235,7 @@ discordBtn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- 탭 및 페이지 레이아웃
+-- 탭 및 페이지 레이아웃[cite: 1]
 ----------------------------------------------------
 local tabs = Instance.new("Frame")
 tabs.Size = UDim2.new(1, -16, 0, 24)
@@ -327,7 +327,7 @@ tab("misc", "misc", 6)
 tab("settings", "settings", 7)
 
 ----------------------------------------------------
--- UI 컨트롤 빌더
+-- UI 컨트롤 빌더[cite: 1]
 ----------------------------------------------------
 local function heading(parent, text)
 	local label = Instance.new("TextLabel")
@@ -394,7 +394,7 @@ local function setToggle(button, enabled, text)
 	button.BorderColor3 = enabled and Color3.fromRGB(50, 110, 70) or Color3.fromRGB(100, 45, 45)
 end
 
--- 탭 컴포넌트 배치 (텔레포트 및 1000출 관련 UI 완전 제거)
+-- 탭 컴포넌트 배치[cite: 1]
 heading(mainPage, "movement / main controls")
 local flyBox = textbox(mainPage, "fly speed  (1–500)", flySpeed, 40)
 local flyButton = toggle(mainPage, "fly", 68)
@@ -420,7 +420,7 @@ heading(miscPage, "misc / collision settings")
 local noclipButton = toggle(miscPage, "noclip", 40)
 
 ----------------------------------------------------
--- [Settings 탭] 키바인드 매니저 유지
+-- [Settings 탭] 키바인드 매니저 유지[cite: 1]
 ----------------------------------------------------
 heading(settingPage, "keybind manager")
 
@@ -499,7 +499,7 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 end))
 
 ----------------------------------------------------
--- 기능 구현 로직
+-- 기능 구현 로직[cite: 1]
 ----------------------------------------------------
 local function stopFly()
 	flying = false
@@ -563,7 +563,7 @@ local function startFly()
 	setToggle(flyButton, true, "fly")
 end
 
--- Fast Shot 엔진 루프
+-- Fast Shot 엔진 루프[cite: 1]
 trackConn(RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
 
@@ -597,7 +597,7 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
--- Noclip 루프
+-- Noclip 루프[cite: 1]
 trackConn(RunService.Stepped:Connect(function()
 	if noclipOn then
 		pcall(function()
@@ -613,7 +613,7 @@ trackConn(RunService.Stepped:Connect(function()
 	end
 end))
 
--- UI 버튼 이벤트 바인딩
+-- UI 버튼 이벤트 바인딩[cite: 1]
 flyButton.MouseButton1Click:Connect(function()
 	if flying then stopFly() else startFly() end
 end)
@@ -666,4 +666,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-Rival-V0.7.6-FREE Build (Teleport Removed) Loaded Successfully!")
+print("Anti-Rival-V0.7.7-FREE Build Loaded Successfully!") -- 버전 업그레이드됨 (0.7.6 -> 0.7.7)[cite: 1]
