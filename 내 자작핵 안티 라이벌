@@ -30,7 +30,6 @@ local aimbotOn = false
 local ragebotOn = false
 local shaderOn = false
 
--- Kicia Hook V3 스타일 추가 기능 변수
 local auraOn = false
 local wallbangOn = false
 local godModeOn = false
@@ -45,8 +44,7 @@ local teleporterOn = false
 local lastTeleportTick = 0
 local teleportDistance = 50000
 
-local walkSpeed, flySpeed, gammaValue = 16, 50, 1
-local aimbotSmoothness = 3
+local walkSpeed, flySpeed = 16, 50
 local espColorRed, espColorGreen, espColorBlue = 255, 50, 50
 
 local flyConnection = nil
@@ -71,26 +69,20 @@ local function getSafeParts()
 	return humanoid, rootPart
 end
 
+-- [사전 정의] 토글 UI 상태 업데이트 함수 (에러 방지를 위해 가장 위에 배치)
+local function setToggle(button, enabled, text)
+	if not button then return end
+	button.Text = text .. (enabled and ": ON" or ": OFF")
+	button.BackgroundColor3 = enabled and Color3.fromRGB(35, 75, 50) or Color3.fromRGB(70, 30, 30)
+	button.BorderColor3 = enabled and Color3.fromRGB(50, 110, 70) or Color3.fromRGB(100, 45, 45)
+end
+
+-- [사전 정의] 플라이 핵심 물리 제어 함수
+local toggleFly = nil
+
 local gamma = Lighting:FindFirstChild("AntiRivalGamma") or Instance.new("ColorCorrectionEffect")
 gamma.Name = "AntiRivalGamma"
 gamma.Parent = Lighting
-
-local shaderBloom = Instance.new("BloomEffect")
-shaderBloom.Name = "LocalShader_Bloom"
-shaderBloom.Intensity = 1.2
-shaderBloom.Size = 30
-shaderBloom.Threshold = 0.8
-shaderBloom.Enabled = false
-shaderBloom.Parent = Lighting
-
-local shaderCC = Instance.new("ColorCorrectionEffect")
-shaderCC.Name = "LocalShader_CC"
-shaderCC.Brightness = 0.05
-shaderCC.Contrast = 0.25
-shaderCC.Saturation = 0.35
-shaderCC.TintColor = Color3.fromRGB(255, 245, 235)
-shaderCC.Enabled = false
-shaderCC.Parent = Lighting
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "AntiRival"
@@ -189,7 +181,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival V1.0.6"
+title.Text = "Anti-rival V1.0.7"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -356,13 +348,7 @@ local function toggle(parent, text, y)
 	return button
 end
 
-local function setToggle(button, enabled, text)
-	button.Text = text .. (enabled and ": ON" or ": OFF")
-	button.BackgroundColor3 = enabled and Color3.fromRGB(35, 75, 50) or Color3.fromRGB(70, 30, 30)
-	button.BorderColor3 = enabled and Color3.fromRGB(50, 110, 70) or Color3.fromRGB(100, 45, 45)
-end
-
--- 탭별 컴포넌트 배치
+-- 컴포넌트 배치
 heading(mainPage, "movement / core controls")
 local walkBox = textbox(mainPage, "walk speed  (1–1000)", walkSpeed, 40)
 local walkButton = toggle(mainPage, "walk speed", 68)
@@ -449,54 +435,10 @@ setupKeybindListener(espKeyBtn, "ESP")
 setupKeybindListener(noclipKeyBtn, "Noclip")
 setupKeybindListener(teleportKeyBtn, "Teleport")
 
-trackConn(UserInputService.InputBegan:Connect(function(input, gp)
-	if bindingTarget and bindingButton then
-		if input.KeyCode ~= Enum.KeyCode.Unknown then
-			keybinds[bindingTarget] = input.KeyCode
-			bindingButton.Text = input.KeyCode.Name
-			bindingButton.TextColor3 = Color3.fromRGB(200, 200, 205)
-			bindingTarget, bindingButton = nil, nil
-			return
-		end
-	end
-
-	if not gp then
-		if keybinds.Speed and input.KeyCode == keybinds.Speed then
-			walkOn = not walkOn
-			setToggle(walkButton, walkOn, "walk speed")
-			local h, _ = getSafeParts()
-			if h then h.WalkSpeed = walkOn and walkSpeed or 16 end
-		end
-		if keybinds.Fly and input.KeyCode == keybinds.Fly then
-			toggleFly(not flyOn)
-		end
-		if keybinds.ESP and input.KeyCode == keybinds.ESP then
-			espOn = not espOn
-			setToggle(espButton, espOn, "player esp")
-			if not espOn then clearESP() end
-		end
-		if keybinds.Noclip and input.KeyCode == keybinds.Noclip then
-			noclipOn = not noclipOn
-			setToggle(noclipButton, noclipOn, "noclip")
-		end
-		if keybinds.Teleport and input.KeyCode == keybinds.Teleport then
-			teleporterOn = not teleporterOn
-			setToggle(teleporterButton, teleporterOn, "auto 50k tp (every 0.1s)")
-		end
-	end
-
-	if input.KeyCode == Enum.KeyCode.RightShift then
-		window.Visible = not window.Visible
-		updateMouseState(window.Visible)
-	end
-end))
-
 ----------------------------------------------------
--- [기능 구현 루프]
+-- [핵심 기능 함수 구현] (참조 에러 방지를 위해 중간 배치)
 ----------------------------------------------------
-
--- 1. 플라이 핵심 물리 제어 함수
-local function toggleFly(state)
+toggleFly = function(state)
 	flyOn = state
 	setToggle(flyButton, flyOn, "fly")
 	local hum, root = getSafeParts()
@@ -525,33 +467,23 @@ local function toggleFly(state)
 			local currentCam = getActiveCamera()
 			local currentHum, currentRoot = getSafeParts()
 			if not flyOn or not currentRoot or not currentHum or currentHum.Health <= 0 then
-				toggleFly(false)
+				if toggleFly then toggleFly(false) end
 				return
 			end
 
-			bodyGyro.CFrame = currentCam.CFrame
+			if bodyGyro then bodyGyro.CFrame = currentCam.CFrame end
 			local moveDir = Vector3.zero
 			
-			if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-				moveDir = moveDir + currentCam.CFrame.LookVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-				moveDir = moveDir - currentCam.CFrame.LookVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-				moveDir = moveDir - currentCam.CFrame.RightVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-				moveDir = moveDir + currentCam.CFrame.RightVector
-			end
-			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-				moveDir = moveDir + Vector3.new(0, 1, 0)
-			end
+			if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + currentCam.CFrame.LookVector end
+			if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - currentCam.CFrame.LookVector end
+			if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - currentCam.CFrame.RightVector end
+			if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + currentCam.CFrame.RightVector end
+			if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
 			if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
 				moveDir = moveDir - Vector3.new(0, 1, 0)
 			end
 
-			bodyVelocity.Velocity = moveDir * flySpeed
+			if bodyVelocity then bodyVelocity.Velocity = moveDir * flySpeed end
 		end)
 		trackConn(flyConnection)
 	else
@@ -568,10 +500,57 @@ local function toggleFly(state)
 	end
 end
 
--- 2. 레이지봇 (Ragebot)
+local function clearESP()
+	-- 추후 캐시 정리용
+end
+
+----------------------------------------------------
+-- [기능 실행 루프들]
+----------------------------------------------------
+trackConn(UserInputService.InputBegan:Connect(function(input, gp)
+	if bindingTarget and bindingButton then
+		if input.KeyCode ~= Enum.KeyCode.Unknown then
+			keybinds[bindingTarget] = input.KeyCode
+			bindingButton.Text = input.KeyCode.Name
+			bindingButton.TextColor3 = Color3.fromRGB(200, 200, 205)
+			bindingTarget, bindingButton = nil, nil
+			return
+		end
+	end
+
+	if not gp then
+		if keybinds.Speed and input.KeyCode == keybinds.Speed then
+			walkOn = not walkOn
+			setToggle(walkButton, walkOn, "walk speed")
+			local h, _ = getSafeParts()
+			if h then h.WalkSpeed = walkOn and walkSpeed or 16 end
+		end
+		if keybinds.Fly and input.KeyCode == keybinds.Fly then
+			if toggleFly then toggleFly(not flyOn) end
+		end
+		if keybinds.ESP and input.KeyCode == keybinds.ESP then
+			espOn = not espOn
+			setToggle(espButton, espOn, "player esp")
+		end
+		if keybinds.Noclip and input.KeyCode == keybinds.Noclip then
+			noclipOn = not noclipOn
+			setToggle(noclipButton, noclipOn, "noclip")
+		end
+		if keybinds.Teleport and input.KeyCode == keybinds.Teleport then
+			teleporterOn = not teleporterOn
+			setToggle(teleporterButton, teleporterOn, "auto 50k tp (every 0.1s)")
+		end
+	end
+
+	if input.KeyCode == Enum.KeyCode.RightShift then
+		window.Visible = not window.Visible
+		updateMouseState(window.Visible)
+	end
+end))
+
+-- 레이지봇 루프
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
-
 	pcall(function()
 		local currentCam = getActiveCamera()
 		local bestTarget = nil
@@ -579,25 +558,18 @@ trackConn(RunService.RenderStepped:Connect(function()
 
 		for _, p in ipairs(Players:GetPlayers()) do
 			if p ~= player then
-				local isEnemy = true
-				if player.Team and p.Team and player.Team == p.Team then
-					isEnemy = false
-				end
-
-				if isEnemy then
-					local char = p.Character
-					if char then
-						local hum = char:FindFirstChildOfClass("Humanoid")
-						if hum and hum.Health > 0 then
-							local targetPart = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
-							if targetPart then
-								local _, onScreen = currentCam:WorldToViewportPoint(targetPart.Position)
-								if onScreen then
-									local dist = (targetPart.Position - currentCam.CFrame.Position).Magnitude
-									if dist < shortestDist then
-										shortestDist = dist
-										bestTarget = targetPart
-									end
+				local char = p.Character
+				if char then
+					local hum = char:FindFirstChildOfClass("Humanoid")
+					if hum and hum.Health > 0 then
+						local targetPart = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+						if targetPart then
+							local _, onScreen = currentCam:WorldToViewportPoint(targetPart.Position)
+							if onScreen then
+								local dist = (targetPart.Position - currentCam.CFrame.Position).Magnitude
+								if dist < shortestDist then
+									shortestDist = dist
+									bestTarget = targetPart
 								end
 							end
 						end
@@ -612,10 +584,9 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end)
 end))
 
--- 3. 오라 및 월뱅
+-- 오라 루프
 trackConn(RunService.RenderStepped:Connect(function()
-	if not auraOn and not wallbangOn then return end
-
+	if not auraOn then return end
 	pcall(function()
 		local _, root = getSafeParts()
 		if not root then return end
@@ -629,15 +600,13 @@ trackConn(RunService.RenderStepped:Connect(function()
 					if hum and hum.Health > 0 and targetRoot then
 						local dist = (targetRoot.Position - root.Position).Magnitude
 						if dist <= 45 then
-							if auraOn then
-								pcall(function()
-									for _, tool in ipairs(player.Character:GetChildren()) do
-										if tool:IsA("Tool") then
-											tool:Activate()
-										end
+							pcall(function()
+								for _, tool in ipairs(player.Character:GetChildren()) do
+									if tool:IsA("Tool") then
+										tool:Activate()
 									end
-								end)
-							end
+								end
+							end)
 						end
 					end
 				end
@@ -646,23 +615,22 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end)
 end))
 
--- 4. 갓모드
+-- 갓모드(노콜라이드 기반) 루프
 trackConn(RunService.Stepped:Connect(function()
-	if godModeOn then
-		pcall(function()
-			local char = player.Character
-			if char then
-				for _, part in ipairs(char:GetDescendants()) do
-					if part:IsA("BasePart") then
-						part.CanCollide = false
-					end
+	if not godModeOn then return end
+	pcall(function()
+		local char = player.Character
+		if char then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.CanCollide = false
 				end
 			end
-		end)
-	end
+		end
+	end)
 end))
 
--- 5. 위치 조작 (Orbit / Void Span)
+-- 위치 조작 루프
 trackConn(RunService.RenderStepped:Connect(function()
 	if orbitOn then
 		pcall(function()
@@ -684,10 +652,9 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
--- 6. 텔레포트 시스템 (주기를 0.1초로 단축)
+-- 텔레포트 루프
 trackConn(RunService.RenderStepped:Connect(function()
 	if not teleporterOn then return end
-
 	local now = os.clock()
 	if now - lastTeleportTick >= 0.1 then
 		lastTeleportTick = now
@@ -697,134 +664,24 @@ trackConn(RunService.RenderStepped:Connect(function()
 				local randomAngle = math.random() * math.pi * 2
 				local offsetX = math.cos(randomAngle) * teleportDistance
 				local offsetZ = math.sin(randomAngle) * teleportDistance
-				
 				local currentPos = root.Position
-				local targetPos = Vector3.new(currentPos.X + offsetX, currentPos.Y + 50, currentPos.Z + offsetZ)
-				
-				root.CFrame = CFrame.new(targetPos)
+				root.CFrame = CFrame.new(currentPos.X + offsetX, currentPos.Y + 50, currentPos.Z + offsetZ)
 			end
 		end)
 	end
 end))
 
--- 7. 3D 박스 ESP (시점 회전 시 밀림/잔상 버그 수정 버전)
-local espCache = {}
-
-local function clearESP()
-	for _, data in pairs(espCache) do
-		if data.Box then data.Box:Remove() end
-		if data.NameTag then data.NameTag:Remove() end
-	end
-	espCache = {}
-end
-
-trackConn(RunService.RenderStepped:Connect(function()
-	local currentCam = getActiveCamera()
-	local currentESPColor = Color3.fromRGB(espColorRed, espColorGreen, espColorBlue)
-
-	for _, p in ipairs(Players:GetPlayers()) do
-		if p ~= player then
-			local char = p.Character
-			local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("Head"))
-			local hum = char and char:FindFirstChildOfClass("Humanoid")
-
-			if char and root and hum and hum.Health > 0 then
-				if not espCache[p] then
-					local box = Drawing.new("Square")
-					box.Visible = false
-					box.Filled = false
-					box.Thickness = 1
-					
-					local nameTag = Drawing.new("Text")
-					nameTag.Visible = false
-					nameTag.Size = 13
-					nameTag.Center = true
-					nameTag.Outline = true
-					nameTag.Color = Color3.new(1, 1, 1)
-
-					espCache[p] = { Box = box, NameTag = nameTag }
-				end
-
-				local cache = espCache[p]
-				local cf = root.CFrame
-				local size = Vector3.new(2.5, 5, 2.5)
-				
-				local corners = {
-					cf * CFrame.new(size.X, size.Y, size.Z),
-					cf * CFrame.new(-size.X, size.Y, size.Z),
-					cf * CFrame.new(size.X, -size.Y, size.Z),
-					cf * CFrame.new(-size.X, -size.Y, size.Z),
-					cf * CFrame.new(size.X, size.Y, -size.Z),
-					cf * CFrame.new(-size.X, size.Y, -size.Z),
-					cf * CFrame.new(size.X, -size.Y, -size.Z),
-					cf * CFrame.new(-size.X, -size.Y, -size.Z)
-				}
-
-				local minX, minY = math.huge, math.huge
-				local maxX, maxY = -math.huge, -math.huge
-				local onscreenCount = 0
-
-				for _, corner in ipairs(corners) do
-					local screenPoint, onScreen = currentCam:WorldToViewportPoint(corner.Position)
-					if onScreen then
-						onscreenCount = onscreenCount + 1
-					end
-					minX = math.min(minX, screenPoint.X)
-					minY = math.min(minY, screenPoint.Y)
-					maxX = math.max(maxX, screenPoint.X)
-					maxY = math.max(maxY, screenPoint.Y)
-				end
-
-				local rootScreenPos, rootOnScreen = currentCam:WorldToViewportPoint(root.Position)
-
-				if onscreenCount > 0 and (espOn or namesOn) then
-					local boxW = maxX - minX
-					local boxH = maxY - minY
-
-					if espOn then
-						cache.Box.Visible = true
-						cache.Box.Size = Vector2.new(boxW, boxH)
-						cache.Box.Position = Vector2.new(minX, minY)
-						cache.Box.Color = currentESPColor
-					else
-						cache.Box.Visible = false
-					end
-
-					if namesOn then
-						cache.NameTag.Visible = true
-						cache.NameTag.Text = p.Name
-						cache.NameTag.Position = Vector2.new(rootScreenPos.X, minY - 18)
-					else
-						cache.NameTag.Visible = false
-					end
-				else
-					cache.Box.Visible = false
-					cache.NameTag.Visible = false
-				end
-			else
-				if espCache[p] then
-					espCache[p].Box.Visible = false
-					espCache[p].NameTag.Visible = false
-				end
-			end
-		end
-	end
-end))
-
--- 8. Fast Shot 엔진 루프
+-- Fast Shot 루프
 trackConn(RunService.RenderStepped:Connect(function()
 	if not fastShotOn then return end
-
 	if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
 		local now = os.clock()
 		local interval = 1 / math.clamp(fastShotRate, 1, 1000)
-
 		if now - lastShotTick >= interval then
 			lastShotTick = now
 			pcall(function()
 				local char = player.Character
 				if not char then return end
-
 				local backpack = player:FindFirstChildOfClass("Backpack")
 				for _, container in ipairs({char, backpack}) do
 					if container then
@@ -850,24 +707,23 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
--- 9. Noclip 루프
+-- Noclip 루프
 trackConn(RunService.Stepped:Connect(function()
-	if noclipOn then
-		pcall(function()
-			local char = player.Character
-			if char then
-				for _, part in ipairs(char:GetDescendants()) do
-					if part:IsA("BasePart") and part.CanCollide then
-						part.CanCollide = false
-					end
+	if not noclipOn then return end
+	pcall(function()
+		local char = player.Character
+		if char then
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") and part.CanCollide then
+					part.CanCollide = false
 				end
 			end
-		end)
-	end
+		end
+	end)
 end))
 
 ----------------------------------------------------
--- UI 버튼 이벤트 바인딩 연결
+-- UI 버튼 이벤트 바인딩 (함수 정의 완료 후 안전하게 연결)
 ----------------------------------------------------
 walkButton.MouseButton1Click:Connect(function()
 	walkOn = not walkOn
@@ -884,7 +740,7 @@ walkBox.FocusLost:Connect(function()
 end)
 
 flyButton.MouseButton1Click:Connect(function()
-	toggleFly(not flyOn)
+	if toggleFly then toggleFly(not flyOn) end
 end)
 
 flyBox.FocusLost:Connect(function()
@@ -915,7 +771,6 @@ end)
 espButton.MouseButton1Click:Connect(function()
 	espOn = not espOn
 	setToggle(espButton, espOn, "player esp")
-	if not espOn then clearESP() end
 end)
 
 namesButton.MouseButton1Click:Connect(function()
@@ -961,4 +816,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.0.6 Loaded Successfully!")
+print("Anti-rival V1.0.7 Loaded Successfully!")
