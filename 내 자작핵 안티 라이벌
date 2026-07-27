@@ -1,4 +1,4 @@
--- [클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 강제 종료
+-- [클린업] 기존 실행 중이던 모든 구버전 데이터 강제 종료
 pcall(function()
 	if getgenv().AntiRivalConnectionList then
 		for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
@@ -34,26 +34,7 @@ end
 
 local uiScaleFactor = isMobile and 0.55 or 1.0
 
--- 화면 멈춤 연출
-do
-	local freezeConnection
-	local startTick = os.clock()
-	freezeConnection = RunService.RenderStepped:Connect(function()
-		if os.clock() - startTick >= 2 then
-			if freezeConnection then
-				freezeConnection:Disconnect()
-			end
-		else
-			local current = os.clock()
-			while os.clock() - current < 0.05 do end
-		end
-	end)
-	while os.clock() - startTick < 2 do
-		task.wait(0.01)
-	end
-end
-
--- 기존 구버전 UI 강제 제거
+-- 화면 멈춤 연출 제거 및 안정화
 pcall(function()
 	for _, guiObj in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
 		if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
@@ -156,17 +137,6 @@ local function updateMouseState(isVisible)
 	end)
 end
 
-trackConn(RunService.RenderStepped:Connect(function()
-	if window.Visible and not isMobile then
-		pcall(function()
-			if UserInputService.MouseBehavior ~= Enum.MouseBehavior.Default or not UserInputService.MouseIconEnabled then
-				UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-				UserInputService.MouseIconEnabled = true
-			end
-		end)
-	end
-end))
-
 updateMouseState(true)
 
 local openGuiBtn = Instance.new("TextButton")
@@ -248,7 +218,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.4-STABLE"
+title.Text = "Anti-rival-V1.2.5-STABLE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -713,8 +683,9 @@ local function updateEspForPlayer(p)
 		if not infoBillboard or not infoBillboard.Parent then
 			infoBillboard = Instance.new("BillboardGui")
 			infoBillboard.Name = "AntiRivalInfo"
-			infoBillboard.Size = UDim2.new(0, 160, 0, 50)
-			infoBillboard.StudsOffset = Vector3.new(0, 2.5, 0)
+			-- 빌보드 크기를 넉넉하게 잡고 스케일/오프셋 고정
+			infoBillboard.Size = UDim2.new(0, 200, 0, 60)
+			infoBillboard.StudsOffset = Vector3.new(0, 3.0, 0)
 			infoBillboard.AlwaysOnTop = true
 			infoBillboard.Adornee = head
 
@@ -723,13 +694,13 @@ local function updateEspForPlayer(p)
 			uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 			uiList.VerticalAlignment = Enum.VerticalAlignment.Center
 			uiList.SortOrder = Enum.SortOrder.LayoutOrder
-			uiList.Padding = UDim.new(0, 2)
+			uiList.Padding = UDim.new(0, 4) -- 줄 간격 여유 확보
 			uiList.Parent = infoBillboard
 
 			local nameText = Instance.new("TextLabel")
 			nameText.Name = "NameText"
 			nameText.LayoutOrder = 1
-			nameText.Size = UDim2.new(1, 0, 0, 20)
+			nameText.Size = UDim2.new(1, 0, 0, 22)
 			nameText.BackgroundTransparency = 1
 			nameText.TextColor3 = Color3.fromRGB(255, 255, 255)
 			nameText.TextSize = 13
@@ -740,7 +711,7 @@ local function updateEspForPlayer(p)
 			local healthText = Instance.new("TextLabel")
 			healthText.Name = "HealthText"
 			healthText.LayoutOrder = 2
-			healthText.Size = UDim2.new(1, 0, 0, 20)
+			healthText.Size = UDim2.new(1, 0, 0, 22)
 			healthText.BackgroundTransparency = 1
 			healthText.TextColor3 = Color3.fromRGB(80, 255, 120)
 			healthText.TextSize = 12
@@ -1045,4 +1016,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.4 STABLE Loaded Successfully!")
+print("Anti-rival V1.2.5 STABLE Loaded Successfully!")
