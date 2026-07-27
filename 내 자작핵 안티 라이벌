@@ -215,7 +215,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (드래그 및 타이틀 - 버전 V1.1.12 반영)
+-- Header (드래그 및 타이틀 - 버전 V1.1.13 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -261,7 +261,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.12-FREE BUILD" -- [버전업 V1.1.12 적용 완료]
+title.Text = "Anti-rival-V1.1.13-FREE BUILD" -- [버전업 V1.1.13 적용 완료]
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -296,7 +296,7 @@ discordBtn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- 탭 및 페이지 레이아웃
+-- 탭 및 페이지 레이아웃 (이미지 기반 이름 적용)
 ----------------------------------------------------
 local tabs = Instance.new("ScrollingFrame")
 tabs.Size = UDim2.new(1, -16, 0, 24)
@@ -336,11 +336,12 @@ local function page(name)
 	return frame
 end
 
+-- 이미지에 맞춘 7개 탭 페이지 생성
 local mainPage = page("main")
-local combatPage = page("combat")
+local worldPage = page("world")
 local espPage = page("esp")
+local visualsPage = page("visuals")
 local characterPage = page("character")
-local cheaterPage = page("cheater")
 local miscPage = page("misc")
 local settingPage = page("settings")
 
@@ -377,11 +378,12 @@ local function tab(text, name, order)
 	tabButtons[name] = button
 end
 
+-- 이미지 순서 및 이름 반영 (main, world, esp, visuals, character, misc, settings)
 tab("main", "main", 1)
-tab("combat", "combat", 2)
+tab("world", "world", 2)
 tab("esp", "esp", 3)
-tab("char", "character", 4)
-tab("cheat", "cheater", 5)
+tab("visuals", "visuals", 4)
+tab("char", "character", 5)
 tab("misc", "misc", 6)
 tab("settings", "settings", 7)
 
@@ -440,31 +442,28 @@ local function toggle(parent, text, y)
 	return button
 end
 
+-- 각 탭별 UI 요소 배치
 heading(mainPage, "movement / core controls")
 local walkBox = textbox(mainPage, "walk speed  (1–1000)", walkSpeed, 40)
 local walkButton = toggle(mainPage, "walk speed", 68)
 local flyBox = textbox(mainPage, "fly speed  (1–1000)", flySpeed, 106)
 local flyButton = toggle(mainPage, "fly", 134)
 
-heading(combatPage, "kicia hook v3 - combat perks")
-local ragebotButton = toggle(combatPage, "ragebot (auto lock snap)", 40)
-local auraButton = toggle(combatPage, "aura (auto hit nearby)", 70)
-local wallbangButton = toggle(combatPage, "projectile wallbang", 100)
-local godModeButton = toggle(combatPage, "god mode (forcefield)", 130)
+heading(worldPage, "world & combat perks")
+local ragebotButton = toggle(worldPage, "ragebot (auto lock snap)", 40)
+local auraButton = toggle(worldPage, "aura (auto hit nearby)", 70)
+local wallbangButton = toggle(worldPage, "projectile wallbang", 100)
+local godModeButton = toggle(worldPage, "god mode (forcefield)", 130)
 
 heading(espPage, "player esp & information")
 local espButton = toggle(espPage, "player esp", 40)
 local namesButton = toggle(espPage, "player names", 70)
 
-heading(characterPage, "character capabilities")
-local fastShotBox = textbox(characterPage, "fast shot rate (1–1000)", fastShotRate, 40)
-local fastShotButton = toggle(characterPage, "fast shot (Engine Bypass)", 68)
-
-heading(cheaterPage, "position manipulation & extreme utility")
-local orbitButton = toggle(cheaterPage, "orbit position mode", 40)
-local voidSpanButton = toggle(cheaterPage, "void span mode", 70)
-local teleporterBox = textbox(cheaterPage, "teleport distance", teleportDistance, 106)
-local teleporterButton = toggle(cheaterPage, "auto 50k tp (every 0.1s)", 134)
+heading(visualsPage, "position manipulation & extreme utility")
+local orbitButton = toggle(visualsPage, "orbit position mode", 40)
+local voidSpanButton = toggle(visualsPage, "void span mode", 70)
+local teleporterBox = textbox(visualsPage, "teleport distance", teleportDistance, 106)
+local teleporterButton = toggle(visualsPage, "auto 50k tp (every 0.1s)", 134)
 
 local randomTpButton = Instance.new("TextButton")
 randomTpButton.Size = UDim2.fromOffset(286, 28)
@@ -476,7 +475,11 @@ randomTpButton.Text = "RANDOM PLAYER HEAD TP (5 Studs)"
 randomTpButton.TextColor3 = Color3.fromRGB(220, 230, 255)
 randomTpButton.TextSize = 10
 randomTpButton.Font = Enum.Font.Code
-randomTpButton.Parent = cheaterPage
+randomTpButton.Parent = visualsPage
+
+heading(characterPage, "character capabilities")
+local fastShotBox = textbox(characterPage, "fast shot rate (1–1000)", fastShotRate, 40)
+local fastShotButton = toggle(characterPage, "fast shot (Engine Bypass)", 68)
 
 heading(miscPage, "misc / collision settings")
 local noclipButton = toggle(miscPage, "noclip", 40)
@@ -1039,4 +1042,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.12 FREE BUILD Loaded Successfully!")
+print("Anti-rival V1.1.13 FREE BUILD Loaded Successfully!")
