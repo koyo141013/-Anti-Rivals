@@ -18,15 +18,20 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 
--- [모바일 환경 감지 완전 수정 (MaxTouchPoints 완전 제거 및 안전한 pcall 방어 적용)]
+-- [완전한 에러 방어: UserInputService 속성 접근 제거 및 런타임 환경 감지 적용]
 local isMobile = false
 pcall(function()
+	-- 모바일 환경에서 터치 입력 가능 여부만 안전하게 확인
 	isMobile = UserInputService.TouchEnabled
 end)
+
+-- 실행 환경이 PC/콘솔 등으로 판정되어도 터치 중심의 모바일 에뮬레이터/특수 익스큐터인 경우를 대비한 2차 안전 장치
 if not isMobile then
 	pcall(function()
-		-- 모바일 환경에서 UserInputService에 터치 관련 프로퍼티가 없는 경우를 완벽 방어
-		isMobile = (UserInputService:GetMouseLocation().Magnitude >= 0) and (not UserInputService.KeyboardEnabled)
+		local GuiService = game:GetService("GuiService")
+		if GuiService:IsTenFootInterface() == false and (not UserInputService.KeyboardEnabled) then
+			isMobile = true
+		end
 	end)
 end
 
@@ -231,7 +236,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.4-FIXED"
+title.Text = "Anti-rival-V1.1.5-FIXED"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -840,4 +845,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.4 Loaded Successfully!")
+print("Anti-rival V1.1.5 Loaded Successfully!")
