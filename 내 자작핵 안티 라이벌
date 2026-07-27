@@ -1,4 +1,4 @@
--- [V1.4.5 Update] Force 3rd Person Zoom Bug Fix & Core Optimization (2026-07-27 18:49)
+-- [V1.4.6 Update] Force 3rd Person Zoom Bug Fix & Keybinds Indicator UI Integrated (2026-07-27)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -47,7 +47,7 @@ pcall(function()
 	local playerGui = player:WaitForChild("PlayerGui", 5)
 	if playerGui then
 		for _, guiObj in ipairs(playerGui:GetChildren()) do
-			if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
+			if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name == "AntiRivalKeybinds" or guiObj.Name:find("AntiRival") then
 				guiObj:Destroy()
 			end
 		end
@@ -120,6 +120,96 @@ gui.Name = "AntiRival"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
+
+local keybindGui = Instance.new("ScreenGui")
+keybindGui.Name = "AntiRivalKeybinds"
+keybindGui.ResetOnSpawn = false
+keybindGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+keybindGui.Parent = player:WaitForChild("PlayerGui")
+
+local kbFrame = Instance.new("Frame")
+kbFrame.Name = "KeybindsMainFrame"
+kbFrame.Size = UDim2.fromOffset(220, 165)
+kbFrame.Position = UDim2.new(0, 15, 0, 160)
+kbFrame.BackgroundColor3 = Color3.fromRGB(14, 14, 18)
+kbFrame.BackgroundTransparency = 0.2
+kbFrame.BorderColor3 = Color3.fromRGB(45, 45, 60)
+kbFrame.BorderSizePixel = 1
+kbFrame.Parent = keybindGui
+
+local kbCorner = Instance.new("UICorner")
+kbCorner.CornerRadius = UDim.new(0, 4)
+kbCorner.Parent = kbFrame
+
+local kbTitle = Instance.new("TextLabel")
+kbTitle.Size = UDim2.new(1, 0, 0, 28)
+kbTitle.Position = UDim2.fromOffset(10, 0)
+kbTitle.BackgroundTransparency = 1
+kbTitle.Text = "Keybinds"
+kbTitle.TextColor3 = Color3.fromRGB(220, 220, 230)
+kbTitle.TextSize = 13
+kbTitle.Font = Enum.Font.Code
+kbTitle.TextXAlignment = Enum.TextXAlignment.Left
+kbTitle.Parent = kbFrame
+
+local kbListLayout = Instance.new("UIListLayout")
+kbListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+kbListLayout.Padding = UDim.new(0, 2)
+kbListLayout.Parent = kbFrame
+
+local kbPadding = Instance.new("UIPadding")
+kbPadding.PaddingTop = UDim.new(0, 32)
+kbPadding.PaddingLeft = UDim.new(0, 10)
+kbPadding.PaddingRight = UDim.new(0, 10)
+kbPadding.Parent = kbFrame
+
+local function createKbRow(name, keyText, featureText, modeText, order)
+	local row = Instance.new("Frame")
+	row.Name = name
+	row.Size = UDim2.new(1, 0, 0, 24)
+	row.BackgroundTransparency = 1
+	row.LayoutOrder = order
+	row.Parent = kbFrame
+
+	local kLbl = Instance.new("TextLabel")
+	kLbl.Name = "Key"
+	kLbl.Size = UDim2.new(0, 75, 1, 0)
+	kLbl.BackgroundTransparency = 1
+	kLbl.Text = "[" .. keyText .. "]"
+	kLbl.TextColor3 = Color3.fromRGB(100, 180, 255)
+	kLbl.TextSize = 11
+	kLbl.Font = Enum.Font.Code
+	kLbl.TextXAlignment = Enum.TextXAlignment.Left
+	kLbl.Parent = row
+
+	local fLbl = Instance.new("TextLabel")
+	fLbl.Name = "Feature"
+	fLbl.Size = UDim2.new(1, -75, 1, 0)
+	fLbl.Position = UDim2.new(0, 75, 0, 0)
+	fLbl.BackgroundTransparency = 1
+	fLbl.Text = featureText
+	fLbl.TextColor3 = Color3.fromRGB(180, 180, 190)
+	fLbl.TextSize = 11
+	fLbl.Font = Enum.Font.Code
+	fLbl.TextXAlignment = Enum.TextXAlignment.Left
+	fLbl.Parent = row
+
+	return kLbl
+end
+
+local kbRowRandomTp = createKbRow("RowRandomTp", "Q", "Random TP", "TOGGLE", 1)
+local kbRowAutoTp   = createKbRow("RowAutoTp", "E", "Auto 50k TP", "TOGGLE", 2)
+local kbRowOrbit    = createKbRow("RowOrbit", "R", "Orbit Mode", "TOGGLE", 3)
+local kbRowFly      = createKbRow("RowFly", "F", "Fly Mode", "TOGGLE", 4)
+local kbRowMenu     = createKbRow("RowMenu", "RSHIFT", "UI Toggle", "TOGGLE", 5)
+
+local function updateKeybindUI(keyName, newKeyName)
+	if keyName == "randomTp" then kbRowRandomTp.Text = "[" .. newKeyName .. "]"
+	elseif keyName == "autoTp" then kbRowAutoTp.Text = "[" .. newKeyName .. "]"
+	elseif keyName == "orbit" then kbRowOrbit.Text = "[" .. newKeyName .. "]"
+	elseif keyName == "fly" then kbRowFly.Text = "[" .. newKeyName .. "]"
+	end
+end
 
 local flyControlGui = Instance.new("ScreenGui")
 flyControlGui.Name = "AntiRivalFlyControls"
@@ -285,7 +375,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.4.5-MODERN"
+title.Text = "Anti-rival-V1.4.6-MODERN"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -549,18 +639,20 @@ local function handleInputBegan(input, gameProcessed)
 		if listeningKey then
 			if input.KeyCode ~= Enum.KeyCode.Unknown then
 				keybinds[listeningKey] = input.KeyCode
+				local keyNameStr = tostring(input.KeyCode.Name)
+				updateKeybindUI(listeningKey, keyNameStr)
 				
 				if listeningKey == "randomTp" then
-					bindRandomTpBtn.Text = tostring(input.KeyCode.Name)
+					bindRandomTpBtn.Text = keyNameStr
 					bindRandomTpBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
 				elseif listeningKey == "autoTp" then
-					bindAutoTpBtn.Text = tostring(input.KeyCode.Name)
+					bindAutoTpBtn.Text = keyNameStr
 					bindAutoTpBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
 				elseif listeningKey == "orbit" then
-					bindOrbitBtn.Text = tostring(input.KeyCode.Name)
+					bindOrbitBtn.Text = keyNameStr
 					bindOrbitBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
 				elseif listeningKey == "fly" then
-					bindFlyBtn.Text = tostring(input.KeyCode.Name)
+					bindFlyBtn.Text = keyNameStr
 					bindFlyBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
 				end
 			end
@@ -663,6 +755,7 @@ unloadBtn.MouseButton1Click:Connect(function()
 	end)
 	pcall(function() if gamma then gamma:Destroy() end end)
 	pcall(function() if gui then gui:Destroy() end end)
+	pcall(function() if keybindGui then keybindGui:Destroy() end end)
 	pcall(function() if flyControlGui then flyControlGui:Destroy() end end)
 end)
 
@@ -985,7 +1078,6 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end)
 end))
 
--- [V1.4.5 FIX] 무기 줌(ADS) 시 강제 3인칭이 카메라를 억지로 뒤로 밀어내던 충돌 버그 수정
 trackConn(RunService.RenderStepped:Connect(function()
 	if forceThirdPersonOn then
 		pcall(function()
@@ -1001,7 +1093,6 @@ trackConn(RunService.RenderStepped:Connect(function()
 				if currentCam.CameraType == Enum.CameraType.Scriptable then
 					currentCam.CameraType = Enum.CameraType.Custom
 				end
-				-- 줌(Aiming/ADS) 상태일 때는 강제 줌백 로직을 우회하여 게임 본연의 조준 기능을 정상 작동하게 함
 				local isAiming = false
 				local char = player.Character
 				if char then
@@ -1182,7 +1273,7 @@ teleporterButton.MouseButton1Click:Connect(function()
 end)
 
 teleporterBox.FocusLost:Connect(function()
-	teleportDistance = math.clamp(tonumber(teleporterBox.Text) or 50000, 1, 1000000)
+    teleportDistance = math.clamp(tonumber(teleporterBox.Text) or 50000, 1, 1000000)
 	teleporterBox.Text = tostring(teleportDistance)
 end)
 
@@ -1192,4 +1283,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.4.5 Loaded Successfully!")
+print("Anti-rival V1.4.6 Loaded Successfully with Keybinds Indicator!")
