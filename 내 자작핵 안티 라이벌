@@ -83,7 +83,7 @@ local walkSpeed, flySpeed = 16, 50
 local flyConnection = nil
 local bodyGyro, bodyVelocity = nil, nil
 
--- [업데이트] 단축키 저장 변수 (Fly 기능 단축키 추가, 기본값: F)
+-- 단축키 저장 변수 (Fly 기능 단축키 포함)
 local keybinds = {
 	randomTp = Enum.KeyCode.Q,       -- 랜덤 플레이어 머리 TP 단축키 (기본: Q)
 	autoTp = Enum.KeyCode.E,         -- 오토 50k TP 단축키 (기본: E)
@@ -215,7 +215,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (드래그 및 타이틀 - 버전 V1.1.11 반영)
+-- Header (드래그 및 타이틀 - 버전 V1.1.12 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -261,7 +261,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.11-FREE BUILD" -- [버전업 V1.1.11 적용 완료]
+title.Text = "Anti-rival-V1.1.12-FREE BUILD" -- [버전업 V1.1.12 적용 완료]
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -519,9 +519,9 @@ end
 local bindRandomTpBtn = createKeybindRow(settingPage, "Key: Random Head TP", "randomTp", 80)
 local bindAutoTpBtn   = createKeybindRow(settingPage, "Key: Auto 50k TP", "autoTp", 112)
 local bindOrbitBtn    = createKeybindRow(settingPage, "Key: Orbit Mode", "orbit", 144)
-local bindFlyBtn      = createKeybindRow(settingPage, "Key: Fly Toggle", "fly", 176) -- [추가] Fly 단축키 설정 UI 행
+local bindFlyBtn      = createKeybindRow(settingPage, "Key: Fly Toggle", "fly", 176)
 
--- 입력 감지 이벤트 (설정창에서 키를 누르거나 게임 플레이 중 단축키 실행)
+-- 입력 감지 이벤트
 trackConn(UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.UserInputType == Enum.UserInputType.Keyboard then
 		if listeningKey then
@@ -583,7 +583,6 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gameProcessed)
 				end
 				setToggle(orbitButton, orbitOn, "orbit position mode")
 			elseif input.KeyCode == keybinds.fly then
-				-- [추가] Fly 단축키가 눌렸을 때 비행 기능 토글 실행
 				if toggleFly then 
 					toggleFly(not flyOn) 
 				end
@@ -594,7 +593,7 @@ end))
 
 local unloadBtn = Instance.new("TextButton")
 unloadBtn.Size = UDim2.fromOffset(286, 28)
-unloadBtn.Position = UDim2.fromOffset(14, 215) -- [위치 조정] 단축키 항목 추가로 인한 언로드 버튼 위치 하향 조정
+unloadBtn.Position = UDim2.fromOffset(14, 215)
 unloadBtn.BackgroundColor3 = Color3.fromRGB(110, 30, 30)
 unloadBtn.BorderColor3 = Color3.fromRGB(150, 50, 50)
 unloadBtn.BorderSizePixel = 1
@@ -619,7 +618,7 @@ unloadBtn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- 비행(Fly) 루프 엔진
+-- 비행(Fly) 루프 엔진 (모바일 방향 반전 수정 반영)
 ----------------------------------------------------
 toggleFly = function(state)
 	flyOn = state
@@ -666,8 +665,10 @@ toggleFly = function(state)
 				moveDir = moveDir - Vector3.new(0, 1, 0)
 			end
 
+			-- 모바일 이동 스틱/패드 입력 방향 정방향 수정
 			if currentHum.MoveDirection.Magnitude > 0 then
-				moveDir = moveDir + (currentCam.CFrame:VectorToWorldSpace(Vector3.new(currentHum.MoveDirection.X, 0, currentHum.MoveDirection.Z)).Unit)
+				local camVector = currentCam.CFrame:VectorToWorldSpace(Vector3.new(currentHum.MoveDirection.X, 0, currentHum.MoveDirection.Z))
+				moveDir = moveDir + Vector3.new(-camVector.X, camVector.Y, -camVector.Z)
 			end
 
 			if bodyVelocity then 
@@ -1038,4 +1039,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.11 FREE BUILD Loaded Successfully!")
+print("Anti-rival V1.1.12 FREE BUILD Loaded Successfully!")
