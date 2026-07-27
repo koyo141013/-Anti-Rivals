@@ -83,6 +83,14 @@ local walkSpeed, flySpeed = 16, 50
 local flyConnection = nil
 local bodyGyro, bodyVelocity = nil, nil
 
+-- [신규] 단축키 저장 변수 (기본값 설정)
+local keybinds = {
+	randomTp = Enum.KeyCode.Q,       -- 랜덤 플레이어 머리 TP 단축키 (기본: Q)
+	autoTp = Enum.KeyCode.E,         -- 오토 50k TP 단축키 (기본: E)
+	orbit = Enum.KeyCode.R           -- 오르빗 모드 단축키 (기본: R)
+}
+local listeningKey = nil -- 현재 키바인딩을 변경하기 위해 대기 중인 항목
+
 local function trackConn(conn)
 	if conn then
 		table.insert(getgenv().AntiRivalConnectionList, conn)
@@ -206,7 +214,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (드래그 및 타이틀 - 버전 V1.1.8 반영)
+-- Header (드래그 및 타이틀 - 버전 V1.1.9 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -252,7 +260,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.8-FREE BUILD" -- [버전업 V1.1.8 적용 완료]
+title.Text = "Anti-rival-V1.1.9-FREE BUILD" -- [버전업 V1.1.9 적용 완료]
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -457,7 +465,6 @@ local voidSpanButton = toggle(cheaterPage, "void span mode", 70)
 local teleporterBox = textbox(cheaterPage, "teleport distance", teleportDistance, 106)
 local teleporterButton = toggle(cheaterPage, "auto 50k tp (every 0.1s)", 134)
 
--- [신규 기능 버튼 추가] Cheater 탭 내부에 배치
 local randomTpButton = Instance.new("TextButton")
 randomTpButton.Size = UDim2.fromOffset(286, 28)
 randomTpButton.Position = UDim2.fromOffset(14, 168)
@@ -473,11 +480,118 @@ randomTpButton.Parent = cheaterPage
 heading(miscPage, "misc / collision settings")
 local noclipButton = toggle(miscPage, "noclip", 40)
 
-heading(settingPage, "settings & unload manager")
+heading(settingPage, "settings & keybinds manager")
+
+-- [신규 기능 추가] Settings 탭 내부 키바인드 설정 UI 컴포넌트 생성
+local function createKeybindRow(parent, labelText, keyName, yPos)
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.fromOffset(170, 24)
+	lbl.Position = UDim2.fromOffset(14, yPos)
+	lbl.BackgroundTransparency = 1
+	lbl.Text = labelText
+	lbl.TextColor3 = Color3.fromRGB(180, 180, 185)
+	lbl.TextSize = 11
+	lbl.Font = Enum.Font.Code
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.Parent = parent
+
+	local bindBtn = Instance.new("TextButton")
+	bindBtn.Size = UDim2.fromOffset(108, 24)
+	bindBtn.Position = UDim2.fromOffset(192, yPos)
+	bindBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+	bindBtn.BorderColor3 = Color3.fromRGB(50, 50, 65)
+	bindBtn.BorderSizePixel = 1
+	bindBtn.Text = tostring(keybinds[keyName].Name)
+	bindBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+	bindBtn.TextSize = 10
+	bindBtn.Font = Enum.Font.Code
+	bindBtn.Parent = parent
+
+	bindBtn.MouseButton1Click:Connect(function()
+		listeningKey = keyName
+		bindBtn.Text = "[ Press Key... ]"
+		bindBtn.TextColor3 = Color3.fromRGB(255, 200, 100)
+	end)
+
+	return bindBtn
+end
+
+local bindRandomTpBtn = createKeybindRow(settingPage, "Key: Random Head TP", "randomTp", 80)
+local bindAutoTpBtn   = createKeybindRow(settingPage, "Key: Auto 50k TP", "autoTp", 112)
+local bindOrbitBtn    = createKeybindRow(settingPage, "Key: Orbit Mode", "orbit", 144)
+
+-- 입력 감지 이벤트 (설정창에서 키를 누르거나 게임 플레이 중 단축키 실행)
+trackConn(UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if input.UserInputType == Enum.UserInputType.Keyboard then
+		if listeningKey then
+			-- 키바인딩 변경 중일 때
+			if input.KeyCode ~= Enum.KeyCode.Unknown then
+				keybinds[listeningKey] = input.KeyCode
+				
+				-- UI 텍스트 갱신
+				if listeningKey == "randomTp" then
+					bindRandomTpBtn.Text = tostring(input.KeyCode.Name)
+					bindRandomTpBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+				elseif listeningKey == "autoTp" then
+					bindAutoTpBtn.Text = tostring(input.KeyCode.Name)
+					bindAutoTpBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+				elseif listeningKey == "orbit" then
+					bindOrbitBtn.Text = tostring(input.KeyCode.Name)
+					bindOrbitBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+				end
+			end
+			listeningKey = nil
+		elseif not gameProcessed then
+			-- 플레이 중 단축키 감지 및 실행
+			if input.KeyCode == keybinds.randomTp then
+				-- [1] 랜덤 플레이어 머리 5스터드 TP 실행 로직
+				pcall(function()
+					local _, myRoot = getSafeParts()
+					if not myRoot then return end
+
+					local validTargets = {}
+					for _, p in ipairs(Players:GetPlayers()) do
+						if p ~= player then
+							local char = p.Character
+							if char then
+								local hum = char:FindFirstChildOfClass("Humanoid")
+								local head = char:FindFirstChild("Head")
+								if hum and hum.Health > 0 and head then
+									table.insert(validTargets, head)
+								end
+							end
+						end
+					end
+
+					if #validTargets > 0 then
+						local randomHead = validTargets[math.random(1, #validTargets)]
+						local randomAngle = math.random() * math.pi * 2
+						local randomHeightOffset = (math.random() - 0.5) * 4
+						local offsetDir = Vector3.new(math.cos(randomAngle), 0, math.sin(randomAngle))
+						local targetCFrame = CFrame.new(randomHead.Position + (offsetDir * 5) + Vector3.new(0, randomHeightOffset, 0), randomHead.Position)
+						myRoot.CFrame = targetCFrame
+					end
+				end)
+			elseif input.KeyCode == keybinds.autoTp then
+				-- [2] 오토 50k TP 토글 실행
+				teleporterOn = not teleporterOn
+				setToggle(teleporterButton, teleporterOn, "auto 50k tp (every 0.1s)")
+			elseif input.KeyCode == keybinds.orbit then
+				-- [3] 오르빗 모드 토글 실행
+				orbitOn = not orbitOn
+				if orbitOn then 
+					voidSpanOn = false 
+					setToggle(voidSpanButton, false, "void span mode") 
+				end
+				setToggle(orbitButton, orbitOn, "orbit position mode")
+			end
+		end
+	end
+end))
 
 local unloadBtn = Instance.new("TextButton")
 unloadBtn.Size = UDim2.fromOffset(286, 28)
-unloadBtn.Position = UDim2.fromOffset(14, 40)
+unloadBtn.Position = UDim2.fromOffset(14, 185) -- 위치 조정
 unloadBtn.BackgroundColor3 = Color3.fromRGB(110, 30, 30)
 unloadBtn.BorderColor3 = Color3.fromRGB(150, 50, 50)
 unloadBtn.BorderSizePixel = 1
@@ -662,14 +776,13 @@ end))
 trackConn(Players.PlayerRemoving:Connect(function(p) removeEsp(p) end))
 
 ----------------------------------------------------
--- [신규 기능 구현] 무작위 플레이어 머리 기준 5스터드 이격 순간이동 로직
+-- 무작위 플레이어 머리 기준 5스터드 이격 순간이동 로직
 ----------------------------------------------------
 randomTpButton.MouseButton1Click:Connect(function()
 	pcall(function()
 		local _, myRoot = getSafeParts()
 		if not myRoot then return end
 
-		-- 유효한 대상 플레이어들 필터링 (본인 제외, 캐릭터 및 머리/휴머노이드가 존재하며 살아있는 대상)
 		local validTargets = {}
 		for _, p in ipairs(Players:GetPlayers()) do
 			if p ~= player then
@@ -685,16 +798,11 @@ randomTpButton.MouseButton1Click:Connect(function()
 		end
 
 		if #validTargets > 0 then
-			-- 랜덤으로 대상 머리 파츠 선택
 			local randomHead = validTargets[math.random(1, #validTargets)]
-			
-			-- 완전 정밀 연산: 무작위 방향 벡터 생성 후 머리 위치로부터 정확히 5 스터드 떨어진 곳 계산
 			local randomAngle = math.random() * math.pi * 2
-			local randomHeightOffset = (math.random() - 0.5) * 4 -- 수직 방향으로도 약간의 입체감을 주어 자연스럽게 분산
+			local randomHeightOffset = (math.random() - 0.5) * 4
 			local offsetDir = Vector3.new(math.cos(randomAngle), 0, math.sin(randomAngle))
-			
 			local targetCFrame = CFrame.new(randomHead.Position + (offsetDir * 5) + Vector3.new(0, randomHeightOffset, 0), randomHead.Position)
-			
 			myRoot.CFrame = targetCFrame
 			
 			randomTpButton.Text = "TP SUCCESS!"
@@ -906,8 +1014,8 @@ orbitButton.MouseButton1Click:Connect(function()
 end)
 
 voidSpanButton.MouseButton1Click:Connect(function()
-	voidSpawnOn = not voidSpawnOn
-	if voidSpawnOn then orbitOn = false setToggle(orbitButton, false, "orbit position mode") end
+	voidSpanOn = not voidSpanOn
+	if voidSpanOn then orbitOn = false setToggle(orbitButton, false, "orbit position mode") end
 	setToggle(voidSpanButton, voidSpanOn, "void span mode")
 end)
 
@@ -927,4 +1035,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.8 FREE BUILD Loaded Successfully!")
+print("Anti-rival V1.1.9 FREE BUILD Loaded Successfully!")
