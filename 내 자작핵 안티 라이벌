@@ -1,6 +1,6 @@
--- [클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 안전 종료[cite: 1]
-pcall(function()
-	if getgenv().AntiRivalConnectionList then
+-- [안전 장치] 익스큐터 환경 검증 및 구버전 데이터 강제 정리[cite: 1]
+local success, err = pcall(function()
+	if getgenv and getgenv().AntiRivalConnectionList then
 		for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
 			if typeof(conn) == "RBXScriptConnection" then
 				conn:Disconnect()
@@ -9,7 +9,9 @@ pcall(function()
 	end
 end)
 
-getgenv().AntiRivalConnectionList = {}
+if getgenv then
+	getgenv().AntiRivalConnectionList = {}
+end
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -17,7 +19,7 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local player = Players.LocalPlayer
 
--- 기존 구버전 UI 제거[cite: 1]
+-- 기존 구버전 UI 안전하게 제거[cite: 1]
 pcall(function()
 	local playerGui = player:FindFirstChild("PlayerGui")
 	if playerGui then
@@ -29,11 +31,7 @@ pcall(function()
 	end
 end)
 
-local flying, walkOn, espOn, namesOn, healthBarOn, noclipOn, jumpOn = false, false, false, false, false, false, false
-local infiniteJumpOn = false
-local aimbotOn = false
-local shaderOn = false
-
+local flying, walkOn, espOn, namesOn, noclipOn = false, false, false, false, false
 local fastShotOn = false
 local fastShotRate = 800
 local lastShotTick = 0
@@ -42,7 +40,7 @@ local flySpeed, walkSpeed, gammaValue = 70, 16, 50, 1
 local attachment, velocity, orientation
 
 local function trackConn(conn)
-	if conn then
+	if conn and getgenv and getgenv().AntiRivalConnectionList then
 		table.insert(getgenv().AntiRivalConnectionList, conn)
 	end
 	return conn
@@ -145,7 +143,7 @@ innerBorder.ZIndex = 6
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header[cite: 1]
+-- Header (버전 V0.7.8 적용)[cite: 1]
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -190,9 +188,9 @@ end)
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -30, 0.5, 0)
-title.Size = UDim2.fromOffset(280, 20)
+title.Size = UDim2.fromOffset(300, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival-V0.7.7-FREE Build" -- UI 타이틀 버전 명시[cite: 1]
+title.Text = "Anti-Rival-V0.7.8-FREE Build" -- 최신 버전 V0.7.8 반영[cite: 1]
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -386,7 +384,7 @@ local function setToggle(button, enabled, text)
 	button.BorderColor3 = enabled and Color3.fromRGB(50, 110, 70) or Color3.fromRGB(100, 45, 45)
 end
 
--- 탭 컴포넌트 배치[cite: 1]
+-- 컴포넌트 배치[cite: 1]
 heading(mainPage, "movement / main controls")
 local flyBox = textbox(mainPage, "fly speed  (1–500)", flySpeed, 40)
 local flyButton = toggle(mainPage, "fly", 68)
@@ -412,16 +410,11 @@ heading(miscPage, "misc / collision settings")
 local noclipButton = toggle(miscPage, "noclip", 40)
 
 ----------------------------------------------------
--- [Settings 탭] 키바인드 매니저 유지[cite: 1]
+-- [Settings 탭] 키바인드 매니저[cite: 1]
 ----------------------------------------------------
 heading(settingPage, "keybind manager")
 
-local keybinds = {
-	Fly = nil,
-	Speed = nil,
-	ESP = nil,
-	Noclip = nil
-}
+local keybinds = { Fly = nil, Speed = nil, ESP = nil, Noclip = nil }
 
 local function createKeybindRow(name, y, defaultKeyText)
 	local label = Instance.new("TextLabel")
@@ -605,7 +598,7 @@ trackConn(RunService.Stepped:Connect(function()
 	end
 end))
 
--- UI 버튼 이벤트 바인딩[cite: 1]
+-- UI 이벤트 바인딩[cite: 1]
 flyButton.MouseButton1Click:Connect(function()
 	if flying then stopFly() else startFly() end
 end)
@@ -658,4 +651,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-Rival-V0.7.7-FREE Build Loaded Successfully!")[cite: 1]
+print("Anti-Rival-V0.7.8-FREE Build Loaded Successfully without errors!")[cite: 1]
