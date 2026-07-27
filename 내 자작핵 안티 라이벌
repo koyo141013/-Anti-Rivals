@@ -189,7 +189,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, 0, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival V1.0.2"
+title.Text = "Anti-rival V1.0.3"
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -397,7 +397,7 @@ local noclipButton = toggle(miscPage, "noclip", 40)
 ----------------------------------------------------
 heading(settingPage, "keybind manager")
 
-local keybinds = { Speed = nil, Fly = nil, ESP = nil, Noclip = nil }
+local keybinds = { Speed = nil, Fly = nil, ESP = nil, Noclip = nil, Teleport = nil }
 
 local function createKeybindRow(name, y, defaultKeyText)
 	local label = Instance.new("TextLabel")
@@ -429,6 +429,7 @@ local walkKeyBtn = createKeybindRow("WalkSpeed", 40, "None")
 local flyKeyBtn = createKeybindRow("Fly", 70, "None")
 local espKeyBtn = createKeybindRow("ESP", 100, "None")
 local noclipKeyBtn = createKeybindRow("Noclip", 130, "None")
+local teleportKeyBtn = createKeybindRow("Auto TP", 160, "None")
 
 local bindingTarget = nil
 local bindingButton = nil
@@ -446,6 +447,7 @@ setupKeybindListener(walkKeyBtn, "Speed")
 setupKeybindListener(flyKeyBtn, "Fly")
 setupKeybindListener(espKeyBtn, "ESP")
 setupKeybindListener(noclipKeyBtn, "Noclip")
+setupKeybindListener(teleportKeyBtn, "Teleport")
 
 trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 	if bindingTarget and bindingButton then
@@ -455,6 +457,31 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 			bindingButton.TextColor3 = Color3.fromRGB(200, 200, 205)
 			bindingTarget, bindingButton = nil, nil
 			return
+		end
+	end
+
+	if not gp then
+		if keybinds.Speed and input.KeyCode == keybinds.Speed then
+			walkOn = not walkOn
+			setToggle(walkButton, walkOn, "walk speed")
+			local h, _ = getSafeParts()
+			if h then h.WalkSpeed = walkOn and walkSpeed or 16 end
+		end
+		if keybinds.Fly and input.KeyCode == keybinds.Fly then
+			toggleFly(not flyOn)
+		end
+		if keybinds.ESP and input.KeyCode == keybinds.ESP then
+			espOn = not espOn
+			setToggle(espButton, espOn, "player esp")
+			if not espOn then clearESP() end
+		end
+		if keybinds.Noclip and input.KeyCode == keybinds.Noclip then
+			noclipOn = not noclipOn
+			setToggle(noclipButton, noclipOn, "noclip")
+		end
+		if keybinds.Teleport and input.KeyCode == keybinds.Teleport then
+			teleporterOn = not teleporterOn
+			setToggle(teleporterButton, teleporterOn, "auto 50k tp (every 0.1s)")
 		end
 	end
 
@@ -897,10 +924,8 @@ namesButton.MouseButton1Click:Connect(function()
 end)
 
 fastShotButton.MouseButton1Click:Connect(function()
-	fastShotButton.MouseButton1Click:Connect(function()
-		fastShotOn = not fastShotOn
-		setToggle(fastShotButton, fastShotOn, "fast shot (Engine Bypass)")
-	end)
+	fastShotOn = not fastShotOn
+	setToggle(fastShotButton, fastShotOn, "fast shot (Engine Bypass)")
 end)
 
 fastShotBox.FocusLost:Connect(function()
@@ -915,7 +940,7 @@ orbitButton.MouseButton1Click:Connect(function()
 end)
 
 voidSpanButton.MouseButton1Click:Connect(function()
-	voidSpanOn = not voidSpanOn
+    voidSpanOn = not voidSpanOn
 	if voidSpanOn then orbitOn = false setToggle(orbitButton, false, "orbit position mode") end
 	setToggle(voidSpanButton, voidSpanOn, "void span mode")
 end)
@@ -936,4 +961,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.0.2 Loaded Successfully!")
+print("Anti-rival V1.0.3 Loaded Successfully!")
