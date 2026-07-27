@@ -823,7 +823,7 @@ randomTpButton.MouseButton1Click:Connect(function()
 			end)
 		end
 	end)
-end))
+end)
 
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
