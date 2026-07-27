@@ -21,11 +21,9 @@ local player = Players.LocalPlayer
 -- [완전한 에러 방어: UserInputService 속성 접근 제거 및 런타임 환경 감지 적용]
 local isMobile = false
 pcall(function()
-	-- 모바일 환경에서 터치 입력 가능 여부만 안전하게 확인
 	isMobile = UserInputService.TouchEnabled
 end)
 
--- 실행 환경이 PC/콘솔 등으로 판정되어도 터치 중심의 모바일 에뮬레이터/특수 익스큐터인 경우를 대비한 2차 안전 장치
 if not isMobile then
 	pcall(function()
 		local GuiService = game:GetService("GuiService")
@@ -75,7 +73,6 @@ local voidSpanOn = false
 
 local fastShotOn = false
 local fastShotRate = 800
-local lastShotTick = 0
 
 local teleporterOn = false
 local lastTeleportTick = 0
@@ -125,7 +122,7 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
 ----------------------------------------------------
--- 메인 UI 창 (모바일 강제 소형화 및 백업 컨테이너)
+-- 메인 UI 창
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -137,11 +134,11 @@ window.BorderSizePixel = 1
 window.Visible = true
 window.Parent = gui
 
--- UIScale을 통해 모바일에서 확실하게 작아지도록 보장
 local actualScale = Instance.new("UIScale")
 actualScale.Scale = uiScaleFactor
 actualScale.Parent = window
 
+-- [1인칭 고정 문제 해결] 1인칭 상태에서도 마우스 커서가 완벽히 나타나도록 락 해제 제어 강화
 local function updateMouseState(isVisible)
 	pcall(function()
 		if not isMobile then
@@ -159,7 +156,7 @@ end
 updateMouseState(true)
 
 ----------------------------------------------------
--- 모바일 전용 토글(열기/닫기) 플로팅 버튼 (모바일 화면 좌측 중앙에 확실히 노출)
+-- 모바일 전용 토글(열기/닫기) 플로팅 버튼
 ----------------------------------------------------
 local openGuiBtn = Instance.new("TextButton")
 openGuiBtn.Name = "AntiRivalOpenButton"
@@ -181,6 +178,14 @@ openGuiBtn.MouseButton1Click:Connect(function()
 	updateMouseState(window.Visible)
 end)
 
+-- [오른쪽 쉬프트 단축키 지원 추가]
+trackConn(UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if input.KeyCode == Enum.KeyCode.RightShift then
+		window.Visible = not window.Visible
+		updateMouseState(window.Visible)
+	end
+end))
+
 local innerBorder = Instance.new("Frame")
 innerBorder.Size = UDim2.new(1, -2, 1, -2)
 innerBorder.Position = UDim2.fromOffset(1, 1)
@@ -190,7 +195,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (드래그 및 타이틀)
+-- Header (드래그 및 타이틀 - 버전 업그레이드 V1.1.6 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -236,7 +241,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.5-FIXED"
+title.Text = "Anti-rival-V1.1.6-FREE BUILD" -- [버전업 적용 완료] V1.1.5 -> V1.1.6
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -473,7 +478,7 @@ unloadBtn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- [강력한 모바일/PC 통합 비행(Fly) 루프 엔진]
+-- 비행(Fly) 루프 엔진
 ----------------------------------------------------
 toggleFly = function(state)
 	flyOn = state
@@ -548,7 +553,7 @@ toggleFly = function(state)
 end
 
 ----------------------------------------------------
--- [ESP 및 플레이어 네임 독립 구동 시스템]
+-- ESP 시스템
 ----------------------------------------------------
 local espCache = {}
 
@@ -633,7 +638,7 @@ end))
 trackConn(Players.PlayerRemoving:Connect(function(p) removeEsp(p) end))
 
 ----------------------------------------------------
--- 기타 게임 루프 기능들
+-- 기타 루프 기능들
 ----------------------------------------------------
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
@@ -845,4 +850,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.5 Loaded Successfully!")
+print("Anti-rival V1.1.6 FREE BUILD Loaded Successfully!")
