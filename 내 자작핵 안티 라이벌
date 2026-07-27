@@ -193,13 +193,13 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 맨 위 정중앙 타이틀 (파란색)
+-- 맨 위 정중앙 타이틀 (파란색, V1.0.8로 버전업)
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.0.7-FREE Build"
+title.Text = "Anti-rival-V1.0.8-FREE Build"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -416,7 +416,7 @@ local keybinds = {
 	ESP = nil, 
 	Noclip = nil, 
 	Teleport = nil,
-	VoidSpan = nil -- 사진 속 기능 (void span mode) 단축키 추가
+	VoidSpan = nil 
 }
 
 local function createKeybindRow(name, y, defaultKeyText)
@@ -450,7 +450,7 @@ local flyKeyBtn = createKeybindRow("Fly", 70, "None")
 local espKeyBtn = createKeybindRow("ESP", 100, "None")
 local noclipKeyBtn = createKeybindRow("Noclip", 130, "None")
 local teleportKeyBtn = createKeybindRow("Auto TP", 160, "None")
-local voidSpanKeyBtn = createKeybindRow("Void Span", 190, "None") -- 설정 탭에 Void Span 항목 배치
+local voidSpanKeyBtn = createKeybindRow("Void Span", 190, "None")
 
 local bindingTarget = nil
 local bindingButton = nil
@@ -580,7 +580,7 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 end))
 
 ----------------------------------------------------
--- [강력 수정된 안정적인 ESP 시스템 (Highlight 기반)]
+-- [안정적인 Highlight 기반 ESP 시스템]
 ----------------------------------------------------
 local espCache = {}
 
@@ -851,7 +851,7 @@ end)
 
 flyBox.FocusLost:Connect(function()
 	flySpeed = math.clamp(tonumber(flyBox.Text) or 50, 1, 1000)
-	flySpeed.Text = tostring(flySpeed)
+	flyBox.Text = tostring(flySpeed)
 end)
 
 ragebotButton.MouseButton1Click:Connect(function()
@@ -922,4 +922,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.0.7 Loaded Successfully!")
+print("Anti-rival V1.0.8 Loaded Successfully!")
