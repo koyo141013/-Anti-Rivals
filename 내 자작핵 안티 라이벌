@@ -1,4 +1,4 @@
--- [V1.5.0 Update] Completely removed 'fly', replaced with 'fight' mode, fixed Trigger Bot targeting logic & Update Details Refreshed (2026-07-27)
+-- [V1.5.1 Update] Fixed Place ID validation bypass & Added universal support, Refreshed (2026-07-28)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -27,13 +27,7 @@ if not player then
 	until player
 end
 
--- Rivals Place ID Validation Check
-local RIVALS_PLACE_ID = 17625359962
-if game.PlaceId ~= RIVALS_PLACE_ID then
-	player:Kick("Please join Rivals!")
-	return
-end
-
+-- Rivals Place ID Validation 검사 제거 (어떤 서브 매치나 장소에서도 팅기지 않도록 수정)
 local isMobile = false
 pcall(function()
 	isMobile = UserInputService.TouchEnabled
@@ -383,7 +377,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.5.0-FREE BUILD"
+title.Text = "Anti-rival-V1.5.1-FREE BUILD"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -1087,8 +1081,7 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end)
 end))
 
--- Trigger Bot 개선된 구현 (마우스 화면 중앙 레이캐스트 또는 적 파츠 직접 인식 강화)
-local UserInputService = game:GetService("UserInputService")
+-- 트리거 봇 로직 (화면 중앙 레이캐스트 및 툴 자동 발사)
 trackConn(RunService.RenderStepped:Connect(function()
 	if not triggerBotOn then return end
 	pcall(function()
@@ -1198,8 +1191,8 @@ trackConn(RunService.RenderStepped:Connect(function()
 			local _, root = getSafeParts()
 			if root then
 				local randomAngle = math.random() * math.pi * 2
-				local offsetX = math.cos(randomAngle) * teleportDistance
-				local offsetZ = math.sin(randomAngle) * teleportDistance
+				local offsetX = math.cos(randomAngle) * teleporterBox
+				local offsetZ = math.sin(randomAngle) * teleporterBox
 				local currentPos = root.Position
 				root.CFrame = CFrame.new(currentPos.X + offsetX, currentPos.Y + 50, currentPos.Z + offsetZ)
 			end
@@ -1335,4 +1328,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.5.0 Loaded Successfully with Fight Mode and Fixed Trigger Bot!")
+print("Anti-rival V1.5.1 Loaded Successfully! (Place ID Kick Removed & Universal Compatibility)")
