@@ -1,4 +1,4 @@
--- [클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 강제 종료[cite: 1]
+-- [클린업] 기존 실행 중이던 모든 구버전 안티 라이벌 데이터 안전 종료[cite: 1]
 pcall(function()
 	if getgenv().AntiRivalConnectionList then
 		for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
@@ -18,35 +18,27 @@ local Lighting = game:GetService("Lighting")
 local player = Players.LocalPlayer
 
 -- 기존 구버전 UI 제거[cite: 1]
-for _, guiObj in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
-	if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
-		guiObj:Destroy()
+pcall(function()
+	local playerGui = player:FindFirstChild("PlayerGui")
+	if playerGui then
+		for _, guiObj in ipairs(playerGui:GetChildren()) do
+			if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
+				guiObj:Destroy()
+			end
+		end
 	end
-end
+end)
 
 local flying, walkOn, espOn, namesOn, healthBarOn, noclipOn, jumpOn = false, false, false, false, false, false, false
 local infiniteJumpOn = false
 local aimbotOn = false
 local shaderOn = false
 
-local triggerBotOn = false
-local triggerBotDelay = 0.05
-local lastTriggerTick = 0
-
 local fastShotOn = false
 local fastShotRate = 800
 local lastShotTick = 0
 
-local fastFireOn = false
-local infiniteAmmoOn = false
-local instantReloadOn = false
-local rageBotOn = false
-local silentAimOn = false
-local fakeLagOn = false
-
-local flySpeed, walkSpeed, jumpPower, gammaValue = 70, 16, 50, 1
-local aimbotSmoothness = 50
-
+local flySpeed, walkSpeed, gammaValue = 70, 16, 50, 1
 local attachment, velocity, orientation
 
 local function trackConn(conn)
@@ -88,7 +80,7 @@ shaderCC.Parent = Lighting
 local gui = Instance.new("ScreenGui")
 gui.Name = "AntiRival"
 gui.ResetOnSpawn = false
-gui.Parent = player.PlayerGui
+gui.Parent = player:WaitForChild("PlayerGui")
 
 ----------------------------------------------------
 -- 메인 UI 창[cite: 1]
@@ -200,7 +192,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -30, 0.5, 0)
 title.Size = UDim2.fromOffset(280, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-Rival-V0.7.7-FREE Build" -- UI 타이틀 버전 명시 (V0.7.7)[cite: 1]
+title.Text = "Anti-Rival-V0.7.7-FREE Build" -- UI 타이틀 버전 명시[cite: 1]
 title.TextColor3 = Color3.fromRGB(220, 100, 100)
 title.TextSize = 11
 title.Font = Enum.Font.Code
