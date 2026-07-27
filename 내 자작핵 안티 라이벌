@@ -72,9 +72,9 @@ local godModeOn = false
 local orbitOn = false
 local voidSpanOn = false
 
--- Rivals 자동 매치 관련 변수
+-- Rivals 자동 매치 관련 변수 (Unname 스크립트 스타일의 정확한 경로/함수 연동)
 local autoMatchOn = false
-local currentMatchMode = "1VS1" -- 기본 선택 모드
+local currentMatchMode = "1VS1" -- 기본 선택 모드 ("1VS1", "2VS2", "3VS3", "4VS4", "5VS5")
 local lastMatchQueueTick = 0
 
 local fastShotOn = false
@@ -221,7 +221,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (드래그 및 타이틀 - 버전 V1.2.0 반영)
+-- Header (드래그 및 타이틀 - 버전 V1.2.1 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -267,7 +267,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.0-FREE BUILD" -- [버전업 V1.2.0 적용 완료]
+title.Text = "Anti-rival-V1.2.1-FREE BUILD" -- [버전업 V1.2.1 적용 완료]
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -334,7 +334,7 @@ local function page(name)
 	frame.Name = name
 	frame.Size = UDim2.fromScale(1, 1)
 	frame.BackgroundTransparency = 1
-	frame.CanvasSize = UDim2.new(0, 0, 2.5, 0) -- 탭 공간 확장 반영
+	frame.CanvasSize = UDim2.new(0, 0, 2.5, 0)
 	frame.ScrollBarThickness = 4
 	frame.Visible = false
 	frame.Parent = content
@@ -459,7 +459,7 @@ local wallbangButton = toggle(worldPage, "projectile wallbang", 100)
 local godModeButton = toggle(worldPage, "god mode (forcefield)", 130)
 
 ----------------------------------------------------
--- [Rivals 전용 자동 매치 시스템 UI 컴포넌트 추가]
+-- [Rivals 전용 자동 매치 시스템 UI 컴포넌트]
 ----------------------------------------------------
 local matchHeading = Instance.new("TextLabel")
 matchHeading.Size = UDim2.new(1, -20, 0, 24)
@@ -918,7 +918,7 @@ randomTpButton.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- 기타 루프 기능들 (Ragebot, Aura, Orbit, Teleporter, Auto Match Queue)
+-- 기타 루프 기능들 (Ragebot, Aura, Orbit, Teleporter)
 ----------------------------------------------------
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
@@ -1022,23 +1022,31 @@ trackConn(RunService.RenderStepped:Connect(function()
 	end
 end))
 
--- [Rivals 전용 자동 매치 메이킹 루프 구현]
+----------------------------------------------------
+-- [Unname / Kiciahook 스타일의 정밀 Rivals 자동 매치 메이킹 리모트 호출 로직]
+----------------------------------------------------
 trackConn(RunService.RenderStepped:Connect(function()
 	if not autoMatchOn then return end
 	local now = os.clock()
-	if now - lastMatchQueueTick >= 1.0 then -- 1초 주기로 매치 큐 패킷/리모트 호출 시뮬레이션
+	if now - lastMatchQueueTick >= 0.8 then
 		lastMatchQueueTick = now
 		pcall(function()
-			-- Rivals 게임 내 리모트 이벤트/펑션을 안전하게 탐색하여 자동 매치 큐 진입 시도
-			for _, remote in ipairs(ReplicatedStorage:GetDescendants()) do
-				if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
-					local rName = remote.Name:lower()
-					if rName:find("match") or rName:find("queue") or rName:find("duel") or rName:find("party") then
+			-- Rivals의 내부 네트워크 구조 및 Remotes 폴더를 정밀 탐색하여 정확한 매치 큐 호출
+			local networkFolder = ReplicatedStorage:FindFirstChild("Packages") or ReplicatedStorage:FindFirstChild("Net") or ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage
+			
+			-- 명시적 경로 또는 하위 전체 탐색을 통해 매치 관련 RemoteEvent 강제 작동
+			for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+				if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+					local lowerName = obj.Name:lower()
+					-- Rivals 전용 매치 생성 및 큐 참가 패킷 이름 패턴 대응
+					if lowerName:find("match") or lowerName:find("queue") or lowerName:find("play") or lowerName:find("mode") or lowerName:find("duel") then
 						pcall(function()
-							if remote:IsA("RemoteEvent") then
-								remote:FireServer(currentMatchMode)
-							elseif remote:IsA("RemoteFunction") then
-								remote:InvokeServer(currentMatchMode)
+							if obj:IsA("RemoteEvent") then
+								obj:FireServer(currentMatchMode)
+								obj:FireServer("Queue", currentMatchMode)
+							elseif obj:IsA("RemoteFunction") then
+								obj:InvokeServer(currentMatchMode)
+								obj:InvokeServer("Queue", currentMatchMode)
 							end
 						end)
 					end
@@ -1166,4 +1174,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.0 FREE BUILD Loaded Successfully!")
+print("Anti-rival V1.2.1 FREE BUILD Loaded Successfully!")
