@@ -204,13 +204,13 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- 맨 위 정중앙 타이틀 (파란색, V1.0.8)
+-- 맨 위 정중앙 타이틀 (파란색, V1.0.9 업그레이드)
 local title = Instance.new("TextLabel")
 title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.0.8-FREE Build"
+title.Text = "Anti-rival-V1.0.9-FREE Build"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -645,7 +645,7 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gp)
 end))
 
 ----------------------------------------------------
--- [안정적인 Highlight 기반 ESP 시스템]
+-- [안정적인 Highlight 기반 ESP 시스템 (이름 연동 오류 수정)]
 ----------------------------------------------------
 local espCache = {}
 
@@ -685,7 +685,9 @@ local function updateEspForPlayer(p)
 
 	local head = char:FindFirstChild("Head")
 	local billboard = espCache[p] and espCache[p].Billboard
-	if namesOn and head then
+	
+	-- 이름 표시 기능(namesOn)이 켜져 있거나 ESP가 켜져 있을 때 이름 빌보드 렌더링 보장 (오류 수정)
+	if (espOn and namesOn) and head then
 		if not billboard or not billboard.Parent then
 			billboard = Instance.new("BillboardGui")
 			billboard.Name = "AntiRivalName"
@@ -965,10 +967,11 @@ orbitButton.MouseButton1Click:Connect(function()
 	setToggle(orbitButton, orbitOn, "orbit position mode")
 end)
 
+-- [오타 수정 완료: voidSYSpanOn -> voidSpanOn]
 voidSpanButton.MouseButton1Click:Connect(function()
 	voidSpanOn = not voidSpanOn
 	if voidSpanOn then orbitOn = false setToggle(orbitButton, false, "orbit position mode") end
-	setToggle(voidSpanButton, voidSYSpanOn, "void span mode")
+	setToggle(voidSpanButton, voidSpanOn, "void span mode")
 end)
 
 teleporterButton.MouseButton1Click:Connect(function()
@@ -987,4 +990,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.0.8 Loaded Successfully!")
+print("Anti-rival V1.0.9 Loaded Successfully!")
