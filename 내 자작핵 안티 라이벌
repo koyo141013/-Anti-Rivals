@@ -63,7 +63,7 @@ pcall(function()
 	end
 end)
 
-local walkOn, flyOn, espOn, namesOn, noclipOn = false, false, false, false, false
+local walkOn, flyOn, espOn, namesOn, healthOn, noclipOn = false, false, false, false, false, false
 local ragebotOn = false
 local auraOn = false
 local wallbangOn = false
@@ -131,7 +131,7 @@ gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
 ----------------------------------------------------
--- 메인 UI 창 (높이 확장: 560 -> 600)
+-- 메인 UI 창 (높이 확장: 600)
 ----------------------------------------------------
 local window = Instance.new("Frame")
 window.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -215,7 +215,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (드래그 및 타이틀 - 버전 V1.1.15 반영)
+-- Header (드래그 및 타이틀 - 버전 V1.1.16 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -261,7 +261,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.15-FREE BUILD" -- [버전업 V1.1.15 적용 완료]
+title.Text = "Anti-rival-V1.1.16-FREE BUILD" -- [버전업 V1.1.16 적용 완료]
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -296,10 +296,10 @@ discordBtn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- 탭 및 페이지 레이아웃 (2단 그리드 형태로 탭 배치 영역 확장)
+-- 탭 및 페이지 레이아웃
 ----------------------------------------------------
 local tabs = Instance.new("ScrollingFrame")
-tabs.Size = UDim2.new(1, -16, 0, 52) -- 탭 영역 높이를 두 줄(약 52px)로 확장하여 잘림 방지
+tabs.Size = UDim2.new(1, -16, 0, 52)
 tabs.Position = UDim2.fromOffset(8, 30)
 tabs.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 tabs.BorderSizePixel = 0
@@ -308,13 +308,13 @@ tabs.ScrollBarThickness = 0
 tabs.Parent = innerBorder
 
 local tabsLayout = Instance.new("UIGridLayout")
-tabsLayout.CellSize = UDim2.fromOffset(108, 22) -- 탭 버튼 크기 최적화
+tabsLayout.CellSize = UDim2.fromOffset(108, 22)
 tabsLayout.CellPadding = UDim2.fromOffset(4, 4)
 tabsLayout.SortOrder = Enum.SortOrder.LayoutOrder
 tabsLayout.Parent = tabs
 
 local content = Instance.new("Frame")
-content.Size = UDim2.new(1, -16, 1, -92) -- 컨텐츠 영역 위치와 크기 재조정
+content.Size = UDim2.new(1, -16, 1, -92)
 content.Position = UDim2.fromOffset(8, 86)
 content.BackgroundColor3 = Color3.fromRGB(12, 12, 14)
 content.BorderColor3 = Color3.fromRGB(30, 30, 34)
@@ -336,7 +336,6 @@ local function page(name)
 	return frame
 end
 
--- 7개 탭 페이지 생성
 local mainPage = page("main")
 local worldPage = page("world")
 local espPage = page("esp")
@@ -377,7 +376,6 @@ local function tab(text, name, order)
 	tabButtons[name] = button
 end
 
--- 순서 배치 (misc와 settings를 아래쪽으로 자연스럽게 배치)
 tab("main", "main", 1)
 tab("world", "world", 2)
 tab("esp", "esp", 3)
@@ -457,6 +455,7 @@ local godModeButton = toggle(worldPage, "god mode (forcefield)", 130)
 heading(espPage, "player esp & information")
 local espButton = toggle(espPage, "player esp", 40)
 local namesButton = toggle(espPage, "player names", 70)
+local healthButton = toggle(espPage, "player health text", 100) -- [신규 추가: 플레이어 체력 수치 표시 기능]
 
 heading(visualsPage, "position manipulation & extreme utility")
 local orbitButton = toggle(visualsPage, "orbit position mode", 40)
@@ -523,7 +522,6 @@ local bindAutoTpBtn   = createKeybindRow(settingPage, "Key: Auto 50k TP", "autoT
 local bindOrbitBtn    = createKeybindRow(settingPage, "Key: Orbit Mode", "orbit", 144)
 local bindFlyBtn      = createKeybindRow(settingPage, "Key: Fly Toggle", "fly", 176)
 
--- 입력 감지 이벤트
 trackConn(UserInputService.InputBegan:Connect(function(input, gameProcessed)
 	if input.UserInputType == Enum.UserInputType.Keyboard then
 		if listeningKey then
@@ -620,7 +618,7 @@ unloadBtn.MouseButton1Click:Connect(function()
 end)
 
 ----------------------------------------------------
--- 비행(Fly) 루프 엔진 (모바일 방향 반전 수정 반영)
+-- 비행(Fly) 루프 엔진
 ----------------------------------------------------
 toggleFly = function(state)
 	flyOn = state
@@ -667,7 +665,6 @@ toggleFly = function(state)
 				moveDir = moveDir - Vector3.new(0, 1, 0)
 			end
 
-			-- 모바일 이동 스틱/패드 입력 방향 정방향 수정
 			if currentHum.MoveDirection.Magnitude > 0 then
 				local camVector = currentCam.CFrame:VectorToWorldSpace(Vector3.new(currentHum.MoveDirection.X, 0, currentHum.MoveDirection.Z))
 				moveDir = moveDir + Vector3.new(-camVector.X, camVector.Y, -camVector.Z)
@@ -697,7 +694,7 @@ toggleFly = function(state)
 end
 
 ----------------------------------------------------
--- ESP 시스템
+-- ESP & Health Text 시스템 (체력 숫자 표시 연동)
 ----------------------------------------------------
 local espCache = {}
 
@@ -705,6 +702,7 @@ local function removeEsp(p)
 	if espCache[p] then
 		if espCache[p].Highlight then espCache[p].Highlight:Destroy() end
 		if espCache[p].Billboard then espCache[p].Billboard:Destroy() end
+		if espCache[p].HealthBillboard then espCache[p].HealthBillboard:Destroy() end
 		espCache[p] = nil
 	end
 end
@@ -712,11 +710,14 @@ end
 local function updateEspForPlayer(p)
 	if p == player then return end
 	local char = p.Character
-	if (not espOn and not namesOn) or not char or not char:FindFirstChild("HumanoidRootPart") then
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	
+	if (not espOn and not namesOn and not healthOn) or not char or not char:FindFirstChild("HumanoidRootPart") then
 		removeEsp(p)
 		return
 	end
 
+	-- 1. 고정 하이라이트 (ESP)
 	local highlight = espCache[p] and espCache[p].Highlight
 	if espOn then
 		if not highlight or not highlight.Parent then
@@ -736,13 +737,14 @@ local function updateEspForPlayer(p)
 	end
 
 	local head = char:FindFirstChild("Head")
-	local billboard = espCache[p] and espCache[p].Billboard
 	
+	-- 2. 플레이어 이름 표시
+	local billboard = espCache[p] and espCache[p].Billboard
 	if namesOn and head then
 		if not billboard or not billboard.Parent then
 			billboard = Instance.new("BillboardGui")
 			billboard.Name = "AntiRivalName"
-			billboard.Size = UDim2.new(0, 120, 0, 50)
+			billboard.Size = UDim2.new(0, 120, 0, 30)
 			billboard.StudsOffset = Vector3.new(0, 2.8, 0)
 			billboard.AlwaysOnTop = true
 			billboard.Adornee = head
@@ -766,11 +768,44 @@ local function updateEspForPlayer(p)
 		if billboard then billboard:Destroy() billboard = nil end
 	end
 
-	espCache[p] = { Highlight = highlight, Billboard = billboard }
+	-- 3. 플레이어 체력 수치 표시 (Health Text)
+	local healthBillboard = espCache[p] and espCache[p].HealthBillboard
+	if healthOn and head and hum then
+		if not healthBillboard or not healthBillboard.Parent then
+			healthBillboard = Instance.new("BillboardGui")
+			healthBillboard.Name = "AntiRivalHealth"
+			healthBillboard.Size = UDim2.new(0, 120, 0, 30)
+			healthBillboard.StudsOffset = Vector3.new(0, 1.8, 0) -- 이름표 아래쪽에 위치하도록 오프셋 조정
+			healthBillboard.AlwaysOnTop = true
+			healthBillboard.Adornee = head
+
+			local healthLabel = Instance.new("TextLabel")
+			healthLabel.Name = "HealthText"
+			healthLabel.Size = UDim2.fromScale(1, 1)
+			healthLabel.BackgroundTransparency = 1
+			healthLabel.TextColor3 = Color3.fromRGB(80, 255, 120)
+			healthLabel.TextSize = 12
+			healthLabel.Font = Enum.Font.Code
+			healthLabel.TextStrokeTransparency = 0
+			healthLabel.Parent = healthBillboard
+
+			healthBillboard.Parent = head
+		else
+			healthBillboard.Adornee = head
+			local textLabel = healthBillboard:FindFirstChild("HealthText")
+			if textLabel then
+				textLabel.Text = "HP: " .. math.floor(hum.Health) .. " / " .. math.floor(hum.MaxHealth)
+			end
+		end
+	else
+		if healthBillboard then healthBillboard:Destroy() healthBillboard = nil end
+	end
+
+	espCache[p] = { Highlight = highlight, Billboard = billboard, HealthBillboard = healthBillboard }
 end
 
 trackConn(RunService.RenderStepped:Connect(function()
-	if not espOn and not namesOn then
+	if not espOn and not namesOn and not healthOn then
 		for p, _ in pairs(espCache) do removeEsp(p) end
 		return
 	end
@@ -1003,6 +1038,11 @@ namesButton.MouseButton1Click:Connect(function()
 	setToggle(namesButton, namesOn, "player names")
 end)
 
+healthButton.MouseButton1Click:Connect(function()
+	healthOn = not healthOn
+	setToggle(healthButton, healthOn, "player health text")
+end)
+
 fastShotButton.MouseButton1Click:Connect(function()
 	fastShotOn = not fastShotOn
 	setToggle(fastShotButton, fastShotOn, "fast shot (Engine Bypass)")
@@ -1041,4 +1081,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.15 FREE BUILD Loaded Successfully!")
+print("Anti-rival V1.1.16 FREE BUILD Loaded Successfully!")
