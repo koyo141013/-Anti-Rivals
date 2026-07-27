@@ -616,7 +616,7 @@ trackConn(RunService.RenderStepped:Connect(function()
 				end
 			end
 		end
-	end
+	end)
 end))
 
 -- 4. 갓모드
@@ -862,7 +862,7 @@ end)
 
 flyBox.FocusLost:Connect(function()
 	flySpeed = math.clamp(tonumber(flyBox.Text) or 50, 1, 1000)
-	flySpeed.Text = tostring(flySpeed)
+	flyBox.Text = tostring(flySpeed)
 end)
 
 ragebotButton.MouseButton1Click:Connect(function()
@@ -872,7 +872,7 @@ end)
 
 auraButton.MouseButton1Click:Connect(function()
 	auraOn = not auraOn
-	setToggle(auraButton, auraOn, "aura (auto hit nearby)")
+	setToggle(auraOn, auraOn, "aura (auto hit nearby)")
 end)
 
 wallbangButton.MouseButton1Click:Connect(function()
@@ -897,13 +897,15 @@ namesButton.MouseButton1Click:Connect(function()
 end)
 
 fastShotButton.MouseButton1Click:Connect(function()
-	fastShotOn = not fastShotOn
-	setToggle(fastShotButton, fastShotOn, "fast shot (Engine Bypass)")
+	fastShotButton.MouseButton1Click:Connect(function()
+		fastShotOn = not fastShotOn
+		setToggle(fastShotButton, fastShotOn, "fast shot (Engine Bypass)")
+	end)
 end)
 
 fastShotBox.FocusLost:Connect(function()
-	fastShotRate = math.clamp(tonumber(fastShotRate.Text) or 800, 1, 1000)
-	fastShotRate.Text = tostring(fastShotRate)
+	fastShotRate = math.clamp(tonumber(fastShotBox.Text) or 800, 1, 1000)
+	fastShotBox.Text = tostring(fastShotRate)
 end)
 
 orbitButton.MouseButton1Click:Connect(function()
