@@ -1,4 +1,4 @@
--- [V1.2.16 Update] Added Draggable Mobile Fly UP/DOWN UI Controls & Fixed All Syntax Errors (2026-07-27 17:40)
+-- [V1.3.0 Update] Added Forced 3rd Person Camera Mode & Mobile Fly UP/DOWN Controls (2026-07-27 17:55)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -62,6 +62,7 @@ local godModeOn = false
 local orbitOn = false
 local voidSpanOn = false
 local infiniteJumpOn = false
+local forceThirdPersonOn = false
 
 local fastShotOn = false
 local fastShotRate = 800
@@ -120,7 +121,6 @@ gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- 모바일 전용 플라이 UP / DOWN 컨트롤 UI 생성
 local flyControlGui = Instance.new("ScreenGui")
 flyControlGui.Name = "AntiRivalFlyControls"
 flyControlGui.ResetOnSpawn = false
@@ -157,6 +157,10 @@ downButton.TextSize = 14
 downButton.Font = Enum.Font.Code
 downButton.Active = true
 downButton.Draggable = true
+downButton.Parent = flyControlGui
+
+local flyUpActive, flyDownActive = false, false
+
 trackConn(upButton.MouseButton1Down:Connect(function() flyUpActive = true end))
 trackConn(upButton.MouseButton1Up:Connect(function() flyUpActive = false end))
 
@@ -281,7 +285,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.16-STABLE"
+title.Text = "Anti-rival-V1.3.0-STABLE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -467,6 +471,7 @@ local ragebotButton = toggle(worldPage, "ragebot (auto lock snap)", 40)
 local auraButton = toggle(worldPage, "aura (auto hit nearby)", 70)
 local wallbangButton = toggle(worldPage, "projectile wallbang", 100)
 local godModeButton = toggle(worldPage, "god mode (forcefield)", 130)
+local forceThirdPersonButton = toggle(worldPage, "force 3rd person (rivals)", 160)
 
 heading(espPage, "player esp & information")
 local espButton = toggle(espPage, "player esp", 40)
@@ -915,7 +920,7 @@ randomTpButton.MouseButton1Click:Connect(function()
 			end)
 		end
 	end)
-end)
+end))
 
 trackConn(RunService.RenderStepped:Connect(function()
 	if not ragebotOn then return end
@@ -978,6 +983,19 @@ trackConn(RunService.RenderStepped:Connect(function()
 			end
 		end
 	end)
+end))
+
+trackConn(RunService.RenderStepped:Connect(function()
+	if forceThirdPersonOn then
+		pcall(function()
+			if player.CameraMode ~= Enum.CameraMode.Classic then
+				player.CameraMode = Enum.CameraMode.Classic
+			end
+			if player.CameraMinZoomDistance < 10 then
+				player.CameraMinZoomDistance = 10
+			end
+		end)
+	end
 end))
 
 trackConn(RunService.RenderStepped:Connect(function()
@@ -1079,6 +1097,11 @@ godModeButton.MouseButton1Click:Connect(function()
 	setToggle(godModeButton, godModeOn, "god mode (forcefield)")
 end)
 
+forceThirdPersonButton.MouseButton1Click:Connect(function()
+	forceThirdPersonOn = not forceThirdPersonOn
+	setToggle(forceThirdPersonButton, forceThirdPersonOn, "force 3rd person (rivals)")
+end)
+
 espButton.MouseButton1Click:Connect(function()
 	espOn = not espOn
 	setToggle(espButton, espOn, "player esp")
@@ -1137,4 +1160,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.16 STABLE Loaded Successfully!")
+print("Anti-rival V1.3.0 STABLE Loaded Successfully!")
