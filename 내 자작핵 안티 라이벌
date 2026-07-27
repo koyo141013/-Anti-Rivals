@@ -1,4 +1,4 @@
--- [V1.4.7 Update] UI Title Changed to FREE BUILD & Update Details Refreshed (2026-07-27)
+-- [V1.4.8 Update] Added Game Validation Check for Rivals (Place ID: 17625359962) & Update Details Refreshed (2026-07-27)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -25,6 +25,13 @@ if not player then
 		task.wait(0.1)
 		player = Players.LocalPlayer
 	until player
+end
+
+-- Rivals Place ID Validation Check
+local RIVALS_PLACE_ID = 17625359962
+if game.PlaceId ~= RIVALS_PLACE_ID then
+	player:Kick("Please join Rivals!")
+	return
 end
 
 local isMobile = false
@@ -375,7 +382,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.4.7-FREE BUILD"
+title.Text = "Anti-rival-V1.4.8-FREE BUILD"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -1283,4 +1290,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.4.7 Loaded Successfully with FREE BUILD Title & Keybinds Indicator!")
+print("Anti-rival V1.4.8 Loaded Successfully with Rivals Game Validation Check!")
