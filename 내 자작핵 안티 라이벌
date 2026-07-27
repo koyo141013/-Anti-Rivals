@@ -83,11 +83,12 @@ local walkSpeed, flySpeed = 16, 50
 local flyConnection = nil
 local bodyGyro, bodyVelocity = nil, nil
 
--- 단축키 저장 변수 (기본값 설정)
+-- [업데이트] 단축키 저장 변수 (Fly 기능 단축키 추가, 기본값: F)
 local keybinds = {
 	randomTp = Enum.KeyCode.Q,       -- 랜덤 플레이어 머리 TP 단축키 (기본: Q)
 	autoTp = Enum.KeyCode.E,         -- 오토 50k TP 단축키 (기본: E)
-	orbit = Enum.KeyCode.R           -- 오르빗 모드 단축키 (기본: R)
+	orbit = Enum.KeyCode.R,          -- 오르빗 모드 단축키 (기본: R)
+	fly = Enum.KeyCode.F             -- 비행(Fly) 기능 단축키 (기본: F)
 }
 local listeningKey = nil -- 현재 키바인딩을 변경하기 위해 대기 중인 항목
 
@@ -214,7 +215,7 @@ innerBorder.BorderSizePixel = 1
 innerBorder.Parent = window
 
 ----------------------------------------------------
--- Header (드래그 및 타이틀 - 버전 V1.1.10 반영)
+-- Header (드래그 및 타이틀 - 버전 V1.1.11 반영)
 ----------------------------------------------------
 local header = Instance.new("Frame")
 header.Size = UDim2.new(1, 0, 0, 28)
@@ -260,7 +261,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.1.10-FREE BUILD" -- [버전업 V1.1.10 적용 완료]
+title.Text = "Anti-rival-V1.1.11-FREE BUILD" -- [버전업 V1.1.11 적용 완료]
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -518,6 +519,7 @@ end
 local bindRandomTpBtn = createKeybindRow(settingPage, "Key: Random Head TP", "randomTp", 80)
 local bindAutoTpBtn   = createKeybindRow(settingPage, "Key: Auto 50k TP", "autoTp", 112)
 local bindOrbitBtn    = createKeybindRow(settingPage, "Key: Orbit Mode", "orbit", 144)
+local bindFlyBtn      = createKeybindRow(settingPage, "Key: Fly Toggle", "fly", 176) -- [추가] Fly 단축키 설정 UI 행
 
 -- 입력 감지 이벤트 (설정창에서 키를 누르거나 게임 플레이 중 단축키 실행)
 trackConn(UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -535,6 +537,9 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gameProcessed)
 				elseif listeningKey == "orbit" then
 					bindOrbitBtn.Text = tostring(input.KeyCode.Name)
 					bindOrbitBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
+				elseif listeningKey == "fly" then
+					bindFlyBtn.Text = tostring(input.KeyCode.Name)
+					bindFlyBtn.TextColor3 = Color3.fromRGB(100, 200, 255)
 				end
 			end
 			listeningKey = nil
@@ -577,6 +582,11 @@ trackConn(UserInputService.InputBegan:Connect(function(input, gameProcessed)
 					setToggle(voidSpanButton, false, "void span mode") 
 				end
 				setToggle(orbitButton, orbitOn, "orbit position mode")
+			elseif input.KeyCode == keybinds.fly then
+				-- [추가] Fly 단축키가 눌렸을 때 비행 기능 토글 실행
+				if toggleFly then 
+					toggleFly(not flyOn) 
+				end
 			end
 		end
 	end
@@ -584,7 +594,7 @@ end))
 
 local unloadBtn = Instance.new("TextButton")
 unloadBtn.Size = UDim2.fromOffset(286, 28)
-unloadBtn.Position = UDim2.fromOffset(14, 185)
+unloadBtn.Position = UDim2.fromOffset(14, 215) -- [위치 조정] 단축키 항목 추가로 인한 언로드 버튼 위치 하향 조정
 unloadBtn.BackgroundColor3 = Color3.fromRGB(110, 30, 30)
 unloadBtn.BorderColor3 = Color3.fromRGB(150, 50, 50)
 unloadBtn.BorderSizePixel = 1
@@ -1006,7 +1016,6 @@ orbitButton.MouseButton1Click:Connect(function()
 	setToggle(orbitButton, orbitOn, "orbit position mode")
 end)
 
--- [오류 수정 완료] 변수명 오타(voidSpawnOn -> voidSpanOn)를 올바르게 수정하여 버튼 클릭 시 정상 작동하도록 처리
 voidSpanButton.MouseButton1Click:Connect(function()
 	voidSpanOn = not voidSpanOn
 	if voidSpanOn then orbitOn = false setToggle(orbitButton, false, "orbit position mode") end
@@ -1019,6 +1028,7 @@ teleporterButton.MouseButton1Click:Connect(function()
 end)
 
 teleporterBox.FocusLost:Connect(function()
+	teleportDistance = math.clamp(tonumber(teleporterBox.Text) or 50000, 1, 1000000)
 	teleporterBox.Text = tostring(teleportDistance)
 end)
 
@@ -1028,4 +1038,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.1.10 FREE BUILD Loaded Successfully!")
+print("Anti-rival V1.1.11 FREE BUILD Loaded Successfully!")
