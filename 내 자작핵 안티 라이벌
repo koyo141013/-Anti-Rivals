@@ -1,15 +1,17 @@
--- [클린업] 기존 실행 중이던 모든 구버전 데이터 강제 종료
-pcall(function()
-	if getgenv().AntiRivalConnectionList then
+-- [V1.2.6 방어 구문] 1번 줄 에러 방지를 위한 최우선 안전 장치
+local successInit, initError = pcall(function()
+	if getgenv and type(getgenv) == "function" then
+		if not getgenv().AntiRivalConnectionList then
+			getgenv().AntiRivalConnectionList = {}
+		end
 		for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
 			if typeof(conn) == "RBXScriptConnection" then
 				conn:Disconnect()
 			end
 		end
+		getgenv().AntiRivalConnectionList = {}
 	end
 end)
-
-getgenv().AntiRivalConnectionList = {}
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -34,11 +36,13 @@ end
 
 local uiScaleFactor = isMobile and 0.55 or 1.0
 
--- 화면 멈춤 연출 제거 및 안정화
 pcall(function()
-	for _, guiObj in ipairs(player:WaitForChild("PlayerGui"):GetChildren()) do
-		if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
-			guiObj:Destroy()
+	local playerGui = player:WaitForChild("PlayerGui", 5)
+	if playerGui then
+		for _, guiObj in ipairs(playerGui:GetChildren()) do
+			if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name:find("AntiRival") then
+				guiObj:Destroy()
+			end
 		end
 	end
 end)
@@ -59,7 +63,6 @@ local lastTeleportTick = 0
 local teleportDistance = 50000
 
 local walkSpeed, flySpeed = 16, 50
-
 local flyConnection = nil
 local bodyGyro, bodyVelocity = nil, nil
 
@@ -72,7 +75,7 @@ local keybinds = {
 local listeningKey = nil
 
 local function trackConn(conn)
-	if conn then
+	if conn and getgenv and getgenv().AntiRivalConnectionList then
 		table.insert(getgenv().AntiRivalConnectionList, conn)
 	end
 	return conn
@@ -218,7 +221,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.2.5-STABLE"
+title.Text = "Anti-rival-V1.2.6-SECURE"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -558,7 +561,7 @@ unloadBtn.Parent = settingPage
 
 unloadBtn.MouseButton1Click:Connect(function()
 	pcall(function()
-		if getgenv().AntiRivalConnectionList then
+		if getgenv and getgenv().AntiRivalConnectionList then
 			for _, conn in ipairs(getgenv().AntiRivalConnectionList) do
 				if typeof(conn) == "RBXScriptConnection" then
 					conn:Disconnect()
@@ -683,7 +686,6 @@ local function updateEspForPlayer(p)
 		if not infoBillboard or not infoBillboard.Parent then
 			infoBillboard = Instance.new("BillboardGui")
 			infoBillboard.Name = "AntiRivalInfo"
-			-- 빌보드 크기를 넉넉하게 잡고 스케일/오프셋 고정
 			infoBillboard.Size = UDim2.new(0, 200, 0, 60)
 			infoBillboard.StudsOffset = Vector3.new(0, 3.0, 0)
 			infoBillboard.AlwaysOnTop = true
@@ -694,7 +696,7 @@ local function updateEspForPlayer(p)
 			uiList.HorizontalAlignment = Enum.HorizontalAlignment.Center
 			uiList.VerticalAlignment = Enum.VerticalAlignment.Center
 			uiList.SortOrder = Enum.SortOrder.LayoutOrder
-			uiList.Padding = UDim.new(0, 4) -- 줄 간격 여유 확보
+			uiList.Padding = UDim.new(0, 4)
 			uiList.Parent = infoBillboard
 
 			local nameText = Instance.new("TextLabel")
@@ -1016,4 +1018,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.2.5 STABLE Loaded Successfully!")
+print("Anti-rival V1.2.6 SECURE Loaded Successfully!")
