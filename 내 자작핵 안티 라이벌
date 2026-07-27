@@ -1,4 +1,4 @@
--- [V1.4.6 Update] Force 3rd Person Zoom Bug Fix & Keybinds Indicator UI Integrated (2026-07-27)
+-- [V1.4.7 Update] UI Title Changed to FREE BUILD & Update Details Refreshed (2026-07-27)
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -375,7 +375,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.4.6-MODERN"
+title.Text = "Anti-rival-V1.4.7-FREE BUILD"
 title.TextColor3 = Color3.fromRGB(80, 150, 255)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -1283,4 +1283,4 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.4.6 Loaded Successfully with Keybinds Indicator!")
+print("Anti-rival V1.4.7 Loaded Successfully with FREE BUILD Title & Keybinds Indicator!")
