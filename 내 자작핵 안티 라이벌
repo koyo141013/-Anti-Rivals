@@ -1,5 +1,5 @@
--- [V1.5.8 Update] Advanced Anti-Cheat Environment & Garbage Collection Hook Protection, Refreshed (2026-07-28 10:14:55)
--- [Update Notice] 당분간 모두 무료로 Premium Build 사용 가능
+-- [V1.5.9 Update] Advanced Anti-Cheat Environment & Garbage Collection Hook Protection, Xeno Kick Logic, Refreshed (2026-07-28 10:59:40)
+-- [Update Notice] Premium Build is currently available for free to everyone for the time being.
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -11,6 +11,20 @@ local successInit, initError = pcall(function()
 			end
 		end
 		getgenv().AntiRivalConnectionList = {}
+	end
+end)
+
+-- 익스큐터(Xeno) 감지 및 차단 로직 (Kick)
+pcall(function()
+	local executorName = ""
+	if identifyexecutor then
+		executorName = identifyexecutor()
+	elseif getexecutorname then
+		executorName = getexecutorname()
+	end
+	
+	if type(executorName) == "string" and executorName:lower():find("xeno") then
+		game:GetService("Players").LocalPlayer:Kick("This script is not supported in this executor!")
 	end
 end)
 
@@ -193,7 +207,7 @@ kbTitle.Size = UDim2.new(1, 0, 0, 28)
 kbTitle.Position = UDim2.fromOffset(10, 0)
 kbTitle.BackgroundTransparency = 1
 kbTitle.RichText = true
-kbTitle.Text = '<font color="rgb(255,0,0)">Keybinds (V1.5.8 Premium Build)</font>'
+kbTitle.Text = '<font color="rgb(255,0,0)">Keybinds (V1.5.9 Premium Build)</font>'
 kbTitle.TextColor3 = Color3.fromRGB(220, 220, 230)
 kbTitle.TextSize = 13
 kbTitle.Font = Enum.Font.Code
@@ -427,7 +441,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.5.8-Premium BUILD"
+title.Text = "Anti-rival-V1.5.9-Premium BUILD"
 title.TextColor3 = Color3.fromRGB(255, 0, 0)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -1403,5 +1417,5 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.5.8 Premium Build Loaded Successfully!")
-print("[Update Info] Version: V1.5.8 | Time: 2026-07-28 10:14:55 KST | 당분간 모두 무료로 Premium Build 사용 가능")
+print("Anti-rival V1.5.9 Premium Build Loaded Successfully!")
+print("[Update Info] Version: V1.5.9 | Time: 2026-07-28 10:59:40 KST | Xeno Detection & Kick Logic Added | Premium Build is currently available for free to everyone for the time being.")
