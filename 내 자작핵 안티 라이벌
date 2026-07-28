@@ -1,4 +1,4 @@
--- [V1.5.9 Update] Advanced Anti-Cheat Environment & Garbage Collection Hook Protection, Xeno Kick Logic, Refreshed (2026-07-28 10:59:40)
+-- [V1.6.0.1 Update] Text Overflow Fix Applied, AutomaticSize Added, Advanced Anti-Cheat Environment, Garbage Collection Hook Protection, Xeno Kick Logic, Show Keybinds & Draggable Watermark Added, Refreshed (2026-07-28 13:00:07)
 -- [Update Notice] Premium Build is currently available for free to everyone for the time being.
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
@@ -31,19 +31,16 @@ end)
 -- 추가적인 안티치트 우회 및 환경 무결성 은폐 레이어 (Advanced Anti-Cheat Hook & GC Spoofing)
 pcall(function()
 	if getgenv and hookfunction and newcclosure then
-		-- 1. 환경 함수 변조 및 후크 위장 보호
 		local coreGui = game:GetService("CoreGui")
 		if protectgui then
 			pcall(function() protectgui(gui) end)
 		end
 
-		-- 2. 가비지 컬렉션(getgc) 및 전역 환경 감지 방어 시뮬레이션
 		if getgc and type(getgc) == "function" then
 			for _, obj in ipairs(getgc(true)) do
 				if type(obj) == "table" then
 					pcall(function()
 						if rawget(obj, "Detect") or rawget(obj, "AntiCheat") then
-							-- 안티치트 내부 감지 테이블 필드 무력화 시도
 							rawset(obj, "Detect", function() return false end)
 						end
 					end)
@@ -51,7 +48,6 @@ pcall(function()
 			end
 		end
 
-		-- 3. 메타테이블 후크를 이용한 핵심 프로퍼티 및 함수 감지 회피
 		local mt = getrawmetatable and getrawmetatable(game)
 		if mt and setreadonly then
 			setreadonly(mt, false)
@@ -101,7 +97,7 @@ pcall(function()
 	local playerGui = player:WaitForChild("PlayerGui", 5)
 	if playerGui then
 		for _, guiObj in ipairs(playerGui:GetChildren()) do
-			if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name == "AntiRivalKeybinds" or guiObj.Name:find("AntiRival") then
+			if guiObj.Name == "AntiRival" or guiObj.Name == "AntiRivalGui" or guiObj.Name == "AntiRivalKeybinds" or guiObj.Name == "AntiRivalWatermark" or guiObj.Name:find("AntiRival") then
 				guiObj:Destroy()
 			end
 		end
@@ -118,6 +114,9 @@ local orbitOn = false
 local voidSpanOn = false
 local infiniteJumpOn = false
 local forceThirdPersonOn = false
+
+local showKeybindsOn = true
+local showWatermarkOn = true
 
 local fastShotOn = false
 local fastShotRate = 800
@@ -186,6 +185,65 @@ keybindGui.ResetOnSpawn = false
 keybindGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 keybindGui.Parent = player:WaitForChild("PlayerGui")
 
+local watermarkGui = Instance.new("ScreenGui")
+watermarkGui.Name = "AntiRivalWatermark"
+watermarkGui.ResetOnSpawn = false
+watermarkGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+watermarkGui.Parent = player:WaitForChild("PlayerGui")
+
+local watermarkFrame = Instance.new("Frame")
+watermarkFrame.Name = "WatermarkFrame"
+watermarkFrame.Size = UDim2.new(0, 0, 0, 26)
+watermarkFrame.AutomaticSize = Enum.AutomaticSize.X
+watermarkFrame.Position = UDim2.new(0, 15, 0, 120)
+watermarkFrame.BackgroundColor3 = Color3.fromRGB(14, 14, 18)
+watermarkFrame.BackgroundTransparency = 0.2
+watermarkFrame.BorderColor3 = Color3.fromRGB(45, 45, 60)
+watermarkFrame.BorderSizePixel = 1
+watermarkFrame.Active = true
+watermarkFrame.Draggable = true
+watermarkFrame.Parent = watermarkGui
+
+local wmCorner = Instance.new("UICorner")
+wmCorner.CornerRadius = UDim.new(0, 4)
+wmCorner.Parent = watermarkFrame
+
+local wmPadding = Instance.new("UIPadding")
+wmPadding.PaddingLeft = UDim.new(0, 12)
+wmPadding.PaddingRight = UDim.new(0, 12)
+wmPadding.PaddingTop = UDim.new(0, 0)
+wmPadding.PaddingBottom = UDim.new(0, 0)
+wmPadding.Parent = watermarkFrame
+
+local watermarkLabel = Instance.new("TextLabel")
+watermarkLabel.Size = UDim2.new(0, 0, 1, 0)
+watermarkLabel.AutomaticSize = Enum.AutomaticSize.X
+watermarkLabel.BackgroundTransparency = 1
+watermarkLabel.RichText = true
+watermarkLabel.Text = 'Anti rival | Rivals | Premium Build | 60 FPS'
+watermarkLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
+watermarkLabel.TextSize = 11
+watermarkLabel.Font = Enum.Font.Code
+watermarkLabel.TextXAlignment = Enum.TextXAlignment.Center
+watermarkLabel.TextYAlignment = Enum.TextYAlignment.Center
+watermarkLabel.Parent = watermarkFrame
+
+local lastFpsUpdate = 0
+local frameCount = 0
+local currentFps = 60
+trackConn(RunService.RenderStepped:Connect(function(dt)
+	frameCount = frameCount + 1
+	local now = os.clock()
+	if now - lastFpsUpdate >= 0.5 then
+		currentFps = math.floor((frameCount / (now - lastFpsUpdate)) + 0.5)
+		frameCount = 0
+		lastFpsUpdate = now
+		if showWatermarkOn then
+			watermarkLabel.Text = 'Anti rival | Rivals | Premium Build | <font color="rgb(100,220,100)">' .. currentFps .. ' FPS</font>'
+		end
+	end
+end))
+
 local kbFrame = Instance.new("Frame")
 kbFrame.Name = "KeybindsMainFrame"
 kbFrame.Size = UDim2.fromOffset(270, 245)
@@ -207,7 +265,7 @@ kbTitle.Size = UDim2.new(1, 0, 0, 28)
 kbTitle.Position = UDim2.fromOffset(10, 0)
 kbTitle.BackgroundTransparency = 1
 kbTitle.RichText = true
-kbTitle.Text = '<font color="rgb(255,0,0)">Keybinds (V1.5.9 Premium Build)</font>'
+kbTitle.Text = '<font color="rgb(255,0,0)">Keybinds (V1.6.0.1 Premium Build)</font>'
 kbTitle.TextColor3 = Color3.fromRGB(220, 220, 230)
 kbTitle.TextSize = 13
 kbTitle.Font = Enum.Font.Code
@@ -441,7 +499,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.5.9-Premium BUILD"
+title.Text = "Anti-rival-V1.6.0.1-Premium BUILD"
 title.TextColor3 = Color3.fromRGB(255, 0, 0)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -661,7 +719,29 @@ local infiniteJumpButton = toggle(characterPage, "infinite jump", 106)
 heading(miscPage, "misc / cosmetic settings")
 local noclipButton = toggle(miscPage, "noclip", 40)
 
-heading(settingPage, "settings & keybinds manager")
+heading(settingPage, "settings & UI manager")
+
+local showKeybindsButton = toggle(settingPage, "show keybinds", 40)
+showKeybindsButton.BackgroundColor3 = Color3.fromRGB(35, 75, 50)
+showKeybindsButton.BorderColor3 = Color3.fromRGB(50, 110, 70)
+showKeybindsButton.Text = "show keybinds: ON"
+
+showKeybindsButton.MouseButton1Click:Connect(function()
+	showKeybindsOn = not showKeybindsOn
+	setToggle(showKeybindsButton, showKeybindsOn, "show keybinds")
+	kbFrame.Visible = showKeybindsOn
+end)
+
+local showWatermarkButton = toggle(settingPage, "show watermark", 70)
+showWatermarkButton.BackgroundColor3 = Color3.fromRGB(35, 75, 50)
+showWatermarkButton.BorderColor3 = Color3.fromRGB(50, 110, 70)
+showWatermarkButton.Text = "show watermark: ON"
+
+showWatermarkButton.MouseButton1Click:Connect(function()
+	showWatermarkOn = not showWatermarkOn
+	setToggle(showWatermarkButton, showWatermarkOn, "show watermark")
+	watermarkFrame.Visible = showWatermarkOn
+end)
 
 local function createKeybindRow(parent, labelText, keyName, yPos)
 	local lbl = Instance.new("TextLabel")
@@ -696,12 +776,12 @@ local function createKeybindRow(parent, labelText, keyName, yPos)
 	return bindBtn
 end
 
-local bindRandomTpBtn = createKeybindRow(settingPage, "Key: Random Head TP", "randomTp", 50)
-local bindAutoTpBtn   = createKeybindRow(settingPage, "Key: Auto 50k TP", "autoTp", 80)
-local bindOrbitBtn    = createKeybindRow(settingPage, "Key: Orbit Mode", "orbit", 110)
-local bindFightBtn    = createKeybindRow(settingPage, "Key: Fight Mode Toggle", "fight", 140)
-local bindNoclipBtn   = createKeybindRow(settingPage, "Key: Noclip", "noclip", 170)
-local bindEspBtn      = createKeybindRow(settingPage, "Key: Player ESP", "esp", 200)
+local bindRandomTpBtn = createKeybindRow(settingPage, "Key: Random Head TP", "randomTp", 105)
+local bindAutoTpBtn   = createKeybindRow(settingPage, "Key: Auto 50k TP", "autoTp", 135)
+local bindOrbitBtn    = createKeybindRow(settingPage, "Key: Orbit Mode", "orbit", 165)
+local bindFightBtn    = createKeybindRow(settingPage, "Key: Fight Mode Toggle", "fight", 195)
+local bindNoclipBtn   = createKeybindRow(settingPage, "Key: Noclip", "noclip", 225)
+local bindEspBtn      = createKeybindRow(settingPage, "Key: Player ESP", "esp", 255)
 
 local function handleInputBegan(input, gameProcessed)
 	if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -816,7 +896,7 @@ end))
 
 local unloadBtn = Instance.new("TextButton")
 unloadBtn.Size = UDim2.fromOffset(286, 28)
-unloadBtn.Position = UDim2.fromOffset(14, 235)
+unloadBtn.Position = UDim2.fromOffset(14, 290)
 unloadBtn.BackgroundColor3 = Color3.fromRGB(110, 30, 30)
 unloadBtn.BorderColor3 = Color3.fromRGB(150, 50, 50)
 unloadBtn.BorderSizePixel = 1
@@ -839,6 +919,7 @@ unloadBtn.MouseButton1Click:Connect(function()
 	pcall(function() if gamma then gamma:Destroy() end end)
 	pcall(function() if gui then gui:Destroy() end end)
 	pcall(function() if keybindGui then keybindGui:Destroy() end end)
+	pcall(function() if watermarkGui then watermarkGui:Destroy() end end)
 	pcall(function() if fightControlGui then fightControlGui:Destroy() end end)
 end)
 
@@ -1417,5 +1498,5 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.5.9 Premium Build Loaded Successfully!")
-print("[Update Info] Version: V1.5.9 | Time: 2026-07-28 10:59:40 KST | Xeno Detection & Kick Logic Added | Premium Build is currently available for free to everyone for the time being.")
+print("Anti-rival V1.6.0.1 Premium Build Loaded Successfully!")
+print("[Update Info] Version: V1.6.0.1 | Time: 2026-07-28 13:00:07 KST | Watermark Text Overflow Fixed with AutomaticSize | Show Keybinds & Draggable Watermark Added")
