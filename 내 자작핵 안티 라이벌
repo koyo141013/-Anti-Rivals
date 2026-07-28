@@ -1,4 +1,4 @@
--- [V1.6.0.1 Update] Text Overflow Fix Applied, AutomaticSize Added, Advanced Anti-Cheat Environment, Garbage Collection Hook Protection, Xeno Kick Logic, Show Keybinds & Draggable Watermark Added, Refreshed (2026-07-28 13:00:07)
+-- [V1.7.0 Update] Signature A&R Art Added, Watermark Text Updated, Text Overflow Fix Applied, AutomaticSize Added, Watermark Size & Padding Expanded, Advanced Anti-Cheat Environment, Garbage Collection Hook Protection, Xeno Kick Logic, Show Keybinds & Draggable Watermark Added, Refreshed (2026-07-28 14:29:08)
 -- [Update Notice] Premium Build is currently available for free to everyone for the time being.
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
@@ -208,23 +208,42 @@ local wmCorner = Instance.new("UICorner")
 wmCorner.CornerRadius = UDim.new(0, 4)
 wmCorner.Parent = watermarkFrame
 
+-- UI 배치 레이아웃 (로고와 텍스트를 나란히 정렬)
+local wmLayout = Instance.new("UIListLayout")
+wmLayout.FillDirection = Enum.FillDirection.Horizontal
+wmLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+wmLayout.SortOrder = Enum.SortOrder.LayoutOrder
+wmLayout.Padding = UDim.new(0, 6)
+wmLayout.Parent = watermarkFrame
+
 local wmPadding = Instance.new("UIPadding")
-wmPadding.PaddingLeft = UDim.new(0, 12)
-wmPadding.PaddingRight = UDim.new(0, 12)
-wmPadding.PaddingTop = UDim.new(0, 0)
-wmPadding.PaddingBottom = UDim.new(0, 0)
+wmPadding.PaddingLeft = UDim.new(0, 22)
+wmPadding.PaddingRight = UDim.new(0, 22)
+wmPadding.PaddingTop = UDim.new(0, 10)
+wmPadding.PaddingBottom = UDim.new(0, 10)
 wmPadding.Parent = watermarkFrame
 
+-- 제공해주신 ID를 적용한 로고 이미지 (ImageLabel)
+local wmLogo = Instance.new("ImageLabel")
+wmLogo.Name = "LogoImage"
+wmLogo.LayoutOrder = 1
+wmLogo.Size = UDim2.new(0, 20, 0, 20)
+wmLogo.BackgroundTransparency = 1
+wmLogo.Image = "rbxassetid://91419475783196"
+wmLogo.Parent = watermarkFrame
+
 local watermarkLabel = Instance.new("TextLabel")
+watermarkLabel.Name = "TextInfo"
+watermarkLabel.LayoutOrder = 2
 watermarkLabel.Size = UDim2.new(0, 0, 1, 0)
 watermarkLabel.AutomaticSize = Enum.AutomaticSize.X
 watermarkLabel.BackgroundTransparency = 1
 watermarkLabel.RichText = true
-watermarkLabel.Text = 'Anti rival | Rivals | Premium Build | 60 FPS'
+watermarkLabel.Text = '| Anti rival | Rivals | Premium Build | ' .. player.Name .. ' | <font color="rgb(100,220,100)">60 FPS</font>'
 watermarkLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
 watermarkLabel.TextSize = 11
-watermarkLabel.Font = Enum.Font.Code
-watermarkLabel.TextXAlignment = Enum.TextXAlignment.Center
+watermarkLabel.Font = Enum.Font.GothamBold
+watermarkLabel.TextXAlignment = Enum.TextXAlignment.Left
 watermarkLabel.TextYAlignment = Enum.TextYAlignment.Center
 watermarkLabel.Parent = watermarkFrame
 
@@ -239,7 +258,7 @@ trackConn(RunService.RenderStepped:Connect(function(dt)
 		frameCount = 0
 		lastFpsUpdate = now
 		if showWatermarkOn then
-			watermarkLabel.Text = 'Anti rival | Rivals | Premium Build | <font color="rgb(100,220,100)">' .. currentFps .. ' FPS</font>'
+			watermarkLabel.Text = '| Anti rival | Rivals | Premium Build | ' .. player.Name .. ' | <font color="rgb(100,220,100)">' .. currentFps .. ' FPS</font>'
 		end
 	end
 end))
@@ -265,7 +284,7 @@ kbTitle.Size = UDim2.new(1, 0, 0, 28)
 kbTitle.Position = UDim2.fromOffset(10, 0)
 kbTitle.BackgroundTransparency = 1
 kbTitle.RichText = true
-kbTitle.Text = '<font color="rgb(255,0,0)">Keybinds (V1.6.0.1 Premium Build)</font>'
+kbTitle.Text = '<font color="rgb(255,0,0)">Keybinds (V1.7.0 Premium Build)</font>'
 kbTitle.TextColor3 = Color3.fromRGB(220, 220, 230)
 kbTitle.TextSize = 13
 kbTitle.Font = Enum.Font.Code
@@ -499,7 +518,7 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.6.0.1-Premium BUILD"
+title.Text = "Anti-rival-V1.7.0-Premium BUILD"
 title.TextColor3 = Color3.fromRGB(255, 0, 0)
 title.TextSize = 11
 title.Font = Enum.Font.Code
@@ -1498,5 +1517,5 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.6.0.1 Premium Build Loaded Successfully!")
-print("[Update Info] Version: V1.6.0.1 | Time: 2026-07-28 13:00:07 KST | Watermark Text Overflow Fixed with AutomaticSize | Show Keybinds & Draggable Watermark Added")
+print("Anti-rival V1.7.0 Premium Build Loaded Successfully!")
+print("[Update Info] Version: V1.7.0 | Time: 2026-07-28 14:29:08 KST | Signature A&R Art Added to Watermark")
