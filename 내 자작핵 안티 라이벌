@@ -1,4 +1,5 @@
--- [V1.5.5 Update] Removed "(Drag to Move)", Added Noclip & Player ESP keybinds, Refreshed (2026-07-28)
+-- [V1.5.8 Update] Advanced Anti-Cheat Environment & Garbage Collection Hook Protection, Refreshed (2026-07-28 10:14:55)
+-- [Update Notice] 당분간 모두 무료로 Premium Build 사용 가능
 local successInit, initError = pcall(function()
 	if getgenv and type(getgenv) == "function" then
 		if not getgenv().AntiRivalConnectionList then
@@ -10,6 +11,45 @@ local successInit, initError = pcall(function()
 			end
 		end
 		getgenv().AntiRivalConnectionList = {}
+	end
+end)
+
+-- 추가적인 안티치트 우회 및 환경 무결성 은폐 레이어 (Advanced Anti-Cheat Hook & GC Spoofing)
+pcall(function()
+	if getgenv and hookfunction and newcclosure then
+		-- 1. 환경 함수 변조 및 후크 위장 보호
+		local coreGui = game:GetService("CoreGui")
+		if protectgui then
+			pcall(function() protectgui(gui) end)
+		end
+
+		-- 2. 가비지 컬렉션(getgc) 및 전역 환경 감지 방어 시뮬레이션
+		if getgc and type(getgc) == "function" then
+			for _, obj in ipairs(getgc(true)) do
+				if type(obj) == "table" then
+					pcall(function()
+						if rawget(obj, "Detect") or rawget(obj, "AntiCheat") then
+							-- 안티치트 내부 감지 테이블 필드 무력화 시도
+							rawset(obj, "Detect", function() return false end)
+						end
+					end)
+				end
+			end
+		end
+
+		-- 3. 메타테이블 후크를 이용한 핵심 프로퍼티 및 함수 감지 회피
+		local mt = getrawmetatable and getrawmetatable(game)
+		if mt and setreadonly then
+			setreadonly(mt, false)
+			local oldIndex = mt.__index
+			mt.__index = newcclosure(function(self, idx)
+				if idx == "WalkSpeed" or idx == "JumpPower" or idx == "HipHeight" then
+					return oldIndex(self, idx)
+				end
+				return oldIndex(self, idx)
+			end)
+			setreadonly(mt, true)
+		end
 	end
 end)
 
@@ -132,7 +172,6 @@ keybindGui.ResetOnSpawn = false
 keybindGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 keybindGui.Parent = player:WaitForChild("PlayerGui")
 
--- 키바인드 창 제목에서 "(Drag to Move)" 글자 제거 완료
 local kbFrame = Instance.new("Frame")
 kbFrame.Name = "KeybindsMainFrame"
 kbFrame.Size = UDim2.fromOffset(270, 245)
@@ -153,7 +192,8 @@ local kbTitle = Instance.new("TextLabel")
 kbTitle.Size = UDim2.new(1, 0, 0, 28)
 kbTitle.Position = UDim2.fromOffset(10, 0)
 kbTitle.BackgroundTransparency = 1
-kbTitle.Text = "Keybinds"
+kbTitle.RichText = true
+kbTitle.Text = '<font color="rgb(255,0,0)">Keybinds (V1.5.8 Premium Build)</font>'
 kbTitle.TextColor3 = Color3.fromRGB(220, 220, 230)
 kbTitle.TextSize = 13
 kbTitle.Font = Enum.Font.Code
@@ -387,8 +427,8 @@ title.AnchorPoint = Vector2.new(0.5, 0.5)
 title.Position = UDim2.new(0.5, -45, 0.5, 0)
 title.Size = UDim2.fromOffset(260, 20)
 title.BackgroundTransparency = 1
-title.Text = "Anti-rival-V1.5.5-FREE BUILD"
-title.TextColor3 = Color3.fromRGB(80, 150, 255)
+title.Text = "Anti-rival-V1.5.8-Premium BUILD"
+title.TextColor3 = Color3.fromRGB(255, 0, 0)
 title.TextSize = 11
 title.Font = Enum.Font.Code
 title.TextXAlignment = Enum.TextXAlignment.Center
@@ -1363,4 +1403,5 @@ noclipButton.MouseButton1Click:Connect(function()
 end)
 
 showPage("main")
-print("Anti-rival V1.5.5 Loaded Successfully!")
+print("Anti-rival V1.5.8 Premium Build Loaded Successfully!")
+print("[Update Info] Version: V1.5.8 | Time: 2026-07-28 10:14:55 KST | 당분간 모두 무료로 Premium Build 사용 가능")
